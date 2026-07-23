@@ -1,149 +1,75 @@
+import os from "node:os";
+
 import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
-import { CONFIG_FILE_NAME, DEFAULT_CONFIG } from "../utils/constants.js";
+import { getConfigPath, saveConfig } from "../core/config-store.js";
+import { createStarterConfig } from "../core/starter.js";
+import { generateSshKey } from "../integrations/ssh.js";
+import { assertIdentityId, discoverGitIdentity } from "./shared.js";
 
 const initCommand = defineCommand({
   name: "init",
-  description: "Initialize a new configuration file",
+  description: "Create the identity registry",
   options: {
-    force: option(z.boolean().default(false), {
-      short: "f",
-      description: "Overwrite existing config",
+    id: option(z.string().default("personal"), {
+      description: "Initial identity ID",
+    }),
+    label: option(z.string().default("Personal"), {
+      description: "Display label",
+    }),
+    root: option(z.string().default("~/code/personal"), {
+      description: "Directory root owned by this identity",
+    }),
+    "git-name": option(z.string().optional(), {
+      description: "Git author name (defaults to global Git config)",
+    }),
+    "git-email": option(z.string().email().optional(), {
+      description: "Git author email (defaults to global Git config)",
+    }),
+    "generate-ssh": option(z.boolean().default(false), {
+      description: "Generate an Ed25519 SSH key",
       argumentKind: "flag",
     }),
-    template: option(z.enum(["minimal", "default", "full"]).default("default"), {
-      short: "t",
-      description: "Config template to use",
+    force: option(z.boolean().default(false), {
+      short: "f",
+      description: "Overwrite an existing registry",
+      argumentKind: "flag",
     }),
   },
-  handler: async ({ flags, colors, prompt, spinner }) => {
-    const configPath = `${process.cwd()}/${CONFIG_FILE_NAME}`;
-
-    // Check if config already exists
-    const configFile = Bun.file(configPath);
-    if ((await configFile.exists()) && !flags.force) {
-      const overwrite = await prompt.confirm(`Config file already exists. Overwrite?`, {
+  handler: async ({ flags, prompt, colors }) => {
+    assertIdentityId(flags.id);
+    const configPath = getConfigPath();
+    if ((await Bun.file(configPath).exists()) && !flags.force) {
+      const confirmed = await prompt.confirm(`Replace ${configPath}?`, {
         default: false,
+        fallbackValue: false,
       });
-
-      if (!overwrite) {
-        console.log(colors.yellow("Init cancelled"));
-        return;
+      if (!confirmed) {
+        throw new Error("Initialization cancelled");
       }
     }
 
-    const spin = spinner("Creating config file...");
-    spin.start();
-
-    try {
-      // Get template content
-      const configContent = getConfigTemplate(flags.template);
-
-      // Write config file
-      await Bun.write(configPath, configContent);
-
-      spin.succeed("Config file created");
-      console.log(colors.dim(`  ${CONFIG_FILE_NAME}`));
-
-      // Next steps
-      console.log();
-      console.log("Next steps:");
-      console.log(colors.gray(`  1. Edit ${CONFIG_FILE_NAME} to customize your configuration`));
-      console.log(colors.gray(`  2. Run 'ideality validate' to check your files`));
-    } catch (error) {
-      spin.fail("Failed to create config file");
-      console.error(colors.red(String(error)));
-      process.exit(1);
+    const git = discoverGitIdentity(flags["git-name"], flags["git-email"]);
+    if (flags["generate-ssh"]) {
+      const generated = await generateSshKey({
+        identity: flags.id,
+        email: git.email,
+        home: os.homedir(),
+      });
+      git.sshKey = generated.privateKey;
     }
+    await saveConfig(
+      createStarterConfig({
+        id: flags.id,
+        label: flags.label,
+        root: flags.root,
+        git,
+      }),
+    );
+    console.log(colors.green(`Created ${configPath}`));
+    console.log(`Next: ideality install --shell ${process.env.SHELL?.endsWith("fish") ? "fish" : process.env.SHELL?.endsWith("bash") ? "bash" : "zsh"}`);
   },
 });
-
-function getConfigTemplate(template: "minimal" | "default" | "full"): string {
-  const templates = {
-    minimal: `export default ${JSON.stringify(DEFAULT_CONFIG, null, 2)}`,
-
-    default: `export default {
-  // Validation rules
-  rules: {
-    // Add your validation rules here
-    noConsoleLog: true,
-    requireFileHeader: false,
-  },
-  
-  // Server configuration
-  server: {
-    port: 3000,
-    host: 'localhost',
-    open: true,
-  },
-  
-  // File patterns
-  include: ['src/**/*.{js,ts}'],
-  exclude: ['node_modules', 'dist', 'test'],
-}`,
-
-    full: `import { defineConfig } from 'ideality'
-
-export default defineConfig({
-  // Validation rules
-  rules: {
-    // Code style rules
-    noConsoleLog: true,
-    noDebugger: true,
-    requireFileHeader: true,
-    maxLineLength: 100,
-    
-    // Import rules
-    noUnusedImports: true,
-    sortImports: true,
-    
-    // Function rules
-    maxFunctionLength: 50,
-    maxComplexity: 10,
-  },
-  
-  // Server configuration
-  server: {
-    port: process.env.PORT || 3000,
-    host: process.env.HOST || 'localhost',
-    open: !process.env.CI,
-    cors: true,
-  },
-  
-  // File patterns
-  include: [
-    'src/**/*.{js,ts,jsx,tsx}',
-    'scripts/**/*.{js,ts}',
-  ],
-  exclude: [
-    'node_modules',
-    'dist',
-    'build',
-    'coverage',
-    '**/*.test.{js,ts}',
-    '**/*.spec.{js,ts}',
-  ],
-  
-  // Caching
-  cache: {
-    enabled: true,
-    directory: '.cache',
-  },
-  
-  // Hooks
-  hooks: {
-    beforeValidate: async (files) => {
-      console.log(\`Validating \${files.length} files...\`)
-    },
-    afterValidate: async (results) => {
-      console.log(\`Found \${results.errors} errors and \${results.warnings} warnings\`)
-    },
-  },
-})`,
-  };
-
-  return templates[template];
-}
 
 export default initCommand;

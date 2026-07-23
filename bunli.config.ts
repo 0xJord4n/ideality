@@ -3,7 +3,7 @@ import { defineConfig } from "@bunli/core";
 export default defineConfig({
   name: "ideality",
   version: "0.1.0",
-  description: "A CLI built with Bunli",
+  description: "Folder-based identity orchestration for developer tools",
 
   commands: {
     directory: "./src/commands",
@@ -14,7 +14,7 @@ export default defineConfig({
   build: {
     entry: "./src/index.ts",
     outdir: "./dist",
-    targets: ["darwin-arm64", "darwin-x64", "linux-x64", "windows-x64"],
+    targets: ["linux-x64"],
     minify: true,
     sourcemap: true,
     compress: true,
