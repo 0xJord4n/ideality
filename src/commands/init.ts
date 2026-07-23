@@ -10,6 +10,7 @@ import {
   getIdealityHome,
   saveConfig,
 } from "../core/config-store.js";
+import { findSshPrivateKeys } from "../core/file-search.js";
 import { expandHome } from "../core/resolution.js";
 import { createStarterConfig } from "../core/starter.js";
 import { installGitIntegration } from "../integrations/git.js";
@@ -22,6 +23,9 @@ import { assertIdentityId, discoverGitIdentity } from "./shared.js";
 
 type SshMode = "generate" | "existing" | "agent";
 type Integration = "shell" | "git";
+type SshFileChoice =
+  | { kind: "file"; path: string }
+  | { kind: "manual" };
 
 async function wizardStep<T>(prompt: Promise<T>): Promise<T> {
   const value = await prompt;
@@ -41,6 +45,13 @@ function defaultRc(shell: SupportedShell, home: string): string {
     return path.join(home, ".config", "fish", "config.fish");
   }
   return path.join(home, shell === "bash" ? ".bashrc" : ".zshrc");
+}
+
+function displayHomePath(file: string, home: string): string {
+  const relative = path.relative(home, file);
+  return relative && !relative.startsWith("..") && !path.isAbsolute(relative)
+    ? `~/${relative}`
+    : file;
 }
 
 const initCommand = defineCommand({
@@ -224,12 +235,43 @@ const initCommand = defineCommand({
         }),
       );
       if (sshMode === "existing") {
-        sshKey = await wizardStep(
-          prompt.text("SSH private key", {
-            default: sshKey ?? "~/.ssh/id_ed25519",
-            validate: (value) => value.length > 0 || "SSH key path is required",
+        const discoveredKeys = await findSshPrivateKeys({
+          home,
+          idealityHome,
+          preferred: sshKey ? expandHome(sshKey, home) : undefined,
+        });
+        const selected = await wizardStep(
+          prompt.filter<SshFileChoice>("SSH private key", {
+            options: [
+              ...discoveredKeys.map((file) => ({
+                label: displayHomePath(file, home),
+                value: { kind: "file", path: file } as const,
+              })),
+              {
+                label: "Enter another path",
+                value: { kind: "manual" } as const,
+                hint: "for keys stored outside the usual SSH directories",
+              },
+            ],
+            placeholder: "Type to fuzzy search files",
+            fuzzy: true,
+            limit: 12,
+            selectIfOne: false,
+            height: 10,
           }),
         );
+        const choice = Array.isArray(selected) ? selected[0] : selected;
+        if (choice?.kind === "file") {
+          sshKey = choice.path;
+        } else {
+          sshKey = await wizardStep(
+            prompt.text("SSH private key path", {
+              default: sshKey ?? "~/.ssh/id_ed25519",
+              validate: (value) =>
+                value.length > 0 || "SSH key path is required",
+            }),
+          );
+        }
       }
 
       integrations = await wizardStep(

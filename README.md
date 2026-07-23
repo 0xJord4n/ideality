@@ -53,6 +53,8 @@ ideality init --non-interactive \
 
 Interactive mode is selected automatically in a terminal. Use `--interactive`
 to force the wizard or `--non-interactive` to guarantee that no prompt occurs.
+Existing-file steps use an interactive fuzzy finder; SSH private keys are
+discovered from `~/.ssh` and `~/.ideality/ssh`.
 
 All managed files live under one root:
 
