@@ -120,10 +120,7 @@ export function getIdealityHome(env: NodeJS.ProcessEnv = process.env): string {
   if (env.IDEALITY_HOME) {
     return path.resolve(env.IDEALITY_HOME);
   }
-  const configHome = env.XDG_CONFIG_HOME
-    ? path.resolve(env.XDG_CONFIG_HOME)
-    : path.join(os.homedir(), ".config");
-  return path.join(configHome, "ideality");
+  return path.join(path.resolve(env.HOME || os.homedir()), ".ideality");
 }
 
 export function getConfigPath(env: NodeJS.ProcessEnv = process.env): string {

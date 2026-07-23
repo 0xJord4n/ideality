@@ -30,7 +30,7 @@ export function renderTemplate(
   value: string,
   resolved: ResolvedIdentity,
   home: string,
-  idealityHome: string = path.join(home, ".config", "ideality"),
+  idealityHome: string = path.join(home, ".ideality"),
 ): string {
   const rendered = value
     .replaceAll("{{identity}}", resolved.id)
@@ -122,7 +122,7 @@ export async function buildEnvironment(
   const unset = new Set<string>();
   const readFile = options.readFile ?? ((file: string) => nodeReadFile(file, "utf8"));
   const idealityHome =
-    options.idealityHome ?? path.join(options.home, ".config", "ideality");
+    options.idealityHome ?? path.join(options.home, ".ideality");
   const profiles = toolProfiles(config, resolved, options.tool);
 
   for (const [, profile] of profiles) {

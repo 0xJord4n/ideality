@@ -4,7 +4,7 @@ import path from "node:path";
 export interface GenerateSshKeyOptions {
   identity: string;
   email: string;
-  home: string;
+  idealityHome: string;
   force?: boolean;
 }
 
@@ -44,7 +44,7 @@ export async function generateSshKey(
       "Identity ID must start with a lowercase letter and contain only letters, numbers, _ or -",
     );
   }
-  const directory = path.join(options.home, ".ssh", "ideality");
+  const directory = path.join(options.idealityHome, "ssh");
   const privateKey = path.join(directory, options.identity);
   if ((await dependencies.exists(privateKey)) && !options.force) {
     throw new Error(`SSH key '${privateKey}' already exists`);

@@ -16,7 +16,7 @@ const config: IdealityConfig = {
       git: {
         name: "Example Developer",
         email: "developer@example.com",
-        sshKey: "~/.ssh/ideality/personal",
+        sshKey: "~/.ideality/ssh/personal",
       },
       tools: {},
     },
@@ -26,18 +26,18 @@ const config: IdealityConfig = {
 
 describe("renderGitIncludes", () => {
   test("renders an includeIf entry and identity file without shell interpolation", () => {
-    const rendered = renderGitIncludes(config, "/home/dev", "/home/dev/.config/ideality");
+    const rendered = renderGitIncludes(config, "/home/dev", "/home/dev/.ideality");
 
     expect(rendered.includes).toContain(
       '[includeIf "gitdir:/home/dev/code/personal/"]',
     );
     expect(rendered.includes).toContain(
-      `path = "/home/dev/.config/ideality/git/personal.gitconfig"`,
+      `path = "/home/dev/.ideality/git/personal.gitconfig"`,
     );
     expect(rendered.identities.personal).toContain(`name = "Example Developer"`);
     expect(rendered.identities.personal).toContain(`email = "developer@example.com"`);
     expect(rendered.identities.personal).toContain(
-      `sshCommand = "ssh -i '/home/dev/.ssh/ideality/personal' -o IdentitiesOnly=yes"`,
+      `sshCommand = "ssh -i '/home/dev/.ideality/ssh/personal' -o IdentitiesOnly=yes"`,
     );
   });
 
@@ -45,7 +45,7 @@ describe("renderGitIncludes", () => {
     const special = structuredClone(config);
     special.identities.personal!.git!.name = "Example # Developer";
     special.identities.personal!.git!.sshKey = "/tmp/key with space";
-    const rendered = renderGitIncludes(special, "/home/dev", "/home/dev/.config/ideality");
+    const rendered = renderGitIncludes(special, "/home/dev", "/home/dev/.ideality");
     const directory = await mkdtemp(path.join(os.tmpdir(), "ideality-git-"));
     const file = path.join(directory, "identity.gitconfig");
     await Bun.write(file, rendered.identities.personal!);

@@ -17,7 +17,7 @@ export interface DoctorCheck {
 export async function runDoctor(
   config: IdealityConfig,
   home: string,
-  idealityHome: string = path.join(home, ".config", "ideality"),
+  idealityHome: string = path.join(home, ".ideality"),
 ): Promise<DoctorCheck[]> {
   const checks: DoctorCheck[] = [];
   const rootOwners = new Map<string, string>();

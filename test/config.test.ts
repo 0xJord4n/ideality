@@ -1,6 +1,9 @@
 import { describe, expect, test } from "bun:test";
 
-import { parseConfig } from "../src/core/config-store.js";
+import {
+  getIdealityHome,
+  parseConfig,
+} from "../src/core/config-store.js";
 
 describe("parseConfig", () => {
   test("rejects a default identity that is not defined", () => {
@@ -27,5 +30,23 @@ describe("parseConfig", () => {
         "tools": {}
       }`),
     ).toThrow("Invalid identity ID '../outside'");
+  });
+});
+
+describe("getIdealityHome", () => {
+  test("uses a single hidden directory under HOME by default", () => {
+    expect(getIdealityHome({ HOME: "/home/dev" })).toBe("/home/dev/.ideality");
+    expect(
+      getIdealityHome({
+        HOME: "/home/dev",
+        XDG_CONFIG_HOME: "/home/dev/.config",
+      }),
+    ).toBe("/home/dev/.ideality");
+    expect(
+      getIdealityHome({
+        HOME: "/home/dev",
+        IDEALITY_HOME: "/secure/ideality",
+      }),
+    ).toBe("/secure/ideality");
   });
 });

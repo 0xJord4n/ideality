@@ -119,7 +119,7 @@ const identityCommand = defineGroup({
             await generateSshKey({
               identity: id,
               email: git.email,
-              home: os.homedir(),
+              idealityHome: getIdealityHome(),
             })
           ).privateKey;
         }

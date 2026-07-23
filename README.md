@@ -31,22 +31,42 @@ bun run build
 bun link
 ```
 
-Create the first identity and install integrations:
+Run the guided setup:
 
 ```bash
-ideality init \
-  --id personal \
-  --label Personal \
-  --root ~/code/personal \
-  --git-name "Example Developer" \
-  --git-email developer@example.com \
-  --generate-ssh
-
-ideality install --shell zsh
-source ~/.zshrc
+ideality init
 ```
 
-The default registry is `~/.config/ideality/config.jsonc`. Set
+For scripts and provisioning, use the prompt-free mode:
+
+```bash
+ideality init --non-interactive \
+  --id default \
+  --label Default \
+  --root ~/code \
+  --git-name "Example Developer" \
+  --git-email developer@example.com \
+  --generate-ssh \
+  --install \
+  --shell zsh
+```
+
+Interactive mode is selected automatically in a terminal. Use `--interactive`
+to force the wizard or `--non-interactive` to guarantee that no prompt occurs.
+
+All managed files live under one root:
+
+```text
+~/.ideality/
+  config.jsonc
+  secrets/
+  profiles/
+  ssh/
+  git/
+  shell/
+```
+
+Set
 `IDEALITY_HOME` to relocate all managed files, or `IDEALITY_CONFIG` to select a
 specific registry.
 
@@ -123,8 +143,8 @@ profile.
 
 ```bash
 ideality tool add acme --executable acme --isolation process
-ideality tool env work acme ACME_HOME value:~/.config/ideality/profiles/work/acme
-ideality tool env work acme ACME_TOKEN file:~/.config/ideality/secrets/work/acme-token --optional
+ideality tool env work acme ACME_HOME value:{{idealityHome}}/profiles/work/acme
+ideality tool env work acme ACME_TOKEN file:{{idealityHome}}/secrets/work/acme-token --optional
 ideality tool args work acme -- --region eu
 ideality run acme --identity work -- account show
 ```

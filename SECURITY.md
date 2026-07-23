@@ -7,7 +7,7 @@ registry should not contain tokens, passwords, private keys, or session data.
 - Keep generated private keys and secret files at mode `600`.
 - Run `ideality doctor --strict` after adding an identity or adapter.
 - Review `ideality hook <shell>` before sourcing it on a shared machine.
-- Keep `~/.config/ideality` and `~/.ssh/ideality` out of backups that are not
+- Keep `~/.ideality` out of backups that are not
   encrypted.
 
 `ideality status`, `secret list`, `doctor`, and the TUI show references and

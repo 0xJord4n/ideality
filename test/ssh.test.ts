@@ -9,7 +9,7 @@ describe("generateSshKey", () => {
       {
         identity: "work",
         email: "developer@example.com",
-        home: "/home/dev",
+        idealityHome: "/home/dev/.ideality",
       },
       {
         exists: async () => false,
@@ -20,7 +20,7 @@ describe("generateSshKey", () => {
       },
     );
 
-    expect(generated.privateKey).toBe("/home/dev/.ssh/ideality/work");
+    expect(generated.privateKey).toBe("/home/dev/.ideality/ssh/work");
     expect(calls[0]).toEqual([
       "ssh-keygen",
       "-t",
@@ -28,7 +28,7 @@ describe("generateSshKey", () => {
       "-C",
       "developer@example.com",
       "-f",
-      "/home/dev/.ssh/ideality/work",
+      "/home/dev/.ideality/ssh/work",
       "-N",
       "",
     ]);

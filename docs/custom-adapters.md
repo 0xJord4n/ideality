@@ -37,8 +37,8 @@ Paths and arguments support:
 
 ```bash
 ideality tool add registry --executable registryctl --isolation process
-ideality tool env work registry XDG_CONFIG_HOME value:{{home}}/.config/ideality/profiles/{{identity}}/registry
-ideality tool env work registry REGISTRY_TOKEN file:{{home}}/.config/ideality/secrets/{{identity}}/registry-token
+ideality tool env work registry XDG_CONFIG_HOME value:{{idealityHome}}/profiles/{{identity}}/registry
+ideality tool env work registry REGISTRY_TOKEN file:{{idealityHome}}/secrets/{{identity}}/registry-token
 ideality secret set work registry REGISTRY_TOKEN
 ideality tool args work registry -- --endpoint https://registry.example
 ideality run registry --identity work -- whoami
