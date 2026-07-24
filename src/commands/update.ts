@@ -1,8 +1,53 @@
 import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
+import { recordAuditEvent } from "../core/audit-history.js";
+import {
+  getConfigPath,
+  getIdealityHome,
+  loadConfig,
+} from "../core/config-store.js";
 import { runUpdate } from "../core/update.js";
+import type { UpdateResult } from "../core/update.js";
+import type { IdealityConfig } from "../domain/config.js";
 import { VERSION } from "../version.js";
+
+interface UpdateAuditContext {
+  config: IdealityConfig;
+  idealityHome: string;
+}
+
+async function captureUpdateAuditContext(): Promise<UpdateAuditContext | null> {
+  const configPath = getConfigPath();
+  if (!(await Bun.file(configPath).exists())) return null;
+  try {
+    return {
+      config: await loadConfig(configPath),
+      idealityHome: getIdealityHome(),
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function recordUpdateAuditResult(
+  context: UpdateAuditContext,
+  result: UpdateResult,
+): Promise<void> {
+  if (result.status !== "updated") return;
+
+  await recordAuditEvent(context.config, context.idealityHome, {
+    eventType: "update.completed",
+    payload: {
+      status: result.status,
+      currentVersion: result.currentVersion,
+      targetVersion: result.targetVersion,
+      target: result.target,
+      artifactVerified: result.artifactVerified,
+      migrationReadinessChecked: result.migrationReadinessChecked,
+    },
+  });
+}
 
 const updateCommand = defineCommand({
   name: "update",
@@ -31,6 +76,7 @@ const updateCommand = defineCommand({
     }),
   },
   handler: async ({ flags, colors }) => {
+    const auditContext = await captureUpdateAuditContext();
     const result = await runUpdate({
       allowDowngrade: flags["allow-downgrade"],
       baseUrl: flags["base-url"],
@@ -39,6 +85,9 @@ const updateCommand = defineCommand({
       dryRun: flags["dry-run"],
       targetVersion: flags.version,
     });
+    if (auditContext) {
+      await recordUpdateAuditResult(auditContext, result);
+    }
 
     if (result.status === "current") {
       console.log(`ideality ${result.currentVersion} is already current.`);

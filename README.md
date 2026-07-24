@@ -422,9 +422,10 @@ or roll back the original operation.
 Recorded payloads are allowlisted. Ideality records outcomes such as registry
 changes, setup decisions, policy checks, plugin installs/removals, secret
 reference writes without values, secret backend changes, auth actions, tool
-dispatch identity after successful execution, network and VM lifecycle actions,
-and rollback/migration. It never records secret values, resolved environment
-values, raw stdout/stderr, token-like strings, or full argv.
+dispatch identity after successful execution, completed binary updates, network
+and VM lifecycle actions, and rollback/migration. It never records executable
+paths, secret values, resolved environment values, raw stdout/stderr, token-like
+strings, or full argv.
 
 Shell support:
 

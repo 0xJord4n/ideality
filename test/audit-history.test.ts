@@ -4,6 +4,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { disableAuditHistory } from "../src/commands/audit.js";
+import { recordUpdateAuditResult } from "../src/commands/update.js";
 import {
   getAuditHistoryPath,
   inspectAuditHistoryStatus,
@@ -145,6 +146,76 @@ describe("audit history", () => {
       backend: "file",
       referenceKind: "absolute-path",
     });
+  });
+
+  test("records successful update results without executable paths", async () => {
+    const idealityHome = await tempHome();
+
+    await recordUpdateAuditResult(
+      {
+        config: sampleConfig({ enabled: true }),
+        idealityHome,
+      },
+      {
+        status: "updated",
+        currentVersion: "0.1.0",
+        targetVersion: "0.2.0",
+        target: "linux-x64",
+        installMode: "direct",
+        artifactVerified: true,
+        migrationReadinessChecked: true,
+        executablePath: "/tmp/private/ideality",
+      },
+    );
+
+    const [event] = (await listAuditEvents(idealityHome)).events;
+    expect(event?.eventType).toBe("update.completed");
+    expect(event?.payload).toEqual({
+      status: "updated",
+      currentVersion: "0.1.0",
+      targetVersion: "0.2.0",
+      target: "linux-x64",
+      artifactVerified: true,
+      migrationReadinessChecked: true,
+    });
+    expect(
+      await Bun.file(getAuditHistoryPath(idealityHome)).text(),
+    ).not.toContain("/tmp/private/ideality");
+  });
+
+  test("does not record update completion when no installation occurred", async () => {
+    const idealityHome = await tempHome();
+    const context = {
+      config: sampleConfig({ enabled: true }),
+      idealityHome,
+    };
+    const result = {
+      currentVersion: "0.1.0",
+      targetVersion: "0.2.0",
+      target: "linux-x64",
+      installMode: "direct" as const,
+      artifactVerified: false,
+      migrationReadinessChecked: false,
+      executablePath: "/tmp/private/ideality",
+    };
+
+    await recordUpdateAuditResult(context, {
+      ...result,
+      status: "current",
+      targetVersion: "0.1.0",
+    });
+    await recordUpdateAuditResult(context, {
+      ...result,
+      status: "update-available",
+    });
+    await recordUpdateAuditResult(context, {
+      ...result,
+      status: "dry-run",
+      artifactVerified: true,
+      migrationReadinessChecked: true,
+    });
+
+    expect((await listAuditEvents(idealityHome)).events).toEqual([]);
   });
 
   test("reports malformed lines while preserving valid events", async () => {

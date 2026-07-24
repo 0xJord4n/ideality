@@ -32,6 +32,7 @@ export type AuditEventType =
   | "secret.backend.changed"
   | "auth.action"
   | "tool.dispatched"
+  | "update.completed"
   | "network.added"
   | "network.bound"
   | "network.activated"
@@ -420,6 +421,7 @@ export const AUDIT_EVENT_TYPES = new Set<AuditEventType>([
   "secret.backend.changed",
   "auth.action",
   "tool.dispatched",
+  "update.completed",
   "network.added",
   "network.bound",
   "network.activated",
@@ -582,6 +584,19 @@ function sanitizePayload(
           "argvShape",
         ]),
         ...pickNumbers(payload, ["argsCount"]),
+      };
+    case "update.completed":
+      return {
+        ...pickStrings(payload, [
+          "status",
+          "currentVersion",
+          "targetVersion",
+          "target",
+        ]),
+        ...pickBooleans(payload, [
+          "artifactVerified",
+          "migrationReadinessChecked",
+        ]),
       };
     case "network.added":
       return {
