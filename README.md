@@ -175,6 +175,14 @@ Adapters report `full`, `partial`, or `credentials` isolation based on the
 controls exposed by the upstream application. See the
 [tool-pack and isolation matrix](docs/tool-packs.md).
 
+All built-in integrations are represented in the versioned core adapter
+registry: 58 tool manifests, 6 network drivers, 5 VM drivers, and 7 secret
+backends. Tool adapters remain declarative manifests; built-in network, VM,
+and secret lifecycle actions route through registered core contracts with
+platform and privilege metadata. Custom network and VM drivers are registered
+as non-trusted user-configured argv wrappers, not privileged core lifecycle
+code.
+
 ## Automatic Dispatch
 
 `ideality install` adds `~/.ideality/bin` to `PATH`. Managed shims in that

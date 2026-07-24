@@ -295,6 +295,8 @@ export function vmCommand(
   ];
 }
 
+export type VmCommandBuilder = typeof vmCommand;
+
 export async function writeVmConfig(
   vmId: string,
   profile: VmProfile,
@@ -343,10 +345,11 @@ export async function ensureVmRunning(
   profile: VmProfile,
   configPath: string,
   runner: ProcessRunner = runProcess,
+  commandBuilder: VmCommandBuilder = vmCommand,
 ): Promise<void> {
   if (profile.driver === "lima") {
     await requireLimaV2(runner);
-    const status = await runner(vmCommand(vmId, profile, "status"));
+    const status = await runner(commandBuilder(vmId, profile, "status"));
     if (status.exitCode === 0 && status.stdout.trim().length > 0) {
       if (status.stdout.trim().toLowerCase() === "running") return;
       await requireSuccessfulProcess(
@@ -363,7 +366,7 @@ export async function ensureVmRunning(
     }
   }
   await requireSuccessfulProcess(
-    vmCommand(vmId, profile, "start", { configPath }),
+    commandBuilder(vmId, profile, "start", { configPath }),
     { inherit: true },
     runner,
   );

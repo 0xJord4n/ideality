@@ -29,6 +29,10 @@ import {
   REPO_ROOT,
   type CatalogEntry,
 } from "../scripts/catalog-lib.js";
+import {
+  ADAPTER_REGISTRY,
+  validateAdapterRegistryCompleteness,
+} from "../src/core/adapters.js";
 import { parseToolAdapterManifest } from "../src/core/tool-adapters.js";
 
 function withTempCatalog(
@@ -288,6 +292,11 @@ describe("catalog checks", () => {
       [],
     );
     expect(checkRegistryCompleteness(entries, registry.manifests)).toEqual([]);
+    expect(() =>
+      validateAdapterRegistryCompleteness(ADAPTER_REGISTRY, {
+        toolIds: entries.map((entry) => entry.id),
+      }),
+    ).not.toThrow();
     expect(await checkSchemaSync()).toEqual([]);
   });
 });

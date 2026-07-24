@@ -1,19 +1,14 @@
-import {
-  BUILTIN_TOOL_MANIFESTS,
-  BUILTIN_TOOLS,
-  DEFAULT_TOOL_PACKS,
-  toolsInPacks,
-} from "../adapters/builtins.js";
+import { DEFAULT_TOOL_PACKS, toolsInPacks } from "../adapters/builtins.js";
 import type {
   GitIdentity,
   IdealityConfig,
   ToolProfile,
   ValueSource,
 } from "../domain/config.js";
-import {
-  compileToolProfile,
-  type ToolAdapterIdentity,
-  type ToolAdapterManifest,
+import { ADAPTER_REGISTRY, toolAdapterForId } from "./adapters.js";
+import type {
+  ToolAdapterIdentity,
+  ToolAdapterManifest,
 } from "./tool-adapters.js";
 
 function fillIdentity(text: string, identity: string): string {
@@ -71,7 +66,7 @@ function instantiateManifest(
 
 export function createToolProfiles(
   identity: string,
-  selectedTools: string[] = Object.keys(BUILTIN_TOOLS),
+  selectedTools: string[] = Object.keys(ADAPTER_REGISTRY.tools),
   sshKey?: string,
 ): Record<string, ToolProfile> {
   // Only the SSH key is consulted for identity-derived manifest arguments.
@@ -80,17 +75,20 @@ export function createToolProfiles(
     : {};
   return Object.fromEntries(
     selectedTools
-      .filter((name) => BUILTIN_TOOL_MANIFESTS[name] !== undefined)
-      .map((name): [string, ToolProfile] => [
-        name,
-        {
-          isolation: "process",
-          ...compileToolProfile(
-            instantiateManifest(BUILTIN_TOOL_MANIFESTS[name]!, identity),
-            adapterIdentity,
-          ),
-        },
-      ]),
+      .filter((name) => ADAPTER_REGISTRY.tools[name] !== undefined)
+      .map((name): [string, ToolProfile] => {
+        const adapter = toolAdapterForId(name);
+        return [
+          name,
+          {
+            isolation: "process",
+            ...adapter.contract.compileProfile(
+              adapterIdentity,
+              instantiateManifest(adapter.contract.manifest, identity),
+            ),
+          },
+        ];
+      }),
   );
 }
 
@@ -119,6 +117,11 @@ export function createStarterConfig(options: {
         ),
       },
     },
-    tools: structuredClone(BUILTIN_TOOLS),
+    tools: Object.fromEntries(
+      Object.entries(ADAPTER_REGISTRY.tools).map(([id, adapter]) => [
+        id,
+        structuredClone(adapter.contract.definition),
+      ]),
+    ),
   };
 }

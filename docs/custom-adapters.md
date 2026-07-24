@@ -67,6 +67,31 @@ version-1 plugin manifests remain supported through a compatibility
 translation, but they now receive the same strict safety checks: safe
 executable names, process isolation, known fields only, and no shell hooks.
 
+## Unified adapter registry
+
+Ideality has one versioned core adapter envelope for all integration classes:
+tool, network, VM, and secret. Custom tool plugins still use the same
+manifest formats and install commands; during install the manifest is wrapped
+as a declarative tool adapter with no contributor executable code. Privileged
+network, VM, and secret lifecycle work is not plugin-extensible: those
+implementations are trusted core adapters registered with platform and
+privilege metadata. Custom network and VM profiles are represented in that
+registry too, but as non-trusted user-configured argv wrappers because the
+configured commands come from the user's registry.
+
+Migration notes:
+
+- Registry config stays at `version: 1`; existing configs and stored plugin
+  manifests do not need a migration.
+- Legacy plugin manifests with `"version": 1` are translated to the canonical
+  tool manifest shape before registration.
+- `catalog/<id>.jsonc` and plugin manifests describe observable behavior only.
+  They cannot add hooks, dynamic imports, shell command strings, or arbitrary
+  lifecycle code.
+- `bun run catalog:check` fails if a built-in manifest is missing from the
+  adapter registry, or if the registry omits a built-in network, VM, or secret
+  backend.
+
 ## Contributing a built-in adapter
 
 Built-in adapters are declarative manifests under `catalog/<id>.jsonc`,

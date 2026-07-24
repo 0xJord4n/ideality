@@ -8,11 +8,9 @@ import {
   loadConfig,
   saveConfig,
 } from "../core/config-store.js";
+import { secretAdapterWritable } from "../core/adapters.js";
 import { renderTemplate } from "../core/environment.js";
-import {
-  secretBackendWritable,
-  writeSecretValue,
-} from "../core/secret-backends.js";
+import { writeSecretValue } from "../core/secret-backends.js";
 import type { ResolvedIdentity } from "../domain/config.js";
 import {
   listSecretContexts,
@@ -101,7 +99,7 @@ const secretCommand = defineGroup({
           );
           return;
         }
-        if (source.from === "secret" && !secretBackendWritable(config)) {
+        if (source.from === "secret" && !secretAdapterWritable(config)) {
           throw new Error(
             `${config.secretBackend?.type ?? "file"} references are read-only; create or update the item with its native app or CLI`,
           );

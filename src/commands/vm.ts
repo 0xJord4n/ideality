@@ -4,6 +4,7 @@ import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
 import { loadConfig, saveConfig } from "../core/config-store.js";
+import { vmAdapterCapability, vmAdapterCommand } from "../core/adapters.js";
 import { findIdentityDirectories } from "../core/file-search.js";
 import { deriveIdentityId } from "../core/identity-id.js";
 import { ensureNetwork } from "../core/network-manager.js";
@@ -14,8 +15,6 @@ import {
   guestWorkspacePath,
   networkDnsServers,
   runVmCommand,
-  vmCapability,
-  vmCommand,
   writeVmConfig,
 } from "../core/vm.js";
 import type { VmProfile } from "../domain/config.js";
@@ -54,7 +53,7 @@ async function prepareVm(
   const runtime = await loadRuntime(candidatePath, identityId);
   const profile = runtime.config.vms?.[vmId];
   if (!profile) throw new Error(`VM profile '${vmId}' does not exist`);
-  const capability = vmCapability(profile);
+  const capability = vmAdapterCapability(profile);
   if (!capability.available) throw new Error(capability.detail);
   if (profile.network && enforceNetwork) {
     await ensureNetwork({
@@ -79,7 +78,13 @@ async function startPreparedVm(
   profile: VmProfile,
   configPath: string,
 ): Promise<void> {
-  await ensureVmRunning(vmId, profile, configPath);
+  await ensureVmRunning(
+    vmId,
+    profile,
+    configPath,
+    runProcess,
+    vmAdapterCommand,
+  );
 }
 
 const runtimeOptions = {
@@ -104,7 +109,7 @@ const vmCommandGroup = defineGroup({
         for (const [id, profile] of Object.entries(
           (await loadConfig()).vms ?? {},
         )) {
-          const capability = vmCapability(profile);
+          const capability = vmAdapterCapability(profile);
           console.log(
             `${id.padEnd(18)} ${profile.driver.padEnd(18)} ${
               capability.available
@@ -122,7 +127,7 @@ const vmCommandGroup = defineGroup({
         const id = requirePositional(positional, 0, "VM profile");
         const profile = (await loadConfig()).vms?.[id];
         if (!profile) throw new Error(`VM profile '${id}' does not exist`);
-        printJson({ id, capability: vmCapability(profile), ...profile });
+        printJson({ id, capability: vmAdapterCapability(profile), ...profile });
       },
     }),
     defineCommand({
@@ -578,7 +583,7 @@ const vmCommandGroup = defineGroup({
           flags.identity,
           false,
         );
-        await runVmCommand(vmCommand(vmId, profile, "stop"));
+        await runVmCommand(vmAdapterCommand(vmId, profile, "stop"));
         console.log(colors.green(`Stopped VM '${vmId}'`));
       },
     }),
@@ -594,9 +599,12 @@ const vmCommandGroup = defineGroup({
           flags.identity,
           false,
         );
-        const result = await runProcess(vmCommand(vmId, profile, "status"), {
-          inherit: true,
-        });
+        const result = await runProcess(
+          vmAdapterCommand(vmId, profile, "status"),
+          {
+            inherit: true,
+          },
+        );
         process.exitCode = result.exitCode;
       },
     }),
@@ -610,7 +618,13 @@ const vmCommandGroup = defineGroup({
         const command = commandArguments(positional, 1);
         if (command.length === 0)
           throw new Error("VM exec requires a command after --");
-        await ensureVmRunning(vmId, prepared.profile, prepared.configPath);
+        await ensureVmRunning(
+          vmId,
+          prepared.profile,
+          prepared.configPath,
+          runProcess,
+          vmAdapterCommand,
+        );
         const workspace = prepared.profile.workspaceTarget ?? "/workspace";
         const env = {
           HOME: process.env.HOME ?? os.homedir(),
@@ -620,7 +634,7 @@ const vmCommandGroup = defineGroup({
           LIMA_SHELLENV_ALLOW: "IDEALITY_IDENTITY",
         };
         await runVmCommand(
-          vmCommand(vmId, prepared.profile, "exec", {
+          vmAdapterCommand(vmId, prepared.profile, "exec", {
             workdir: guestWorkspacePath(prepared.runtime.resolved, workspace),
             command,
           }),
