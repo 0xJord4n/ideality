@@ -6,6 +6,7 @@ import path from "node:path";
 import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
+import { recordAuditEvent } from "../core/audit-history.js";
 import {
   getIdealityHome,
   loadConfig,
@@ -745,6 +746,20 @@ const setupCommand = defineCommand({
       if (integrations.includes("completions")) {
         await syncInstalledCompletions(nextConfig, idealityHome);
       }
+      await recordAuditEvent(nextConfig, idealityHome, {
+        eventType: "setup.decision",
+        payload: {
+          identity: identityId,
+          scope,
+          detail,
+          execution: execution?.target ?? "host",
+          tools: selectedTools,
+          integrations,
+          project: scope === "project",
+          localOnly: scope === "local",
+          dryRun: false,
+        },
+      });
       spin?.succeed("Project setup complete");
     } catch (error) {
       spin?.fail("Project setup failed");

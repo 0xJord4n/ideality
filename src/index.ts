@@ -2,6 +2,7 @@
 import { createCLI } from "@bunli/core";
 
 import { VERSION } from "./version.js";
+import auditCommand from "./commands/audit.js";
 import authCommand from "./commands/auth.js";
 import completionCommand from "./commands/completion.js";
 import configCommand from "./commands/config.js";
@@ -41,6 +42,7 @@ for (const command of [
   explainCommand,
   promptCommand,
   rollbackCommand,
+  auditCommand,
   authCommand,
   secretCommand,
   networkCommand,

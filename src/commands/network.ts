@@ -3,6 +3,7 @@ import os from "node:os";
 import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
+import { recordAuditEvent } from "../core/audit-history.js";
 import {
   getIdealityHome,
   loadConfig,
@@ -661,6 +662,15 @@ const networkCommand = defineGroup({
           });
         } else {
           await saveConfig(config);
+          await recordAuditEvent(config, getIdealityHome(), {
+            eventType: "network.added",
+            payload: {
+              network: id,
+              driver,
+              killSwitch: profile.killSwitch,
+              dryRun: false,
+            },
+          });
           console.log(colors.green(`Created network profile '${id}'`));
         }
       },
@@ -692,6 +702,14 @@ const networkCommand = defineGroup({
           identity.execution = execution;
         }
         await saveConfig(config);
+        await recordAuditEvent(config, getIdealityHome(), {
+          eventType: "network.bound",
+          payload: {
+            identity: identityId,
+            tool: flags.tool,
+            network: networkId,
+          },
+        });
         console.log(
           colors.green(
             `Bound ${flags.tool ? `${identityId}/${flags.tool}` : identityId} to network '${networkId}'`,
@@ -715,15 +733,24 @@ const networkCommand = defineGroup({
           flags.identity,
           positional[0],
         );
-        printJson(
-          await activateNetwork({
-            ...runtime,
-            profileId,
-            allowUnverified: flags["allow-unverified"],
-            replace: flags.replace,
+        const result = await activateNetwork({
+          ...runtime,
+          profileId,
+          allowUnverified: flags["allow-unverified"],
+          replace: flags.replace,
+          dryRun: flags["dry-run"],
+        });
+        await recordAuditEvent(runtime.config, runtime.idealityHome, {
+          eventType: "network.activated",
+          payload: {
+            identity: runtime.resolved.id,
+            network: profileId,
+            action: result.action,
+            enforcement: result.enforcement,
             dryRun: flags["dry-run"],
-          }),
-        );
+          },
+        });
+        printJson(result);
       },
     }),
     defineCommand({
@@ -744,14 +771,23 @@ const networkCommand = defineGroup({
           flags.identity,
           positional[0] ?? active?.profile,
         );
-        printJson(
-          await deactivateNetwork({
-            ...runtime,
-            profileId,
-            release: flags.release,
+        const result = await deactivateNetwork({
+          ...runtime,
+          profileId,
+          release: flags.release,
+          dryRun: flags["dry-run"],
+        });
+        await recordAuditEvent(runtime.config, runtime.idealityHome, {
+          eventType: "network.deactivated",
+          payload: {
+            identity: runtime.resolved.id,
+            network: profileId,
+            action: result.action,
+            enforcement: result.enforcement,
             dryRun: flags["dry-run"],
-          }),
-        );
+          },
+        });
+        printJson(result);
       },
     }),
     defineCommand({
@@ -765,13 +801,22 @@ const networkCommand = defineGroup({
           flags.identity,
           positional[0] ?? active?.profile,
         );
-        printJson(
-          await networkStatus({
-            ...runtime,
-            profileId,
+        const result = await networkStatus({
+          ...runtime,
+          profileId,
+          dryRun: flags["dry-run"],
+        });
+        await recordAuditEvent(runtime.config, runtime.idealityHome, {
+          eventType: "network.status",
+          payload: {
+            identity: runtime.resolved.id,
+            network: profileId,
+            action: result.action,
+            enforcement: result.enforcement,
             dryRun: flags["dry-run"],
-          }),
-        );
+          },
+        });
+        printJson(result);
       },
     }),
     defineCommand({
@@ -803,6 +848,10 @@ const networkCommand = defineGroup({
           throw new Error(`Network profile '${id}' is still referenced`);
         delete config.networks[id];
         await saveConfig(config);
+        await recordAuditEvent(config, getIdealityHome(), {
+          eventType: "config.changed",
+          payload: { action: "network.remove", scope: id, status: "ok" },
+        });
         console.log(colors.green(`Removed network profile '${id}'`));
       },
     }),

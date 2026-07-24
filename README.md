@@ -99,8 +99,8 @@ ideality init --non-interactive \
 All managed state lives under `~/.ideality`:
 
 ```text
-config.jsonc  bin/  completions/  git/  history/  plugins/
-profiles/     secrets/  shell/    ssh/
+bin/  completions/  config.jsonc  git/  history/  plugins/
+profiles/  secrets/  shell/  ssh/
 ```
 
 Set `IDEALITY_HOME` to relocate the state directory or `IDEALITY_CONFIG` to
@@ -394,6 +394,38 @@ ideality config migrate --dry-run
 ideality doctor --strict
 ```
 
+Structured audit history is local and explicitly opt-in. By default Ideality
+does not create `~/.ideality/audit/history.jsonl` and records no audit events.
+Enable it when you want a redacted, append-only JSONL trail of security and
+lifecycle outcomes:
+
+```bash
+ideality audit status
+ideality audit enable --max-events 1000 --max-bytes 5242880
+ideality audit list
+ideality audit list --type secret.set --json
+ideality audit prune --confirm
+ideality audit clear --confirm
+ideality audit disable
+```
+
+Audit storage is locked to mode `700` for `~/.ideality/audit` and `600` for
+`history.jsonl`. Events use schema version `1`, monotonically increasing local
+sequence numbers, and deterministic sequence ordering; malformed JSONL lines
+are reported and ignored during listing. Retention defaults to 1000 events and
+5 MiB unless overridden with `auditHistory.maxEvents`,
+`auditHistory.maxBytes`, or `auditHistory.retentionDays` in the v1 registry.
+Audit writes are best-effort after successful operations: a storage failure is
+reported by audit administration/status but does not store raw command output
+or roll back the original operation.
+
+Recorded payloads are allowlisted. Ideality records outcomes such as registry
+changes, setup decisions, policy checks, plugin installs/removals, secret
+reference writes without values, secret backend changes, auth actions, tool
+dispatch identity after successful execution, network and VM lifecycle actions,
+and rollback/migration. It never records secret values, resolved environment
+values, raw stdout/stderr, token-like strings, or full argv.
+
 Shell support:
 
 ```bash
@@ -411,6 +443,7 @@ ideality status|whoami|current
 ideality env
 ideality run|x
 ideality explain
+ideality audit status|enable|disable|list|prune|clear
 ideality prompt
 ideality auth <tool> login|status|logout
 ideality auth status --all

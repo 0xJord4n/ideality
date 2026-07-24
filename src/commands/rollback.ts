@@ -2,10 +2,12 @@ import os from "node:os";
 
 import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
+import { recordAuditEvent } from "../core/audit-history.js";
 import {
   getConfigPath,
   getIdealityHome,
   listConfigSnapshots,
+  loadConfig,
   restoreConfigSnapshot,
 } from "../core/config-store.js";
 import { syncInstalledCompletions } from "../integrations/completion.js";
@@ -58,6 +60,21 @@ const rollbackCommand = defineCommand({
           flags["dry-run"] ? "integrations would be" : "integrations were"
         } left untouched. Run 'ideality config migrate' and then 'ideality install' to reconcile.`,
       );
+    }
+    const config =
+      restored.config ??
+      ((await Bun.file(getConfigPath()).exists())
+        ? await loadConfig().catch(() => null)
+        : null);
+    if (config) {
+      await recordAuditEvent(config, getIdealityHome(), {
+        eventType: "config.rollback",
+        payload: {
+          action: "restore",
+          scope: restored.snapshot,
+          status: flags["dry-run"] ? "dry-run" : "ok",
+        },
+      });
     }
   },
 });

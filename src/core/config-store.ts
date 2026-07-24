@@ -231,6 +231,18 @@ const vmSchema = z.discriminatedUnion("driver", [
   }),
 ]);
 
+const auditHistorySchema = z.object({
+  enabled: z.boolean().optional(),
+  maxEvents: z.number().int().min(1).max(100_000).optional(),
+  maxBytes: z
+    .number()
+    .int()
+    .min(1024)
+    .max(1024 * 1024 * 1024)
+    .optional(),
+  retentionDays: z.number().int().min(1).max(3650).optional(),
+});
+
 const configSchema = z
   .object({
     version: z.literal(CONFIG_VERSION),
@@ -258,6 +270,7 @@ const configSchema = z
     ),
     networks: z.record(networkSchema).optional(),
     vms: z.record(vmSchema).optional(),
+    auditHistory: auditHistorySchema.optional(),
   })
   .superRefine((config, context) => {
     const safeName = /^[a-z][a-z0-9_-]*$/;

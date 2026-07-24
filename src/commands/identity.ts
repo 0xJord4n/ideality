@@ -11,6 +11,7 @@ import {
   DEFAULT_TOOL_PACKS,
   toolsInPacks,
 } from "../adapters/builtins.js";
+import { recordAuditEvent } from "../core/audit-history.js";
 import {
   getIdealityHome,
   loadConfig,
@@ -35,10 +36,17 @@ import {
 
 async function saveAndSync(
   config: Awaited<ReturnType<typeof loadConfig>>,
+  audit?: { action: string; scope: string },
 ): Promise<void> {
   await saveConfig(config);
   await installGitIntegration(config, os.homedir(), getIdealityHome());
   await syncInstalledCompletions(config, getIdealityHome());
+  if (audit) {
+    await recordAuditEvent(config, getIdealityHome(), {
+      eventType: "config.changed",
+      payload: { ...audit, status: "ok" },
+    });
+  }
 }
 
 type SshMode = "generate" | "existing" | "agent";
@@ -444,7 +452,7 @@ const identityCommand = defineGroup({
           : null;
         spin?.start();
         try {
-          await saveAndSync(config);
+          await saveAndSync(config, { action: "identity.add", scope: id });
           spin?.succeed("Identity created");
         } catch (error) {
           spin?.fail("Identity creation failed");
@@ -496,7 +504,9 @@ const identityCommand = defineGroup({
           throw new Error("Removal cancelled");
         }
         delete config.identities[id];
-        if (!flags["dry-run"]) await saveAndSync(config);
+        if (!flags["dry-run"]) {
+          await saveAndSync(config, { action: "identity.remove", scope: id });
+        }
         console.log(
           colors.green(`Removed '${id}'; profile files were preserved`),
         );
@@ -522,7 +532,9 @@ const identityCommand = defineGroup({
         if (!identity.roots.includes(root)) {
           identity.roots.push(root);
         }
-        if (!flags["dry-run"]) await saveAndSync(config);
+        if (!flags["dry-run"]) {
+          await saveAndSync(config, { action: "identity.bind", scope: id });
+        }
         console.log(colors.green(`Bound ${root} to '${id}'`));
       },
     }),
@@ -547,7 +559,9 @@ const identityCommand = defineGroup({
           throw new Error("An identity must keep at least one root");
         }
         identity.roots = identity.roots.filter((entry) => entry !== root);
-        if (!flags["dry-run"]) await saveAndSync(config);
+        if (!flags["dry-run"]) {
+          await saveAndSync(config, { action: "identity.unbind", scope: id });
+        }
         console.log(colors.green(`Unbound ${root} from '${id}'`));
       },
     }),
@@ -567,7 +581,13 @@ const identityCommand = defineGroup({
           throw new Error(`Identity '${id}' does not exist`);
         }
         config.defaultIdentity = id;
-        if (!flags["dry-run"]) await saveConfig(config);
+        if (!flags["dry-run"]) {
+          await saveConfig(config);
+          await recordAuditEvent(config, getIdealityHome(), {
+            eventType: "config.changed",
+            payload: { action: "identity.default", scope: id, status: "ok" },
+          });
+        }
         console.log(colors.green(`Default identity is now '${id}'`));
       },
     }),
