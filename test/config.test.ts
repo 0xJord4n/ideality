@@ -160,6 +160,37 @@ describe("parseConfig", () => {
     expect(parsed.networks?.private_eu?.driver).toBe("wireguard");
   });
 
+  test("accepts optional audit history settings without changing config version", () => {
+    const parsed = parseConfig(
+      JSON.stringify({
+        version: 1,
+        defaultIdentity: "sample",
+        auditHistory: {
+          enabled: true,
+          maxEvents: 250,
+          maxBytes: 1048576,
+          retentionDays: 30,
+        },
+        identities: {
+          sample: {
+            label: "Sample",
+            roots: ["/workspace"],
+            tools: {},
+          },
+        },
+        tools: {},
+      }),
+    );
+
+    expect(parsed.version).toBe(1);
+    expect(parsed.auditHistory).toEqual({
+      enabled: true,
+      maxEvents: 250,
+      maxBytes: 1048576,
+      retentionDays: 30,
+    });
+  });
+
   test("rejects missing network and VM execution references", () => {
     expect(() =>
       parseConfig(

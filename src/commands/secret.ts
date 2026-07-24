@@ -3,6 +3,7 @@ import os from "node:os";
 import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
+import { recordAuditEvent } from "../core/audit-history.js";
 import {
   getIdealityHome,
   loadConfig,
@@ -117,6 +118,16 @@ const secretCommand = defineGroup({
         if (source.from === "secret") {
           const key = renderedReference;
           await writeSecretValue(config, key, value, home, getIdealityHome());
+          await recordAuditEvent(config, getIdealityHome(), {
+            eventType: "secret.set",
+            payload: {
+              identity: identityId,
+              tool: toolName,
+              variable,
+              backend: config.secretBackend?.type ?? "file",
+              reference: `secret:${key}`,
+            },
+          });
           console.log(
             colors.green(`Stored ${identityId}/${toolName}:${variable}`),
           );
@@ -132,6 +143,16 @@ const secretCommand = defineGroup({
           getIdealityHome(),
         );
         await writeSecret(target, value);
+        await recordAuditEvent(config, getIdealityHome(), {
+          eventType: "secret.set",
+          payload: {
+            identity: identityId,
+            tool: toolName,
+            variable,
+            backend: "file",
+            reference: target,
+          },
+        });
         console.log(
           colors.green(`Stored ${identityId}/${toolName}:${variable}`),
         );
@@ -288,7 +309,13 @@ const secretCommand = defineGroup({
         } else {
           throw new Error(`Unknown secret backend '${type}'`);
         }
-        if (!flags["dry-run"]) await saveConfig(config);
+        if (!flags["dry-run"]) {
+          await saveConfig(config);
+          await recordAuditEvent(config, getIdealityHome(), {
+            eventType: "secret.backend.changed",
+            payload: { backend: type, action: "set" },
+          });
+        }
         console.log(colors.green(`Secret backend: ${type}`));
       },
     }),

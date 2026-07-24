@@ -1,6 +1,7 @@
 import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
+import { recordAuditEvent } from "../core/audit-history.js";
 import {
   getIdealityHome,
   loadConfig,
@@ -83,6 +84,10 @@ const pluginCommand = defineGroup({
         );
         await installShims(next, getIdealityHome());
         await syncInstalledCompletions(next, getIdealityHome());
+        await recordAuditEvent(next, getIdealityHome(), {
+          eventType: "plugin.installed",
+          payload: { pluginId: manifest.id, dryRun: false, force: flags.force },
+        });
         console.log(colors.green(`Installed plugin '${manifest.id}'`));
         console.log(colors.dim(installed));
       },
@@ -118,6 +123,10 @@ const pluginCommand = defineGroup({
           await removePluginManifest(name, getIdealityHome());
           await installShims(config, getIdealityHome());
           await syncInstalledCompletions(config, getIdealityHome());
+          await recordAuditEvent(config, getIdealityHome(), {
+            eventType: "plugin.removed",
+            payload: { pluginId: name, dryRun: false, force: flags.force },
+          });
         }
         console.log(
           flags["dry-run"]

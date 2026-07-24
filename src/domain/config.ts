@@ -171,6 +171,16 @@ export type VmProfile =
       exec: string[];
     });
 
+export interface AuditHistoryConfig {
+  enabled?: boolean;
+  /** Maximum valid events retained locally. Defaults to 1000 when enabled. */
+  maxEvents?: number;
+  /** Maximum audit history file size in bytes. Defaults to 5 MiB when enabled. */
+  maxBytes?: number;
+  /** Optional age bound for retained events. */
+  retentionDays?: number;
+}
+
 /** Current registry schema version; bump together with a registered migration step. */
 export const CONFIG_VERSION = 1;
 
@@ -182,6 +192,7 @@ export interface IdealityConfig {
   tools: Record<string, ToolDefinition>;
   networks?: Record<string, NetworkProfile>;
   vms?: Record<string, VmProfile>;
+  auditHistory?: AuditHistoryConfig;
 }
 
 export interface ResolvedIdentity {

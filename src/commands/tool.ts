@@ -2,6 +2,7 @@ import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
 import { BUILTIN_TOOL_PACKS, BUILTIN_TOOLS } from "../adapters/builtins.js";
+import { recordAuditEvent } from "../core/audit-history.js";
 import {
   getIdealityHome,
   loadConfig,
@@ -97,6 +98,14 @@ const toolCommand = defineGroup({
             await saveConfig(config);
             await installShims(config, getIdealityHome());
             await syncInstalledCompletions(config, getIdealityHome());
+            await recordAuditEvent(config, getIdealityHome(), {
+              eventType: "config.changed",
+              payload: {
+                action,
+                scope: `${identityId}/${packId}`,
+                status: "ok",
+              },
+            });
           }
           console.log(
             colors.green(
@@ -140,6 +149,10 @@ const toolCommand = defineGroup({
           await saveConfig(config);
           await installShims(config, getIdealityHome());
           await syncInstalledCompletions(config, getIdealityHome());
+          await recordAuditEvent(config, getIdealityHome(), {
+            eventType: "config.changed",
+            payload: { action: "tool.add", scope: name, status: "ok" },
+          });
         }
         console.log(
           flags["dry-run"]
@@ -179,6 +192,10 @@ const toolCommand = defineGroup({
           await saveConfig(config);
           await installShims(config, getIdealityHome());
           await syncInstalledCompletions(config, getIdealityHome());
+          await recordAuditEvent(config, getIdealityHome(), {
+            eventType: "config.changed",
+            payload: { action: "tool.remove", scope: name, status: "ok" },
+          });
         }
         console.log(
           flags["dry-run"]
@@ -220,7 +237,17 @@ const toolCommand = defineGroup({
         const profile = (identity.tools[toolName] ??= {});
         profile.env ??= {};
         profile.env[variable] = parseSource(value, flags.optional);
-        if (!flags["dry-run"]) await saveConfig(config);
+        if (!flags["dry-run"]) {
+          await saveConfig(config);
+          await recordAuditEvent(config, getIdealityHome(), {
+            eventType: "config.changed",
+            payload: {
+              action: "tool.env",
+              scope: `${identityId}/${toolName}:${variable}`,
+              status: "ok",
+            },
+          });
+        }
         console.log(
           colors.green(`Updated ${identityId}/${toolName}:${variable}`),
         );
@@ -247,7 +274,17 @@ const toolCommand = defineGroup({
           positional,
           2,
         );
-        if (!flags["dry-run"]) await saveConfig(config);
+        if (!flags["dry-run"]) {
+          await saveConfig(config);
+          await recordAuditEvent(config, getIdealityHome(), {
+            eventType: "config.changed",
+            payload: {
+              action: "tool.args",
+              scope: `${identityId}/${toolName}`,
+              status: "ok",
+            },
+          });
+        }
         console.log(
           colors.green(`Updated arguments for ${identityId}/${toolName}`),
         );
@@ -284,6 +321,14 @@ const toolCommand = defineGroup({
             await saveConfig(config);
             await installShims(config, getIdealityHome());
             await syncInstalledCompletions(config, getIdealityHome());
+            await recordAuditEvent(config, getIdealityHome(), {
+              eventType: "config.changed",
+              payload: {
+                action: `tool.${action}`,
+                scope: `${identityId}/${toolName}`,
+                status: "ok",
+              },
+            });
           }
           console.log(colors.green(`${action}d ${identityId}/${toolName}`));
         },

@@ -3,6 +3,7 @@ import os from "node:os";
 import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
+import { recordAuditEvent } from "../core/audit-history.js";
 import {
   authArguments,
   collectAuthHealth,
@@ -130,6 +131,15 @@ const authCommand = defineCommand({
       },
     );
     process.exitCode = await child.exited;
+    await recordAuditEvent(runtime.config, runtime.idealityHome, {
+      eventType: "auth.action",
+      payload: {
+        identity: runtime.resolved.id,
+        tool,
+        action,
+        exitCode: process.exitCode,
+      },
+    });
   },
 });
 

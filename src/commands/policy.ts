@@ -1,6 +1,8 @@
 import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
+import { recordAuditEvent } from "../core/audit-history.js";
+import { getIdealityHome, loadConfig } from "../core/config-store.js";
 import { checkProjectPolicy } from "../core/policy.js";
 import { findProjectRoot } from "../core/project-config.js";
 import { printJson } from "./shared.js";
@@ -44,6 +46,17 @@ export const policyCheckCommand = defineCommand({
     }
     if (result.status === "fail") {
       process.exitCode = 1;
+    }
+    const config = await loadConfig().catch(() => null);
+    if (config) {
+      await recordAuditEvent(config, getIdealityHome(), {
+        eventType: "policy.checked",
+        payload: {
+          status: result.status,
+          policyPath: result.policyPath,
+          findings: result.findings.length,
+        },
+      });
     }
   },
 });

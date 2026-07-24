@@ -3,8 +3,13 @@ import path from "node:path";
 import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
+import { recordAuditEvent } from "../core/audit-history.js";
 import { migrateConfigFile } from "../core/config-migrate.js";
-import { getConfigPath, loadConfig } from "../core/config-store.js";
+import {
+  getConfigPath,
+  getIdealityHome,
+  loadConfig,
+} from "../core/config-store.js";
 import { redactConfig } from "../core/environment.js";
 import { printJson } from "./shared.js";
 
@@ -69,6 +74,14 @@ const configCommand = defineGroup({
             `Snapshot saved: ${path.basename(result.snapshot)} (restore with 'ideality rollback')`,
           );
         }
+        await recordAuditEvent(await loadConfig(), getIdealityHome(), {
+          eventType: "config.migrated",
+          payload: {
+            action: "migrate",
+            scope: `${result.fromVersion}->${result.toVersion}`,
+            status: "ok",
+          },
+        });
         console.log(
           colors.green(
             `Migrated registry from version ${result.fromVersion} to ${result.toVersion}`,
@@ -87,6 +100,13 @@ const configCommand = defineGroup({
           stderr: "inherit",
         });
         process.exitCode = await child.exited;
+        if (process.exitCode === 0) {
+          const config = await loadConfig();
+          await recordAuditEvent(config, getIdealityHome(), {
+            eventType: "config.changed",
+            payload: { action: "edit", scope: "registry", status: "ok" },
+          });
+        }
       },
     }),
   ],

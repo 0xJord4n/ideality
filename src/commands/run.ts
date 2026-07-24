@@ -1,6 +1,7 @@
 import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
+import { recordAuditEvent } from "../core/audit-history.js";
 import {
   buildChildEnvironment,
   buildEnvironment,
@@ -47,6 +48,21 @@ const runCommand = defineCommand({
       );
     }
     const execution = resolveExecution(runtime.config, runtime.resolved, tool);
+    const userArgs = commandArguments(positional, 1);
+    const recordSuccessfulDispatch = async (): Promise<void> => {
+      await recordAuditEvent(runtime.config, runtime.idealityHome, {
+        eventType: "tool.dispatched",
+        payload: {
+          identity: runtime.resolved.id,
+          tool,
+          executionTarget: execution.target,
+          network: execution.networkId,
+          vm: execution.vmId,
+          argvShape: userArgs.length > 0 ? "passthrough" : "none",
+          argsCount: userArgs.length,
+        },
+      });
+    };
     if (execution.networkId) {
       await ensureNetwork({
         ...runtime,
@@ -54,7 +70,6 @@ const runCommand = defineCommand({
         allowUnverified: flags["allow-unverified"],
       });
     }
-    const userArgs = commandArguments(positional, 1);
     if (execution.target === "vm") {
       const vmId = execution.vmId!;
       const vm = execution.vm!;
@@ -124,6 +139,9 @@ const runCommand = defineCommand({
         },
       );
       process.exitCode = result.exitCode;
+      if (result.exitCode === 0) {
+        await recordSuccessfulDispatch();
+      }
       return;
     }
     const environment = await buildEnvironment(
@@ -152,7 +170,11 @@ const runCommand = defineCommand({
       stderr: "inherit",
       signal,
     });
-    process.exitCode = await child.exited;
+    const exitCode = await child.exited;
+    process.exitCode = exitCode;
+    if (exitCode === 0) {
+      await recordSuccessfulDispatch();
+    }
   },
 });
 

@@ -3,7 +3,12 @@ import os from "node:os";
 import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
-import { loadConfig, saveConfig } from "../core/config-store.js";
+import { recordAuditEvent } from "../core/audit-history.js";
+import {
+  getIdealityHome,
+  loadConfig,
+  saveConfig,
+} from "../core/config-store.js";
 import { findIdentityDirectories } from "../core/file-search.js";
 import { deriveIdentityId } from "../core/identity-id.js";
 import { ensureNetwork } from "../core/network-manager.js";
@@ -464,6 +469,15 @@ const vmCommandGroup = defineGroup({
           printJson({ id, ...profile });
         } else {
           await saveConfig(config);
+          await recordAuditEvent(config, getIdealityHome(), {
+            eventType: "vm.added",
+            payload: {
+              vm: id,
+              driver,
+              network,
+              dryRun: false,
+            },
+          });
           console.log(colors.green(`Created VM profile '${id}'`));
         }
       },
@@ -505,6 +519,15 @@ const vmCommandGroup = defineGroup({
           identity.execution = execution;
         }
         await saveConfig(config);
+        await recordAuditEvent(config, getIdealityHome(), {
+          eventType: "vm.bound",
+          payload: {
+            identity: identityId,
+            tool: flags.tool,
+            vm: vmId,
+            network: flags.network,
+          },
+        });
         console.log(
           colors.green(
             `Bound ${flags.tool ? `${identityId}/${flags.tool}` : identityId} to VM '${vmId}'`,
@@ -548,6 +571,14 @@ const vmCommandGroup = defineGroup({
           delete identity.execution;
         }
         await saveConfig(config);
+        await recordAuditEvent(config, getIdealityHome(), {
+          eventType: "vm.unbound",
+          payload: {
+            identity: identityId,
+            tool: flags.tool,
+            network: flags.network,
+          },
+        });
         console.log(
           colors.green(
             `Returned ${flags.tool ? `${identityId}/${flags.tool}` : identityId} to host execution`,
@@ -563,6 +594,19 @@ const vmCommandGroup = defineGroup({
         const vmId = requirePositional(positional, 0, "VM profile");
         const prepared = await prepareVm(vmId, flags.path, flags.identity);
         await startPreparedVm(vmId, prepared.profile, prepared.configPath);
+        await recordAuditEvent(
+          prepared.runtime.config,
+          prepared.runtime.idealityHome,
+          {
+            eventType: "vm.started",
+            payload: {
+              identity: prepared.runtime.resolved.id,
+              vm: vmId,
+              network: prepared.profile.network,
+              action: "start",
+            },
+          },
+        );
         console.log(colors.green(`Started VM '${vmId}'`));
       },
     }),
@@ -572,13 +616,26 @@ const vmCommandGroup = defineGroup({
       options: runtimeOptions,
       handler: async ({ positional, flags, colors }) => {
         const vmId = requirePositional(positional, 0, "VM profile");
-        const { profile } = await prepareVm(
+        const prepared = await prepareVm(
           vmId,
           flags.path,
           flags.identity,
           false,
         );
-        await runVmCommand(vmCommand(vmId, profile, "stop"));
+        await runVmCommand(vmCommand(vmId, prepared.profile, "stop"));
+        await recordAuditEvent(
+          prepared.runtime.config,
+          prepared.runtime.idealityHome,
+          {
+            eventType: "vm.stopped",
+            payload: {
+              identity: prepared.runtime.resolved.id,
+              vm: vmId,
+              network: prepared.profile.network,
+              action: "stop",
+            },
+          },
+        );
         console.log(colors.green(`Stopped VM '${vmId}'`));
       },
     }),
@@ -588,16 +645,32 @@ const vmCommandGroup = defineGroup({
       options: runtimeOptions,
       handler: async ({ positional, flags }) => {
         const vmId = requirePositional(positional, 0, "VM profile");
-        const { profile } = await prepareVm(
+        const prepared = await prepareVm(
           vmId,
           flags.path,
           flags.identity,
           false,
         );
-        const result = await runProcess(vmCommand(vmId, profile, "status"), {
-          inherit: true,
-        });
+        const result = await runProcess(
+          vmCommand(vmId, prepared.profile, "status"),
+          {
+            inherit: true,
+          },
+        );
         process.exitCode = result.exitCode;
+        await recordAuditEvent(
+          prepared.runtime.config,
+          prepared.runtime.idealityHome,
+          {
+            eventType: "vm.status",
+            payload: {
+              identity: prepared.runtime.resolved.id,
+              vm: vmId,
+              network: prepared.profile.network,
+              action: "status",
+            },
+          },
+        );
       },
     }),
     defineCommand({
@@ -625,6 +698,19 @@ const vmCommandGroup = defineGroup({
             command,
           }),
           { env, signal },
+        );
+        await recordAuditEvent(
+          prepared.runtime.config,
+          prepared.runtime.idealityHome,
+          {
+            eventType: "vm.exec",
+            payload: {
+              identity: prepared.runtime.resolved.id,
+              vm: vmId,
+              network: prepared.profile.network,
+              action: "exec",
+            },
+          },
         );
       },
     }),
@@ -657,6 +743,10 @@ const vmCommandGroup = defineGroup({
           throw new Error(`VM profile '${id}' is still referenced`);
         delete config.vms[id];
         await saveConfig(config);
+        await recordAuditEvent(config, getIdealityHome(), {
+          eventType: "config.changed",
+          payload: { action: "vm.remove", scope: id, status: "ok" },
+        });
         console.log(colors.green(`Removed VM profile '${id}'`));
       },
     }),
