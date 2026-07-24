@@ -28,11 +28,38 @@ function config(): IdealityConfig {
     version: 1,
     defaultIdentity: "sample",
     secretBackend: { type: "bitwarden" },
+    networks: {
+      private: {
+        driver: "wireguard",
+        config: { from: "secret", key: "bw://wireguard/private" },
+        killSwitch: "required",
+      },
+      unused: {
+        driver: "mullvad",
+      },
+    },
+    vms: {
+      workspace: {
+        driver: "lima",
+        network: "private",
+        mounts: [
+          {
+            source: "{{root}}",
+            target: "/workspace",
+            writable: true,
+          },
+        ],
+      },
+      unused: {
+        driver: "firecracker",
+      },
+    },
     identities: {
       sample: {
         label: "Sample",
         roots: ["/workspace"],
         git: { name: "Sample User", email: "sample@example.com" },
+        execution: { target: "vm", vm: "workspace" },
         tools: {
           gh: {
             env: { GH_CONFIG_DIR: "/profiles/sample/gh" },
@@ -67,6 +94,10 @@ describe("project configuration", () => {
       name: "Sample User",
       email: "sample@example.com",
     });
+    expect(project.identities.sample?.execution).toEqual({
+      target: "vm",
+      vm: "workspace",
+    });
     expect(project.identities.sample?.tools.custom).toEqual({
       enabled: true,
       args: ["--team", "sample"],
@@ -75,6 +106,12 @@ describe("project configuration", () => {
     expect(project.identities.sample?.tools.gh).toBeUndefined();
     expect(project.tools).toEqual({
       custom: { executable: "custom-cli", isolation: "process" },
+    });
+    expect(project.networks).toEqual({
+      private: config().networks!.private!,
+    });
+    expect(project.vms).toEqual({
+      workspace: config().vms!.workspace!,
     });
   });
 
@@ -98,6 +135,12 @@ describe("project configuration", () => {
       local.identities.sample?.tools.gh,
     );
     expect(applied.identities.sample?.tools.custom?.enabled).toBe(true);
+    expect(applied.identities.sample?.execution).toEqual({
+      target: "vm",
+      vm: "workspace",
+    });
+    expect(applied.networks?.private).toEqual(project.networks?.private);
+    expect(applied.vms?.workspace).toEqual(project.vms?.workspace);
   });
 
   test("imports the handed-over identity when it is not local", () => {
@@ -143,6 +186,9 @@ describe("project configuration", () => {
       enabled: true,
       env: { CUSTOM_HOME: "/local/custom" },
     });
+    expect(project.networks).toBeUndefined();
+    expect(project.vms).toBeUndefined();
+    expect(project.identities.sample?.execution).toBeUndefined();
     expect(applied.secretBackend).toEqual(local.secretBackend);
   });
 

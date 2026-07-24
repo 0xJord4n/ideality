@@ -24,6 +24,7 @@ import {
 import { findExecutable } from "../core/runtime.js";
 import { createToolProfiles } from "../core/starter.js";
 import type { GitIdentity, IdealityConfig } from "../domain/config.js";
+import type { ExecutionTarget } from "../domain/config.js";
 import { syncInstalledCompletions } from "../integrations/completion.js";
 import { installGitIntegration } from "../integrations/git.js";
 import { installShims } from "../integrations/shims.js";
@@ -59,14 +60,14 @@ function displayHomePath(file: string, home: string): string {
     : file;
 }
 
-function sensitiveLiterals(
+function handoverRisks(
   config: IdealityConfig,
   identityId: string,
   tools: string[],
 ): string[] {
   const identity = config.identities[identityId];
   if (!identity) return [];
-  return tools.flatMap((tool) =>
+  const toolLiterals = tools.flatMap((tool) =>
     Object.entries(identity.tools[tool]?.env ?? {})
       .filter(
         ([name, source]) =>
@@ -75,6 +76,56 @@ function sensitiveLiterals(
       )
       .map(([name]) => `${tool}:${name}`),
   );
+  const networkIds = new Set<string>();
+  const vmIds = new Set<string>();
+  const collect = (target: ExecutionTarget | undefined) => {
+    if (target?.network) networkIds.add(target.network);
+    if (target?.target === "vm") vmIds.add(target.vm);
+  };
+  collect(identity.execution);
+  for (const tool of tools) collect(identity.tools[tool]?.execution);
+  for (const vmId of vmIds) {
+    const network = config.vms?.[vmId]?.network;
+    if (network) networkIds.add(network);
+  }
+  const networkLiterals: string[] = [];
+  for (const networkId of networkIds) {
+    const profile = config.networks?.[networkId];
+    if (!profile) continue;
+    if (
+      (profile.driver === "wireguard" || profile.driver === "openvpn") &&
+      typeof profile.config === "string"
+    ) {
+      networkLiterals.push(`network:${networkId}:config`);
+    }
+    if (profile.driver === "openvpn") {
+      if (typeof profile.username === "string") {
+        networkLiterals.push(`network:${networkId}:username`);
+      }
+      if (typeof profile.password === "string") {
+        networkLiterals.push(`network:${networkId}:password`);
+      }
+    }
+    if (profile.driver === "custom") {
+      networkLiterals.push(`network:${networkId}:custom-commands`);
+      for (const [name, source] of Object.entries(profile.env ?? {})) {
+        if (typeof source === "string") {
+          networkLiterals.push(`network:${networkId}:${name}`);
+        }
+      }
+    }
+  }
+  const vmCommands = [...vmIds].flatMap((vmId) => {
+    const profile = config.vms?.[vmId];
+    if (profile?.driver === "lima" && profile.provision?.length) {
+      return [`vm:${vmId}:provision`];
+    }
+    if (profile?.driver === "custom") {
+      return [`vm:${vmId}:custom-commands`];
+    }
+    return [];
+  });
+  return [...toolLiterals, ...networkLiterals, ...vmCommands];
 }
 
 const setupCommand = defineCommand({
@@ -108,6 +159,12 @@ const setupCommand = defineCommand({
       description: "Share tool requirements without full identity profiles",
       argumentKind: "flag",
     }),
+    vm: option(z.string().optional(), {
+      description: "Run selected tools in this VM profile",
+    }),
+    network: option(z.string().optional(), {
+      description: "Require this host-enforced network profile",
+    }),
     "non-interactive": option(z.boolean().default(false), {
       description: "Never prompt; require identity and tool flags as needed",
       argumentKind: "flag",
@@ -135,6 +192,14 @@ const setupCommand = defineCommand({
     let working = structuredClone(localConfig);
     if (existingProject) {
       Object.assign(working.tools, structuredClone(existingProject.tools));
+      Object.assign(
+        (working.networks ??= {}),
+        structuredClone(existingProject.networks ?? {}),
+      );
+      Object.assign(
+        (working.vms ??= {}),
+        structuredClone(existingProject.vms ?? {}),
+      );
     }
 
     let scope: SetupScope =
@@ -148,6 +213,16 @@ const setupCommand = defineCommand({
     let sshMode: SshMode = "agent";
     let sshKey: string | undefined;
     let generatedIdentity = false;
+    let execution: ExecutionTarget | undefined;
+    if (flags.vm) {
+      execution = {
+        target: "vm",
+        vm: flags.vm,
+        network: flags.network,
+      };
+    } else if (flags.network) {
+      execution = { target: "host", network: flags.network };
+    }
 
     if (interactive) {
       setMaxListeners(Math.max(defaultMaxListeners, 64));
@@ -314,6 +389,7 @@ const setupCommand = defineCommand({
         }
       }
 
+      execution ??= working.identities[identityId]?.execution;
       const availableTools = Object.entries(working.tools)
         .sort(([left], [right]) => left.localeCompare(right))
         .map(([name, definition]) => {
@@ -342,6 +418,49 @@ const setupCommand = defineCommand({
           min: 1,
         }),
       );
+
+      const executionOptions = [
+        {
+          label: "Host without a VPN requirement",
+          value: "host",
+          hint: "identity isolation only",
+        },
+        ...Object.entries(working.networks ?? {}).map(([id, profile]) => ({
+          label: `Host via ${profile.label ?? id}`,
+          value: `network:${id}`,
+          hint: `${profile.driver} / ${profile.killSwitch ?? "required"}`,
+        })),
+        ...Object.entries(working.vms ?? {}).map(([id, profile]) => ({
+          label: `VM: ${profile.label ?? id}`,
+          value: `vm:${id}`,
+          hint: `${profile.driver}${profile.network ? ` / ${profile.network}` : ""}`,
+        })),
+      ];
+      if (executionOptions.length > 1) {
+        const selectedExecution = await wizardStep(
+          prompt.select<string>("Execution and network (optional)", {
+            default: execution?.target === "vm"
+              ? `vm:${execution.vm}`
+              : execution?.network
+                ? `network:${execution.network}`
+                : "host",
+            options: executionOptions,
+          }),
+        );
+        if (selectedExecution.startsWith("vm:")) {
+          execution = {
+            target: "vm",
+            vm: selectedExecution.slice(3),
+          };
+        } else if (selectedExecution.startsWith("network:")) {
+          execution = {
+            target: "host",
+            network: selectedExecution.slice(8),
+          };
+        } else {
+          execution = undefined;
+        }
+      }
 
       if (flags.advanced && scope === "project") {
         detail = await wizardStep(
@@ -401,6 +520,7 @@ const setupCommand = defineCommand({
           ? Object.keys(existingProject.tools)
           : [];
       }
+      execution ??= working.identities[identityId]?.execution;
       if (selectedTools.length === 0) {
         throw new Error("Non-interactive setup requires --tools");
       }
@@ -412,6 +532,13 @@ const setupCommand = defineCommand({
     if (!working.identities[identityId]) {
       throw new Error(`Identity '${identityId}' does not exist`);
     }
+    if (execution?.target === "vm" && !working.vms?.[execution.vm]) {
+      throw new Error(`VM profile '${execution.vm}' does not exist`);
+    }
+    if (execution?.network && !working.networks?.[execution.network]) {
+      throw new Error(`Network profile '${execution.network}' does not exist`);
+    }
+    working.identities[identityId]!.execution = execution;
     if (existingProject) {
       const handedOverTools = selectedTools.filter(
         (tool) => existingProject.tools[tool],
@@ -431,23 +558,33 @@ const setupCommand = defineCommand({
       }
     }
 
-    const literals =
+    const risks =
       detail === "full"
-        ? sensitiveLiterals(working, identityId, selectedTools)
+        ? handoverRisks(working, identityId, selectedTools)
         : [];
     if (
       interactive &&
-      scope === "project" &&
-      literals.length > 0 &&
+      (scope === "project" || existingProject) &&
+      risks.length > 0 &&
       !(await wizardStep(
         prompt.confirm(
-          `Include ${literals.length} credential-like literal value${literals.length === 1 ? "" : "s"} in the project file?`,
+          `Trust ${risks.length} sensitive value${risks.length === 1 ? "" : "s"} or executable hook${risks.length === 1 ? "" : "s"} in this handover?`,
           { default: false, fallbackValue: false },
         ),
       ))
     ) {
       throw new Error(
-        "Replace literal credentials with secret references before creating the handover",
+        "Replace literal credentials and review executable hooks before trusting the handover",
+      );
+    }
+    if (
+      !interactive &&
+      (scope === "project" || existingProject) &&
+      risks.length > 0 &&
+      !flags.yes
+    ) {
+      throw new Error(
+        "Sensitive values or executable hooks require --yes in non-interactive mode",
       );
     }
 
@@ -486,7 +623,8 @@ const setupCommand = defineCommand({
       handoverDetail: scope === "project" ? detail : null,
       integrations,
       secretBackend: nextConfig.secretBackend?.type ?? "file",
-      sensitiveLiterals: literals,
+      handoverRisks: risks,
+      execution: execution ?? { target: "host" },
     };
 
     if (interactive) {
@@ -497,6 +635,13 @@ const setupCommand = defineCommand({
           `Handover: ${review.handover ?? "local only"}`,
           `Detail: ${review.handoverDetail ?? "not shared"}`,
           `Secrets: ${review.secretBackend}`,
+          `Execution: ${execution?.target ?? "host"}${
+            execution?.target === "vm"
+              ? ` / ${execution.vm}`
+              : execution?.network
+                ? ` / ${execution.network}`
+                : ""
+          }`,
           `Integrations: ${integrations.join(", ") || "none"}`,
         ].join("\n"),
         "Review",

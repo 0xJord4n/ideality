@@ -22,9 +22,21 @@ export interface ToolProfile {
   enabled?: boolean;
   executable?: string;
   isolation?: "shell" | "process";
+  execution?: ExecutionTarget;
   env?: Record<string, ValueSource | null>;
   args?: string[];
 }
+
+export type ExecutionTarget =
+  | {
+      target: "host";
+      network?: string;
+    }
+  | {
+      target: "vm";
+      vm: string;
+      network?: string;
+    };
 
 export interface GitIdentity {
   name: string;
@@ -39,6 +51,7 @@ export interface IdentityConfig {
   roots: string[];
   color?: string;
   git?: GitIdentity;
+  execution?: ExecutionTarget;
   tools: Record<string, ToolProfile>;
 }
 
@@ -52,12 +65,104 @@ export interface ToolDefinition {
 
 export type AuthAction = "login" | "status" | "logout";
 
+export type NetworkDnsConfig =
+  | "provider"
+  | "system"
+  | {
+      servers: string[];
+      search?: string[];
+    };
+
+export interface NetworkProfileBase {
+  label?: string;
+  sudo?: boolean;
+  killSwitch?: "required" | "provider" | "off";
+  dns?: NetworkDnsConfig;
+  ipv6?: "tunnel" | "block";
+  lan?: "deny" | "allow";
+}
+
+export type NetworkProfile =
+  | (NetworkProfileBase & {
+      driver: "wireguard";
+      config: ValueSource;
+      executable?: string;
+      interface?: string;
+    })
+  | (NetworkProfileBase & {
+      driver: "openvpn";
+      config: ValueSource;
+      username?: ValueSource;
+      password?: ValueSource;
+      executable?: string;
+      extraArgs?: string[];
+    })
+  | (NetworkProfileBase & {
+      driver: "mullvad";
+      executable?: string;
+      location?: {
+        country?: string;
+        city?: string;
+        hostname?: string;
+      };
+    })
+  | (NetworkProfileBase & {
+      driver: "custom";
+      connect: string[];
+      disconnect: string[];
+      status: string[];
+      env?: Record<string, ValueSource>;
+      verifiedKillSwitch?: boolean;
+    });
+
+export interface VmMount {
+  source: string;
+  target: string;
+  writable?: boolean;
+}
+
+export interface VmProfileBase {
+  label?: string;
+  cpus?: number;
+  memoryMiB?: number;
+  diskGiB?: number;
+  image?: string;
+  guestHome?: string;
+  workspaceTarget?: string;
+  mounts?: VmMount[];
+  network?: string;
+  video?: boolean;
+}
+
+export type VmProfile =
+  | (VmProfileBase & {
+      driver: "lima";
+      instance?: string;
+      vmType?: "auto" | "vz" | "qemu";
+      mountType?: "auto" | "virtiofs" | "9p" | "reverse-sshfs";
+      rosetta?: boolean;
+      provision?: string[];
+    })
+  | (VmProfileBase & {
+      driver: "apple-vz" | "cloud-hypervisor" | "firecracker";
+      helper?: string;
+    })
+  | (VmProfileBase & {
+      driver: "custom";
+      start: string[];
+      stop: string[];
+      status: string[];
+      exec: string[];
+    });
+
 export interface IdealityConfig {
   version: 1;
   defaultIdentity: string;
   secretBackend?: SecretBackendConfig;
   identities: Record<string, IdentityConfig>;
   tools: Record<string, ToolDefinition>;
+  networks?: Record<string, NetworkProfile>;
+  vms?: Record<string, VmProfile>;
 }
 
 export interface ResolvedIdentity {

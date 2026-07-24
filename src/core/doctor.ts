@@ -9,6 +9,8 @@ import { secretBackendExecutable } from "./secret-backends.js";
 import { listConfigSnapshots } from "./config-store.js";
 import { listPluginManifests } from "./plugins.js";
 import { renderShim } from "../integrations/shims.js";
+import { networkCapability } from "./network.js";
+import { vmCapability } from "./vm.js";
 
 export type CheckStatus = "pass" | "warn" | "fail";
 
@@ -269,5 +271,37 @@ export async function runDoctor(
     subject: "history",
     message: `${snapshots.length} rollback snapshot${snapshots.length === 1 ? "" : "s"}`,
   });
+  for (const [id, profile] of Object.entries(config.networks ?? {})) {
+    const capability = networkCapability(profile);
+    const executable = findExecutable(capability.executable);
+    const sudo = !profile.sudo || Boolean(findExecutable("sudo"));
+    const strictRequested = (profile.killSwitch ?? "required") === "required";
+    checks.push({
+      status:
+        !executable
+          ? "fail"
+          : !sudo
+            ? "fail"
+          : strictRequested && !capability.strictKillSwitch
+            ? "fail"
+            : "pass",
+      subject: `network:${id}`,
+      message: !executable
+        ? `required executable '${capability.executable}' is missing`
+        : !sudo
+          ? "profile requires sudo, but 'sudo' is missing"
+        : strictRequested && !capability.strictKillSwitch
+          ? `${capability.detail}; strict activation will fail closed`
+          : capability.detail,
+    });
+  }
+  for (const [id, profile] of Object.entries(config.vms ?? {})) {
+    const capability = vmCapability(profile);
+    checks.push({
+      status: capability.available ? "pass" : "fail",
+      subject: `vm:${id}`,
+      message: capability.detail,
+    });
+  }
   return checks;
 }

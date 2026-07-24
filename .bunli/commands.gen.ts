@@ -14,6 +14,7 @@ import Hook from '../src/commands/hook.js'
 import Identity from '../src/commands/identity.js'
 import Init from '../src/commands/init.js'
 import Install from '../src/commands/install.js'
+import Network from '../src/commands/network.js'
 import Plugin from '../src/commands/plugin.js'
 import Prompt from '../src/commands/prompt.js'
 import Rollback from '../src/commands/rollback.js'
@@ -23,9 +24,10 @@ import Setup from '../src/commands/setup.js'
 import Status from '../src/commands/status.js'
 import Tool from '../src/commands/tool.js'
 import Tui from '../src/commands/tui.js'
+import Vm from '../src/commands/vm.js'
 
 // Narrow list of command names to avoid typeof-cycles in types
-const names = ['auth', 'completion', 'config', 'doctor', 'env', 'explain', 'hook', 'identity', 'init', 'install', 'plugin', 'prompt', 'rollback', 'run', 'secret', 'setup', 'status', 'tool', 'tui'] as const
+const names = ['auth', 'completion', 'config', 'doctor', 'env', 'explain', 'hook', 'identity', 'init', 'install', 'network', 'plugin', 'prompt', 'rollback', 'run', 'secret', 'setup', 'status', 'tool', 'tui', 'vm'] as const
 type GeneratedNames = typeof names[number]
 
 const modules: Record<GeneratedNames, Command<any>> = {
@@ -39,6 +41,7 @@ const modules: Record<GeneratedNames, Command<any>> = {
   'identity': Identity,
   'init': Init,
   'install': Install,
+  'network': Network,
   'plugin': Plugin,
   'prompt': Prompt,
   'rollback': Rollback,
@@ -47,7 +50,8 @@ const modules: Record<GeneratedNames, Command<any>> = {
   'setup': Setup,
   'status': Status,
   'tool': Tool,
-  'tui': Tui
+  'tui': Tui,
+  'vm': Vm
 } as const
 
 const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
@@ -238,6 +242,102 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
       },
       path: './src/commands/install'
     },
+  'network': {
+      name: 'network',
+      description: 'Manage enforced VPN and network profiles',
+      alias: 'vpn',
+      commands: [
+        {
+          name: 'list',
+          description: 'List network profiles',
+          path: './src/commands/network'
+        },
+        {
+          name: 'show',
+          description: 'Show one network profile',
+          path: './src/commands/network'
+        },
+        {
+          name: 'add',
+          description: 'Create a VPN profile with an interactive wizard or flags',
+          options: {
+            'id': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override the automatically derived profile ID', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'label': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Display label', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'driver': { type: 'z.enum.optional', required: false, hasDefault: false, description: 'VPN driver', enumValues: ["mullvad","wireguard","openvpn","custom"], schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'config': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Config source: file:path, secret:key, env:NAME, or value:text', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'username': { type: 'z.string.optional', required: false, hasDefault: false, description: 'OpenVPN username source', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'password': { type: 'z.string.optional', required: false, hasDefault: false, description: 'OpenVPN password source', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'country': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Mullvad relay country', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'city': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Mullvad relay city', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'hostname': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Mullvad relay hostname', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'dns': { type: 'z.string.default', required: true, hasDefault: true, default: "provider", description: 'Mullvad DNS: provider or comma-separated server list', schema: {"type":"zod","method":"default","args":[{"type":"literal","value":"provider"}]}, validator: '(val) => true' },
+            'ipv6': { type: 'z.enum.default', required: true, hasDefault: true, default: "tunnel", description: 'Mullvad IPv6 policy', enumValues: ["tunnel","block"], schema: {"type":"zod","method":"default","args":[{"type":"literal","value":"tunnel"}]}, validator: '(val) => true' },
+            'lan': { type: 'z.enum.default', required: true, hasDefault: true, default: "deny", description: 'Mullvad local-network policy', enumValues: ["deny","allow"], schema: {"type":"zod","method":"default","args":[{"type":"literal","value":"deny"}]}, validator: '(val) => true' },
+            'kill-switch': { type: 'z.enum.default', required: true, hasDefault: true, default: "required", description: 'Required enforcement level', enumValues: ["required","provider","off"], schema: {"type":"zod","method":"default","args":[{"type":"literal","value":"required"}]}, validator: '(val) => true' },
+            'connect': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Custom connect command as a JSON string array', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'disconnect': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Custom disconnect command as a JSON string array', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'status': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Custom status command as a JSON string array', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'verified-kill-switch': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Attest that the custom adapter enforces a kill switch', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":6679,"end":6684,"loc":{"start":{"line":195,"column":59,"index":6679},"end":{"line":195,"column":64,"index":6684}},"value":false}}]}, validator: '(val) => true' },
+            'sudo': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Run WireGuard/OpenVPN provider commands through sudo', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":6854,"end":6859,"loc":{"start":{"line":199,"column":41,"index":6854},"end":{"line":199,"column":46,"index":6859}},"value":false}}]}, validator: '(val) => true' },
+            'non-interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Never prompt', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":7041,"end":7046,"loc":{"start":{"line":203,"column":54,"index":7041},"end":{"line":203,"column":59,"index":7046}},"value":false}}]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the profile without saving it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":7180,"end":7185,"loc":{"start":{"line":207,"column":46,"index":7180},"end":{"line":207,"column":51,"index":7185}},"value":false}}]}, validator: '(val) => true' }
+          },
+          path: './src/commands/network'
+        },
+        {
+          name: 'bind',
+          description: 'Require a network for an identity or one tool',
+          options: {
+            'tool': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Apply only to this tool', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' }
+          },
+          path: './src/commands/network'
+        },
+        {
+          name: 'up',
+          description: 'Connect the selected network and acquire the host lease',
+          options: {
+            'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
+            'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'allow-unverified': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Explicitly permit a tunnel without verified leak prevention', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":2953,"end":2958,"loc":{"start":{"line":100,"column":49,"index":2953},"end":{"line":100,"column":54,"index":2958}},"value":false}}]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Print commands without executing them', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3115,"end":3120,"loc":{"start":{"line":104,"column":40,"index":3115},"end":{"line":104,"column":45,"index":3120}},"value":false}}]}, validator: '(val) => true' },
+            'replace': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Disconnect the active profile before switching', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":20691,"end":20696,"loc":{"start":{"line":563,"column":44,"index":20691},"end":{"line":563,"column":49,"index":20696}},"value":false}}]}, validator: '(val) => true' }
+          },
+          path: './src/commands/network'
+        },
+        {
+          name: 'down',
+          description: 'Disconnect a network; Mullvad lockdown remains unless released',
+          options: {
+            'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
+            'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'allow-unverified': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Explicitly permit a tunnel without verified leak prevention', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":2953,"end":2958,"loc":{"start":{"line":100,"column":49,"index":2953},"end":{"line":100,"column":54,"index":2958}},"value":false}}]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Print commands without executing them', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3115,"end":3120,"loc":{"start":{"line":104,"column":40,"index":3115},"end":{"line":104,"column":45,"index":3120}},"value":false}}]}, validator: '(val) => true' },
+            'release': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Also disable provider lockdown', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":21510,"end":21515,"loc":{"start":{"line":590,"column":44,"index":21510},"end":{"line":590,"column":49,"index":21515}},"value":false}}]}, validator: '(val) => true' }
+          },
+          path: './src/commands/network'
+        },
+        {
+          name: 'status',
+          description: 'Check provider and Ideality lease status',
+          options: {
+            'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
+            'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'allow-unverified': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Explicitly permit a tunnel without verified leak prevention', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":2953,"end":2958,"loc":{"start":{"line":100,"column":49,"index":2953},"end":{"line":100,"column":54,"index":2958}},"value":false}}]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Print commands without executing them', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3115,"end":3120,"loc":{"start":{"line":104,"column":40,"index":3115},"end":{"line":104,"column":45,"index":3120}},"value":false}}]}, validator: '(val) => true' }
+          },
+          path: './src/commands/network'
+        },
+        {
+          name: 'remove',
+          description: 'Remove an unused network profile',
+          options: {
+            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Confirm removal', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":22884,"end":22889,"loc":{"start":{"line":636,"column":42,"index":22884},"end":{"line":636,"column":47,"index":22889}},"value":false}}]}, validator: '(val) => true' }
+          },
+          path: './src/commands/network'
+        }
+      ],
+      path: './src/commands/network'
+    },
   'plugin': {
       name: 'plugin',
       description: 'Install portable declarative tool integrations',
@@ -297,7 +397,8 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
       alias: 'x',
       options: {
         'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
-        'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' }
+        'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+        'allow-unverified': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Permit a configured VPN without verified leak prevention', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1058,"end":1063,"loc":{"start":{"line":35,"column":51,"index":1058},"end":{"line":35,"column":56,"index":1063}},"value":false}}]}, validator: '(val) => true' }
       },
       path: './src/commands/run'
     },
@@ -344,13 +445,15 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
         'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Project directory', short: 'C', fileType: 'directory', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
         'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Local identity to activate', short: 'i', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
         'tools': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Comma-separated tools for non-interactive setup', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-        'project': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Write a complete .ideality/project.jsonc handover bundle', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3054,"end":3059,"loc":{"start":{"line":95,"column":40,"index":3054},"end":{"line":95,"column":45,"index":3059}},"value":false}}]}, validator: '(val) => true' },
-        'local-only': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Keep configuration only under the user ideality home', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3224,"end":3229,"loc":{"start":{"line":99,"column":45,"index":3224},"end":{"line":99,"column":50,"index":3229}},"value":false}}]}, validator: '(val) => true' },
-        'advanced': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show SSH, handover, and integration controls', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3386,"end":3391,"loc":{"start":{"line":103,"column":41,"index":3386},"end":{"line":103,"column":46,"index":3391}},"value":false}}]}, validator: '(val) => true' },
-        'requirements-only': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Share tool requirements without full identity profiles', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3551,"end":3556,"loc":{"start":{"line":107,"column":52,"index":3551},"end":{"line":107,"column":57,"index":3556}},"value":false}}]}, validator: '(val) => true' },
-        'non-interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Never prompt; require identity and tool flags as needed', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3724,"end":3729,"loc":{"start":{"line":111,"column":50,"index":3724},"end":{"line":111,"column":55,"index":3729}},"value":false}}]}, validator: '(val) => true' },
-        'yes': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Apply without the final confirmation', short: 'y', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3884,"end":3889,"loc":{"start":{"line":115,"column":36,"index":3884},"end":{"line":115,"column":41,"index":3889}},"value":false}}]}, validator: '(val) => true' },
-        'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the complete change without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4049,"end":4054,"loc":{"start":{"line":120,"column":42,"index":4049},"end":{"line":120,"column":47,"index":4054}},"value":false}}]}, validator: '(val) => true' }
+        'project': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Write a complete .ideality/project.jsonc handover bundle', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4938,"end":4943,"loc":{"start":{"line":146,"column":40,"index":4938},"end":{"line":146,"column":45,"index":4943}},"value":false}}]}, validator: '(val) => true' },
+        'local-only': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Keep configuration only under the user ideality home', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5108,"end":5113,"loc":{"start":{"line":150,"column":45,"index":5108},"end":{"line":150,"column":50,"index":5113}},"value":false}}]}, validator: '(val) => true' },
+        'advanced': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show SSH, handover, and integration controls', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5270,"end":5275,"loc":{"start":{"line":154,"column":41,"index":5270},"end":{"line":154,"column":46,"index":5275}},"value":false}}]}, validator: '(val) => true' },
+        'requirements-only': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Share tool requirements without full identity profiles', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5435,"end":5440,"loc":{"start":{"line":158,"column":52,"index":5435},"end":{"line":158,"column":57,"index":5440}},"value":false}}]}, validator: '(val) => true' },
+        'vm': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Run selected tools in this VM profile', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+        'network': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Require this host-enforced network profile', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+        'non-interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Never prompt; require identity and tool flags as needed', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5834,"end":5839,"loc":{"start":{"line":168,"column":50,"index":5834},"end":{"line":168,"column":55,"index":5839}},"value":false}}]}, validator: '(val) => true' },
+        'yes': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Apply without the final confirmation', short: 'y', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5994,"end":5999,"loc":{"start":{"line":172,"column":36,"index":5994},"end":{"line":172,"column":41,"index":5999}},"value":false}}]}, validator: '(val) => true' },
+        'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the complete change without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":6159,"end":6164,"loc":{"start":{"line":177,"column":42,"index":6159},"end":{"line":177,"column":47,"index":6164}},"value":false}}]}, validator: '(val) => true' }
       },
       path: './src/commands/setup'
     },
@@ -361,7 +464,7 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
       options: {
         'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
         'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-        'json': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Emit JSON', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":708,"end":713,"loc":{"start":{"line":21,"column":37,"index":708},"end":{"line":21,"column":42,"index":713}},"value":false}}]}, validator: '(val) => true' }
+        'json': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Emit JSON', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":846,"end":851,"loc":{"start":{"line":26,"column":37,"index":846},"end":{"line":26,"column":42,"index":851}},"value":false}}]}, validator: '(val) => true' }
       },
       path: './src/commands/status'
     },
@@ -421,6 +524,116 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
         'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for initial identity selection', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' }
       },
       path: './src/commands/tui'
+    },
+  'vm': {
+      name: 'vm',
+      description: 'Manage isolated execution machines',
+      commands: [
+        {
+          name: 'list',
+          description: 'List VM profiles and backend availability',
+          path: './src/commands/vm'
+        },
+        {
+          name: 'show',
+          description: 'Show one VM profile',
+          path: './src/commands/vm'
+        },
+        {
+          name: 'add',
+          description: 'Create a VM profile with an interactive wizard or flags',
+          options: {
+            'id': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override the automatically derived profile ID', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'label': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Display label', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'driver': { type: 'z.enum.optional', required: false, hasDefault: false, description: 'VM backend', enumValues: ["lima","apple-vz","cloud-hypervisor","firecracker","custom"], schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'cpus': { type: 'z.coerce.number.int.min.default', required: true, hasDefault: true, default: 4, description: 'Virtual CPUs', min: 1, minLength: 1, schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"NumericLiteral","start":4730,"end":4731,"loc":{"start":{"line":162,"column":60,"index":4730},"end":{"line":162,"column":61,"index":4731}},"extra":{"rawValue":4,"raw":"4"},"value":4}}]}, validator: '(val) => true' },
+            'memory': { type: 'z.coerce.number.int.min.default', required: true, hasDefault: true, default: 4096, description: 'Memory in MiB', min: 256, minLength: 256, schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"NumericLiteral","start":4851,"end":4855,"loc":{"start":{"line":165,"column":64,"index":4851},"end":{"line":165,"column":68,"index":4855}},"extra":{"rawValue":4096,"raw":"4096"},"value":4096}}]}, validator: '(val) => true' },
+            'disk': { type: 'z.coerce.number.int.min.default', required: true, hasDefault: true, default: 40, description: 'Disk in GiB', min: 1, minLength: 1, schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"NumericLiteral","start":4972,"end":4974,"loc":{"start":{"line":168,"column":60,"index":4972},"end":{"line":168,"column":62,"index":4974}},"extra":{"rawValue":40,"raw":"40"},"value":40}}]}, validator: '(val) => true' },
+            'image': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Guest image URL or backend image reference', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'provision': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Lima system provisioning scripts as a JSON string array', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'instance': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Backend instance name', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'vm-type': { type: 'z.enum.optional', required: false, hasDefault: false, description: 'Lima virtualization driver', enumValues: ["auto","vz","qemu"], schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'mount-type': { type: 'z.enum.optional', required: false, hasDefault: false, description: 'Lima filesystem transport', enumValues: ["auto","virtiofs","9p","reverse-sshfs"], schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'rosetta': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Enable Rosetta in an Apple VZ guest', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5763,"end":5768,"loc":{"start":{"line":187,"column":44,"index":5763},"end":{"line":187,"column":49,"index":5768}},"value":false}}]}, validator: '(val) => true' },
+            'video': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Enable backend video output', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5921,"end":5926,"loc":{"start":{"line":191,"column":42,"index":5921},"end":{"line":191,"column":47,"index":5926}},"value":false}}]}, validator: '(val) => true' },
+            'guest-home': { type: 'z.string.default', required: true, hasDefault: true, default: "/home/ideality", description: 'Guest home used for path templates', fileType: 'path', schema: {"type":"zod","method":"default","args":[{"type":"literal","value":"/home/ideality"}]}, validator: '(val) => true' },
+            'mount': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Host workspace mount source', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'workspace-target': { type: 'z.string.default', required: true, hasDefault: true, default: "/workspace", description: 'Guest workspace path', fileType: 'path', schema: {"type":"zod","method":"default","args":[{"type":"literal","value":"/workspace"}]}, validator: '(val) => true' },
+            'network': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Host-enforced network profile', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'helper': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Backend helper executable', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'start': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Custom start command as a JSON string array', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'stop': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Custom stop command as a JSON string array', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'status': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Custom status command as a JSON string array', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'exec': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Custom exec command as a JSON string array', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'non-interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Never prompt', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":7211,"end":7216,"loc":{"start":{"line":222,"column":54,"index":7211},"end":{"line":222,"column":59,"index":7216}},"value":false}}]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the profile without saving it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":7350,"end":7355,"loc":{"start":{"line":226,"column":46,"index":7350},"end":{"line":226,"column":51,"index":7355}},"value":false}}]}, validator: '(val) => true' }
+          },
+          path: './src/commands/vm'
+        },
+        {
+          name: 'bind',
+          description: 'Route an identity or one tool through a VM and optional VPN',
+          options: {
+            'tool': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Apply only to this tool', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'network': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override the VM network profile', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' }
+          },
+          path: './src/commands/vm'
+        },
+        {
+          name: 'unbind',
+          description: 'Return an identity or one tool to host execution',
+          options: {
+            'tool': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Apply only to this tool', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'network': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Keep a host network requirement', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' }
+          },
+          path: './src/commands/vm'
+        },
+        {
+          name: 'start',
+          description: 'Start a VM after enforcing its network',
+          options: {
+            'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
+            'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' }
+          },
+          path: './src/commands/vm'
+        },
+        {
+          name: 'stop',
+          description: 'Stop a VM',
+          options: {
+            'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
+            'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' }
+          },
+          path: './src/commands/vm'
+        },
+        {
+          name: 'status',
+          description: 'Read VM backend status',
+          options: {
+            'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
+            'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' }
+          },
+          path: './src/commands/vm'
+        },
+        {
+          name: 'exec',
+          description: 'Execute a command in a VM',
+          options: {
+            'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
+            'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' }
+          },
+          path: './src/commands/vm'
+        },
+        {
+          name: 'remove',
+          description: 'Remove an unused VM profile without deleting backend disks',
+          options: {
+            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Confirm removal', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":22134,"end":22139,"loc":{"start":{"line":611,"column":42,"index":22134},"end":{"line":611,"column":47,"index":22139}},"value":false}}]}, validator: '(val) => true' }
+          },
+          path: './src/commands/vm'
+        }
+      ],
+      path: './src/commands/vm'
     }
 } as const
 

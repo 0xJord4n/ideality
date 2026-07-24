@@ -52,6 +52,10 @@ const explainCommand = defineCommand({
     console.log(`shim         ${explanation.shim}`);
     console.log(`intercepted  ${explanation.intercepted ? "yes" : "no"}`);
     console.log(`isolation    ${explanation.isolation}`);
+    console.log(`target       ${explanation.execution.target}`);
+    console.log(`vm           ${explanation.execution.vm ?? "<none>"}`);
+    console.log(`network      ${explanation.execution.network ?? "<none>"}`);
+    console.log(`target source ${explanation.execution.source}`);
     console.log(
       `arguments    ${explanation.arguments.length ? explanation.arguments.join(" ") : "<none>"}`,
     );

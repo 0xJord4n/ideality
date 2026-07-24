@@ -11,6 +11,7 @@ import hookCommand from "./commands/hook.js";
 import identityCommand from "./commands/identity.js";
 import initCommand from "./commands/init.js";
 import installCommand from "./commands/install.js";
+import networkCommand from "./commands/network.js";
 import pluginCommand from "./commands/plugin.js";
 import promptCommand from "./commands/prompt.js";
 import rollbackCommand from "./commands/rollback.js";
@@ -20,6 +21,7 @@ import setupCommand from "./commands/setup.js";
 import statusCommand from "./commands/status.js";
 import toolCommand from "./commands/tool.js";
 import tuiCommand from "./commands/tui.js";
+import vmCommand from "./commands/vm.js";
 
 const cli = await createCLI({
   name: "ideality",
@@ -38,6 +40,8 @@ for (const command of [
   rollbackCommand,
   authCommand,
   secretCommand,
+  networkCommand,
+  vmCommand,
   identityCommand,
   toolCommand,
   pluginCommand,

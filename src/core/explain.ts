@@ -5,6 +5,7 @@ import {
   buildEnvironment,
   type EnvironmentOptions,
 } from "./environment.js";
+import { resolveExecution, type ResolvedExecution } from "./execution.js";
 
 export interface ToolExplanation {
   identity: string;
@@ -20,6 +21,12 @@ export interface ToolExplanation {
   arguments: string[];
   environment: Record<string, string>;
   unset: string[];
+  execution: {
+    target: ResolvedExecution["target"];
+    source: ResolvedExecution["source"];
+    vm: string | null;
+    network: string | null;
+  };
 }
 
 export async function explainTool(
@@ -38,6 +45,7 @@ export async function explainTool(
     );
   }
   const environment = await buildEnvironment(config, resolved, options);
+  const execution = resolveExecution(config, resolved, options.tool);
   const idealityHome =
     options.idealityHome ?? path.join(options.home, ".ideality");
   return {
@@ -57,5 +65,11 @@ export async function explainTool(
     arguments: environment.args,
     environment: environment.redacted,
     unset: environment.unset,
+    execution: {
+      target: execution.target,
+      source: execution.source,
+      vm: execution.vmId,
+      network: execution.networkId,
+    },
   };
 }

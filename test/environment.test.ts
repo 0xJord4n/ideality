@@ -145,4 +145,56 @@ describe("buildEnvironment", () => {
     expect(environment.values.RAILWAY_API_TOKEN).toBe("resolved-secret");
     expect(environment.redacted.RAILWAY_API_TOKEN).toBe("<secret:age>");
   });
+
+  test("maps literal templates to guest paths without remapping host file sources", async () => {
+    const guestConfig = structuredClone(config);
+    guestConfig.identities.personal!.tools.railway!.env = {
+      TOOL_HOME: "{{home}}/tool",
+      PROJECT_PATH: "{{root}}/package",
+      RAILWAY_API_TOKEN: {
+        from: "file",
+        path: "{{idealityHome}}/secrets/token",
+      },
+    };
+    const environment = await buildEnvironment(
+      guestConfig,
+      {
+        ...resolved,
+        identity: guestConfig.identities.personal!,
+      },
+      {
+        home: "/home/dev",
+        idealityHome: "/host/state",
+        targetHome: "/home/ideality",
+        targetIdealityHome: "/home/ideality/.ideality",
+        targetRoot: "/workspace",
+        tool: "railway",
+        readFile: async (file) =>
+          file === "/host/state/secrets/token" ? "token" : "",
+      },
+    );
+    expect(environment.values).toMatchObject({
+      TOOL_HOME: "/home/ideality/tool",
+      PROJECT_PATH: "/workspace/package",
+      RAILWAY_API_TOKEN: "token",
+    });
+  });
+
+  test("redacts literal VPN material from config output", () => {
+    const networkConfig = structuredClone(config);
+    networkConfig.networks = {
+      private: {
+        driver: "openvpn",
+        config: "client\nremote vpn.example",
+        username: "account",
+        password: "password",
+        killSwitch: "provider",
+      },
+    };
+    expect(redactConfig(networkConfig).networks?.private).toMatchObject({
+      config: "<secret:literal>",
+      username: "<secret:literal>",
+      password: "<secret:literal>",
+    });
+  });
 });

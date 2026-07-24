@@ -2,6 +2,11 @@ import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
 import { buildEnvironment } from "../core/environment.js";
+import {
+  resolveExecution,
+  summarizeExecution,
+} from "../core/execution.js";
+import { loadActiveNetwork } from "../core/network.js";
 import { loadRuntime, resolveExecutable } from "../core/runtime.js";
 import { printJson } from "./shared.js";
 
@@ -52,6 +57,9 @@ const statusCommand = defineCommand({
               runtime.config.tools[name]?.isolation ??
               "shell",
             environment: environment.redacted,
+            execution: summarizeExecution(
+              resolveExecution(runtime.config, runtime.resolved, name),
+            ),
           };
         },
       ),
@@ -64,6 +72,10 @@ const statusCommand = defineCommand({
       default: runtime.resolved.isDefault,
       git: runtime.resolved.identity.git ?? null,
       tools,
+      execution: summarizeExecution(
+        resolveExecution(runtime.config, runtime.resolved),
+      ),
+      activeNetwork: await loadActiveNetwork(runtime.idealityHome),
     };
     if (flags.json) {
       printJson(output);
@@ -79,11 +91,23 @@ const statusCommand = defineCommand({
       console.log(`git   ${output.git.name} <${output.git.email}>`);
       console.log(`ssh   ${output.git.sshKey ?? "<default SSH agent>"}`);
     }
+    console.log(
+      `target ${output.execution.target}${
+        output.execution.vmId ? ` (${output.execution.vmId})` : ""
+      }`,
+    );
+    console.log(
+      `vpn    ${output.execution.networkId ?? "<none>"}${
+        output.activeNetwork
+          ? ` / active: ${output.activeNetwork.profile} (${output.activeNetwork.enforcement})`
+          : ""
+      }`,
+    );
     console.log();
     for (const tool of tools) {
       const marker = tool.installed ? colors.green("ready") : colors.yellow("missing");
       console.log(
-        `${tool.name.padEnd(10)} ${marker.padEnd(16)} ${tool.isolation.padEnd(8)} ${tool.executable ?? "-"}`,
+        `${tool.name.padEnd(10)} ${marker.padEnd(16)} ${tool.isolation.padEnd(8)} ${tool.execution.target.padEnd(5)} ${tool.executable ?? "-"}`,
       );
     }
   },

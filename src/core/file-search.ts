@@ -131,3 +131,23 @@ export async function findIdentityDirectories(home: string): Promise<string[]> {
     await Promise.all(roots.map((directory) => collectDirectories(directory, 3)))
   ).flat();
 }
+
+export async function findNetworkConfigFiles(
+  home: string,
+  cwd: string,
+): Promise<string[]> {
+  const roots = [
+    cwd,
+    path.join(home, "Downloads"),
+    path.join(home, ".config"),
+    path.join(home, ".ideality"),
+  ];
+  const files = (
+    await Promise.all(
+      [...new Set(roots)].map((directory) => collectFiles(directory, 3)),
+    )
+  ).flat();
+  return [...new Set(files)].filter((file) =>
+    /\.(conf|ovpn|wireguard)$/i.test(file),
+  );
+}

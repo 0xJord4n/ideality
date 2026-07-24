@@ -33,6 +33,8 @@ describe("buildDashboardModel", () => {
       name: "gh",
       configured: true,
       installed: true,
+      target: "host",
+      network: null,
     });
   });
 });

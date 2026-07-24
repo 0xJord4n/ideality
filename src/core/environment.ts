@@ -13,6 +13,9 @@ import { readSecretValue } from "./secret-backends.js";
 export interface EnvironmentOptions {
   home: string;
   idealityHome?: string;
+  targetHome?: string;
+  targetIdealityHome?: string;
+  targetRoot?: string;
   tool?: string;
   baseEnv?: Record<string, string | undefined>;
   readFile?: (path: string) => Promise<string>;
@@ -44,19 +47,30 @@ export function renderTemplate(
     : rendered;
 }
 
-async function resolveSource(
+export async function resolveValueSource(
   config: IdealityConfig,
   source: ValueSource,
   resolved: ResolvedIdentity,
   options: Required<Pick<EnvironmentOptions, "home" | "idealityHome" | "readFile">> &
     Pick<EnvironmentOptions, "baseEnv" | "readSecret">,
+  target?: {
+    home: string;
+    idealityHome: string;
+    root?: string;
+  },
 ): Promise<{ value: string | null; display: string }> {
   if (typeof source === "string") {
     const value = renderTemplate(
       source,
-      resolved,
-      options.home,
-      options.idealityHome,
+      target?.root
+        ? {
+            ...resolved,
+            path: target.root,
+            matchedRoot: target.root,
+          }
+        : resolved,
+      target?.home ?? options.home,
+      target?.idealityHome ?? options.idealityHome,
     );
     return { value, display: value };
   }
@@ -157,6 +171,16 @@ export async function buildEnvironment(
   const readFile = options.readFile ?? ((file: string) => nodeReadFile(file, "utf8"));
   const idealityHome =
     options.idealityHome ?? path.join(options.home, ".ideality");
+  const targetHome = options.targetHome ?? options.home;
+  const targetIdealityHome =
+    options.targetIdealityHome ?? idealityHome;
+  const targetResolved = options.targetRoot
+    ? {
+        ...resolved,
+        path: options.targetRoot,
+        matchedRoot: options.targetRoot,
+      }
+    : resolved;
   const profiles = toolProfiles(config, resolved, options.tool);
 
   for (const [, profile] of profiles) {
@@ -168,12 +192,16 @@ export async function buildEnvironment(
         continue;
       }
 
-      const result = await resolveSource(config, source, resolved, {
+      const result = await resolveValueSource(config, source, resolved, {
         home: options.home,
         idealityHome,
         baseEnv: options.baseEnv,
         readFile,
         readSecret: options.readSecret,
+      }, {
+        home: targetHome,
+        idealityHome: targetIdealityHome,
+        root: options.targetRoot,
       });
       if (result.value === null) {
         unset.add(name);
@@ -201,7 +229,7 @@ export async function buildEnvironment(
     tool: options.tool ?? null,
     executable: selectedProfile?.executable ?? definition?.executable ?? null,
     args: (selectedProfile?.args ?? []).map((arg) =>
-      renderTemplate(arg, resolved, options.home, idealityHome),
+      renderTemplate(arg, targetResolved, targetHome, targetIdealityHome),
     ),
   };
 }
@@ -217,6 +245,28 @@ export function redactConfig(config: IdealityConfig): IdealityConfig {
       for (const [name, source] of Object.entries(profile.env ?? {})) {
         if (typeof source === "string" && isSensitiveVariable(name)) {
           profile.env![name] = "<secret:literal>";
+        }
+      }
+    }
+  }
+  for (const profile of Object.values(redacted.networks ?? {})) {
+    if (profile.driver === "wireguard" || profile.driver === "openvpn") {
+      if (typeof profile.config === "string") {
+        profile.config = "<secret:literal>";
+      }
+    }
+    if (profile.driver === "openvpn") {
+      if (typeof profile.username === "string") {
+        profile.username = "<secret:literal>";
+      }
+      if (typeof profile.password === "string") {
+        profile.password = "<secret:literal>";
+      }
+    }
+    if (profile.driver === "custom") {
+      for (const name of Object.keys(profile.env ?? {})) {
+        if (typeof profile.env?.[name] === "string") {
+          profile.env[name] = "<secret:literal>";
         }
       }
     }

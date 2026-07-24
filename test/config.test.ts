@@ -83,8 +83,138 @@ describe("parseConfig", () => {
           ...base,
           secretBackend: { type: "dashlane" },
         }),
-      ).secretBackend,
+    ).secretBackend,
     ).toEqual({ type: "dashlane" });
+  });
+
+  test("accepts complete network and VM execution profiles", () => {
+    const parsed = parseConfig(
+      JSON.stringify({
+        version: 1,
+        defaultIdentity: "sample",
+        secretBackend: { type: "keychain" },
+        networks: {
+          private_eu: {
+            driver: "wireguard",
+            config: {
+              from: "secret",
+              key: "sample/wireguard/private-eu",
+            },
+            killSwitch: "required",
+            dns: { servers: ["10.64.0.1"] },
+            ipv6: "block",
+            lan: "deny",
+          },
+          mullvad: {
+            driver: "mullvad",
+            killSwitch: "provider",
+            location: { country: "se", city: "sto" },
+          },
+        },
+        vms: {
+          workspace: {
+            driver: "lima",
+            cpus: 4,
+            memoryMiB: 8192,
+            diskGiB: 80,
+            vmType: "vz",
+            mountType: "virtiofs",
+            mounts: [
+              {
+                source: "{{root}}",
+                target: "/workspace",
+                writable: true,
+              },
+            ],
+            network: "private_eu",
+          },
+        },
+        identities: {
+          sample: {
+            label: "Sample",
+            roots: ["/workspace"],
+            execution: {
+              target: "vm",
+              vm: "workspace",
+              network: "private_eu",
+            },
+            tools: {
+              discord: {
+                execution: {
+                  target: "host",
+                  network: "mullvad",
+                },
+              },
+            },
+          },
+        },
+        tools: {
+          discord: { executable: "discord", isolation: "process" },
+        },
+      }),
+    );
+
+    expect(parsed.identities.sample?.execution).toEqual({
+      target: "vm",
+      vm: "workspace",
+      network: "private_eu",
+    });
+    expect(parsed.vms?.workspace?.driver).toBe("lima");
+    expect(parsed.networks?.private_eu?.driver).toBe("wireguard");
+  });
+
+  test("rejects missing network and VM execution references", () => {
+    expect(() =>
+      parseConfig(
+        JSON.stringify({
+          version: 1,
+          defaultIdentity: "sample",
+          identities: {
+            sample: {
+              label: "Sample",
+              roots: ["/workspace"],
+              execution: {
+                target: "vm",
+                vm: "missing-vm",
+                network: "missing-network",
+              },
+              tools: {},
+            },
+          },
+          tools: {},
+        }),
+      ),
+    ).toThrow("Network profile 'missing-network' does not exist");
+  });
+
+  test("requires custom strict networks to attest their kill switch", () => {
+    expect(() =>
+      parseConfig(
+        JSON.stringify({
+          version: 1,
+          defaultIdentity: "sample",
+          networks: {
+            custom: {
+              driver: "custom",
+              connect: ["vpn", "up"],
+              disconnect: ["vpn", "down"],
+              status: ["vpn", "status"],
+              killSwitch: "required",
+            },
+          },
+          identities: {
+            sample: {
+              label: "Sample",
+              roots: ["/workspace"],
+              tools: {},
+            },
+          },
+          tools: {},
+        }),
+      ),
+    ).toThrow(
+      "Custom networks with a required kill switch must declare verifiedKillSwitch",
+    );
   });
 });
 

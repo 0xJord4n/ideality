@@ -1,7 +1,13 @@
 import { stat } from "node:fs/promises";
 import path from "node:path";
 
-import type { IdealityConfig, ToolProfile } from "../domain/config.js";
+import type {
+  ExecutionTarget,
+  IdealityConfig,
+  NetworkProfile,
+  ToolProfile,
+  VmProfile,
+} from "../domain/config.js";
 import { loadConfig, saveConfig } from "./config-store.js";
 
 export const PROJECT_DIRECTORY = ".ideality";
@@ -81,7 +87,7 @@ export function createProjectConfig(
     };
   }
 
-  return {
+  const project: IdealityConfig = {
     version: 1,
     defaultIdentity: identityId,
     ...(!options.requirementsOnly && config.secretBackend
@@ -107,6 +113,44 @@ export function createProjectConfig(
       tools.map((tool) => [tool, structuredClone(config.tools[tool]!)]),
     ),
   };
+  if (!options.requirementsOnly) {
+    const vmIds = new Set<string>();
+    const networkIds = new Set<string>();
+    collectExecutionReferences(identity.execution, vmIds, networkIds);
+    for (const tool of tools) {
+      collectExecutionReferences(
+        identity.tools[tool]?.execution,
+        vmIds,
+        networkIds,
+      );
+    }
+
+    const vms: Record<string, VmProfile> = {};
+    for (const vmId of vmIds) {
+      const vm = config.vms?.[vmId];
+      if (!vm) continue;
+      vms[vmId] = structuredClone(vm);
+      if (vm.network) networkIds.add(vm.network);
+    }
+    const networks: Record<string, NetworkProfile> = {};
+    for (const networkId of networkIds) {
+      const network = config.networks?.[networkId];
+      if (network) networks[networkId] = structuredClone(network);
+    }
+    if (Object.keys(vms).length > 0) project.vms = vms;
+    if (Object.keys(networks).length > 0) project.networks = networks;
+  }
+  return project;
+}
+
+function collectExecutionReferences(
+  execution: ExecutionTarget | undefined,
+  vmIds: Set<string>,
+  networkIds: Set<string>,
+): void {
+  if (!execution) return;
+  if (execution.target === "vm") vmIds.add(execution.vm);
+  if (execution.network) networkIds.add(execution.network);
 }
 
 export function applyProjectConfig(
@@ -123,6 +167,18 @@ export function applyProjectConfig(
   }
   const next = structuredClone(localConfig);
   Object.assign(next.tools, structuredClone(projectConfig.tools));
+  if (projectConfig.networks) {
+    next.networks = {
+      ...(next.networks ?? {}),
+      ...structuredClone(projectConfig.networks),
+    };
+  }
+  if (projectConfig.vms) {
+    next.vms = {
+      ...(next.vms ?? {}),
+      ...structuredClone(projectConfig.vms),
+    };
+  }
   if (projectConfig.secretBackend) {
     next.secretBackend = structuredClone(projectConfig.secretBackend);
   }
@@ -132,6 +188,9 @@ export function applyProjectConfig(
     existing.roots = [
       ...new Set([...existing.roots, path.resolve(projectRoot)]),
     ];
+    if (source.execution) {
+      existing.execution = structuredClone(source.execution);
+    }
     for (const [tool, profile] of Object.entries(source.tools)) {
       existing.tools[tool] = {
         ...structuredClone(existing.tools[tool] ?? {}),

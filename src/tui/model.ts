@@ -1,6 +1,7 @@
 import type { SelectOption } from "@opentui/core";
 
 import type { IdealityConfig } from "../domain/config.js";
+import { resolveExecution } from "../core/execution.js";
 
 export interface DashboardTool {
   name: string;
@@ -11,6 +12,9 @@ export interface DashboardTool {
   installed: boolean;
   variables: number;
   arguments: number;
+  target: "host" | "vm";
+  vm: string | null;
+  network: string | null;
 }
 
 export interface DashboardModel {
@@ -23,6 +27,11 @@ export interface DashboardModel {
     roots: string[];
     git: { name: string; email: string; sshKey?: string } | null;
     tools: DashboardTool[];
+    execution: {
+      target: "host" | "vm";
+      vm: string | null;
+      network: string | null;
+    };
   };
 }
 
@@ -36,6 +45,14 @@ export function buildDashboardModel(
     ? selectedId
     : config.defaultIdentity;
   const selected = config.identities[id]!;
+  const resolved = {
+    id,
+    identity: selected,
+    path: selected.roots[0]!,
+    matchedRoot: selected.roots[0]!,
+    isDefault: id === config.defaultIdentity,
+  };
+  const execution = resolveExecution(config, resolved);
 
   return {
     identities: Object.entries(config.identities).map(([identityId, identity]) => ({
@@ -50,6 +67,11 @@ export function buildDashboardModel(
       isDefault: id === config.defaultIdentity,
       roots: selected.roots,
       git: selected.git ?? null,
+      execution: {
+        target: execution.target,
+        vm: execution.vmId,
+        network: execution.networkId,
+      },
       tools: Object.entries(config.tools).map(([name, definition]) => {
         const profile = selected.tools[name];
         const candidates = [
@@ -57,6 +79,7 @@ export function buildDashboardModel(
           definition.executable,
           ...(definition.detect ?? []),
         ].filter((value): value is string => Boolean(value));
+        const toolExecution = resolveExecution(config, resolved, name);
         return {
           name,
           executable: candidates[0] ?? definition.executable,
@@ -67,6 +90,9 @@ export function buildDashboardModel(
           installed: candidates.some(executableExists),
           variables: Object.keys(profile?.env ?? {}).length,
           arguments: profile?.args?.length ?? 0,
+          target: toolExecution.target,
+          vm: toolExecution.vmId,
+          network: toolExecution.networkId,
         };
       }),
     },

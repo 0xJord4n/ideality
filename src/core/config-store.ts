@@ -65,9 +65,34 @@ const toolProfileSchema = z.object({
   enabled: z.boolean().optional(),
   executable: z.string().min(1).optional(),
   isolation: z.enum(["shell", "process"]).optional(),
+  execution: z
+    .discriminatedUnion("target", [
+      z.object({
+        target: z.literal("host"),
+        network: z.string().min(1).optional(),
+      }),
+      z.object({
+        target: z.literal("vm"),
+        vm: z.string().min(1),
+        network: z.string().min(1).optional(),
+      }),
+    ])
+    .optional(),
   env: z.record(valueSourceSchema.nullable()).optional(),
   args: z.array(z.string()).optional(),
 });
+
+const executionSchema = z.discriminatedUnion("target", [
+  z.object({
+    target: z.literal("host"),
+    network: z.string().min(1).optional(),
+  }),
+  z.object({
+    target: z.literal("vm"),
+    vm: z.string().min(1),
+    network: z.string().min(1).optional(),
+  }),
+]);
 
 const identitySchema = z.object({
   label: z.string().min(1),
@@ -82,8 +107,124 @@ const identitySchema = z.object({
       gpgSign: z.boolean().optional(),
     })
     .optional(),
+  execution: executionSchema.optional(),
   tools: z.record(toolProfileSchema),
 });
+
+const networkBase = {
+  label: z.string().min(1).optional(),
+  sudo: z.boolean().optional(),
+  killSwitch: z.enum(["required", "provider", "off"]).optional(),
+  dns: z
+    .union([
+      z.enum(["provider", "system"]),
+      z.object({
+        servers: z.array(z.string().min(1)).min(1),
+        search: z.array(z.string().min(1)).optional(),
+      }),
+    ])
+    .optional(),
+  ipv6: z.enum(["tunnel", "block"]).optional(),
+  lan: z.enum(["deny", "allow"]).optional(),
+};
+
+const networkSchema = z.discriminatedUnion("driver", [
+  z.object({
+    ...networkBase,
+    driver: z.literal("wireguard"),
+    config: valueSourceSchema,
+    executable: z.string().min(1).optional(),
+    interface: z.string().min(1).optional(),
+  }),
+  z.object({
+    ...networkBase,
+    driver: z.literal("openvpn"),
+    config: valueSourceSchema,
+    username: valueSourceSchema.optional(),
+    password: valueSourceSchema.optional(),
+    executable: z.string().min(1).optional(),
+    extraArgs: z.array(z.string()).optional(),
+  }),
+  z.object({
+    ...networkBase,
+    driver: z.literal("mullvad"),
+    executable: z.string().min(1).optional(),
+    location: z
+      .object({
+        country: z.string().min(1).optional(),
+        city: z.string().min(1).optional(),
+        hostname: z.string().min(1).optional(),
+      })
+      .optional(),
+  }),
+  z.object({
+    ...networkBase,
+    driver: z.literal("custom"),
+    connect: z.array(z.string()).min(1),
+    disconnect: z.array(z.string()).min(1),
+    status: z.array(z.string()).min(1),
+    env: z.record(valueSourceSchema).optional(),
+    verifiedKillSwitch: z.boolean().optional(),
+  }),
+]);
+
+const vmBase = {
+  label: z.string().min(1).optional(),
+  cpus: z.number().int().min(1).max(256).optional(),
+  memoryMiB: z.number().int().min(256).optional(),
+  diskGiB: z.number().int().min(1).optional(),
+  image: z.string().min(1).optional(),
+  guestHome: z.string().min(1).optional(),
+  workspaceTarget: z.string().min(1).optional(),
+  mounts: z
+    .array(
+      z.object({
+        source: z.string().min(1),
+        target: z.string().min(1),
+        writable: z.boolean().optional(),
+      }),
+    )
+    .optional(),
+  network: z.string().min(1).optional(),
+  video: z.boolean().optional(),
+};
+
+const vmSchema = z.discriminatedUnion("driver", [
+  z.object({
+    ...vmBase,
+    driver: z.literal("lima"),
+    instance: z.string().min(1).optional(),
+    vmType: z.enum(["auto", "vz", "qemu"]).optional(),
+    mountType: z
+      .enum(["auto", "virtiofs", "9p", "reverse-sshfs"])
+      .optional(),
+    rosetta: z.boolean().optional(),
+    provision: z.array(z.string()).optional(),
+  }),
+  z.object({
+    ...vmBase,
+    driver: z.literal("apple-vz"),
+    helper: z.string().min(1).optional(),
+  }),
+  z.object({
+    ...vmBase,
+    driver: z.literal("cloud-hypervisor"),
+    helper: z.string().min(1).optional(),
+  }),
+  z.object({
+    ...vmBase,
+    driver: z.literal("firecracker"),
+    helper: z.string().min(1).optional(),
+  }),
+  z.object({
+    ...vmBase,
+    driver: z.literal("custom"),
+    start: z.array(z.string()).min(1),
+    stop: z.array(z.string()).min(1),
+    status: z.array(z.string()).min(1),
+    exec: z.array(z.string()).min(1),
+  }),
+]);
 
 const configSchema = z
   .object({
@@ -106,6 +247,8 @@ const configSchema = z
           .optional(),
       }),
     ),
+    networks: z.record(networkSchema).optional(),
+    vms: z.record(vmSchema).optional(),
   })
   .superRefine((config, context) => {
     const safeName = /^[a-z][a-z0-9_-]*$/;
@@ -134,6 +277,12 @@ const configSchema = z
           });
         }
       }
+      validateExecutionReferences(
+        identity.execution,
+        ["identities", id, "execution"],
+        config,
+        context,
+      );
       for (const [tool, profile] of Object.entries(identity.tools)) {
         if (!config.tools[tool]) {
           context.addIssue({
@@ -142,6 +291,12 @@ const configSchema = z
             message: `Tool '${tool}' has no definition`,
           });
         }
+        validateExecutionReferences(
+          profile.execution,
+          ["identities", id, "tools", tool, "execution"],
+          config,
+          context,
+        );
         for (const variable of Object.keys(profile.env ?? {})) {
           if (!safeVariable.test(variable)) {
             context.addIssue({
@@ -177,7 +332,78 @@ const configSchema = z
         });
       }
     }
+    for (const [network, profile] of Object.entries(config.networks ?? {})) {
+      if (!safeName.test(network)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["networks", network],
+          message: `Invalid network profile ID '${network}'`,
+        });
+      }
+      if (
+        profile.killSwitch === "required" &&
+        profile.driver === "custom" &&
+        !profile.verifiedKillSwitch
+      ) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["networks", network, "verifiedKillSwitch"],
+          message:
+            "Custom networks with a required kill switch must declare verifiedKillSwitch",
+        });
+      }
+      if (profile.driver === "mullvad" && profile.dns === "system") {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["networks", network, "dns"],
+          message:
+            "Mullvad does not expose system DNS while connected; use provider or custom servers",
+        });
+      }
+    }
+    for (const [vm, profile] of Object.entries(config.vms ?? {})) {
+      if (!safeName.test(vm)) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["vms", vm],
+          message: `Invalid VM profile ID '${vm}'`,
+        });
+      }
+      if (profile.network && !config.networks?.[profile.network]) {
+        context.addIssue({
+          code: z.ZodIssueCode.custom,
+          path: ["vms", vm, "network"],
+          message: `Network profile '${profile.network}' does not exist`,
+        });
+      }
+    }
   });
+
+function validateExecutionReferences(
+  execution: z.infer<typeof executionSchema> | undefined,
+  issuePath: Array<string>,
+  config: {
+    networks?: Record<string, unknown>;
+    vms?: Record<string, unknown>;
+  },
+  context: z.RefinementCtx,
+): void {
+  if (!execution) return;
+  if (execution.network && !config.networks?.[execution.network]) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...issuePath, "network"],
+      message: `Network profile '${execution.network}' does not exist`,
+    });
+  }
+  if (execution.target === "vm" && !config.vms?.[execution.vm]) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: [...issuePath, "vm"],
+      message: `VM profile '${execution.vm}' does not exist`,
+    });
+  }
+}
 
 export function getIdealityHome(env: NodeJS.ProcessEnv = process.env): string {
   if (env.IDEALITY_HOME) {

@@ -117,6 +117,15 @@ function Dashboard({
           <text fg="#d7e0e5">
             SSH: {model.selected.git?.sshKey ?? "SSH agent default"}
           </text>
+          <text fg="#d7e0e5">
+            Target: {model.selected.execution.target}
+            {model.selected.execution.vm
+              ? ` / ${model.selected.execution.vm}`
+              : ""}
+            {model.selected.execution.network
+              ? ` / VPN ${model.selected.execution.network}`
+              : ""}
+          </text>
           <text fg="#facc15">TOOLS</text>
           <scrollbox focused={false} style={{ flexGrow: 1 }}>
             {model.selected.tools.map((tool) => (
@@ -132,6 +141,8 @@ function Dashboard({
               >
                 {`${tool.configured ? "+" : "-"} ${tool.name.padEnd(11)} ${tool.isolation.padEnd(7)} ${
                   tool.installed ? "ready  " : "missing"
+                } ${tool.target}${tool.vm ? `:${tool.vm}` : ""}${
+                  tool.network ? ` vpn:${tool.network}` : ""
                 } env:${tool.variables} args:${tool.arguments}`}
               </text>
             ))}
