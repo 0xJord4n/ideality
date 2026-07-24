@@ -7,16 +7,18 @@ import type {
   ResolvedIdentity,
   ValueSource,
 } from "../domain/config.js";
+import {
+  networkAdapterCapability,
+  networkAdapterEnforcement,
+  networkAdapterPlan,
+} from "./adapters.js";
 import { resolveValueSource } from "./environment.js";
 import {
   type ActiveNetworkState,
-  buildNetworkPlan,
   clearActiveNetwork,
   loadActiveNetwork,
   type NetworkAction,
   type NetworkCommandStep,
-  networkCapability,
-  networkEnforcement,
   saveActiveNetwork,
 } from "./network.js";
 import {
@@ -84,7 +86,10 @@ async function activateNetworkUnlocked(
     });
   }
 
-  const enforcement = networkEnforcement(profile, options.allowUnverified);
+  const enforcement = networkAdapterEnforcement(
+    profile,
+    options.allowUnverified,
+  );
   const prepared = await prepareNetworkPlan(profile, "up", options);
   try {
     if (!options.dryRun) {
@@ -229,7 +234,7 @@ function requireProfile(
 }
 
 function assertNetworkExecutable(profile: NetworkProfile): void {
-  const executable = networkCapability(profile).executable;
+  const executable = networkAdapterCapability(profile).executable;
   if (!findExecutable(executable)) {
     throw new Error(
       `Network driver executable '${executable}' is not installed`,
@@ -323,7 +328,7 @@ async function prepareNetworkPlan(
   let steps: NetworkCommandStep[];
   let publicSteps: NetworkCommandStep[];
   try {
-    steps = buildNetworkPlan(
+    steps = networkAdapterPlan(
       options.profileId,
       profile,
       action,
@@ -333,7 +338,7 @@ async function prepareNetworkPlan(
         ? { ...step, env: resolvedEnv }
         : step,
     );
-    publicSteps = buildNetworkPlan(
+    publicSteps = networkAdapterPlan(
       options.profileId,
       profile,
       action,

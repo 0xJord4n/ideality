@@ -3,14 +3,16 @@ import path from "node:path";
 
 import type { IdealityConfig } from "../domain/config.js";
 import { renderShim } from "../integrations/shims.js";
+import {
+  networkAdapterCapability,
+  secretAdapterExecutable,
+  vmAdapterCapability,
+} from "./adapters.js";
 import { listConfigSnapshots } from "./config-store.js";
 import { renderTemplate } from "./environment.js";
-import { networkCapability } from "./network.js";
 import { listPluginManifests } from "./plugins.js";
 import { expandHome } from "./resolution.js";
 import { findExecutable, resolveExecutable } from "./runtime.js";
-import { secretBackendExecutable } from "./secret-backends.js";
-import { vmCapability } from "./vm.js";
 
 export type CheckStatus = "pass" | "warn" | "fail";
 
@@ -212,7 +214,7 @@ export async function runDoctor(
     }
   }
 
-  const backendExecutable = secretBackendExecutable(config);
+  const backendExecutable = secretAdapterExecutable(config);
   if (backendExecutable) {
     const executable = findExecutable(backendExecutable);
     checks.push({
@@ -283,7 +285,7 @@ export async function runDoctor(
     message: `${snapshots.length} rollback snapshot${snapshots.length === 1 ? "" : "s"}`,
   });
   for (const [id, profile] of Object.entries(config.networks ?? {})) {
-    const capability = networkCapability(profile);
+    const capability = networkAdapterCapability(profile);
     const executable = findExecutable(capability.executable);
     const sudo = !profile.sudo || Boolean(findExecutable("sudo"));
     const strictRequested = (profile.killSwitch ?? "required") === "required";
@@ -306,7 +308,7 @@ export async function runDoctor(
     });
   }
   for (const [id, profile] of Object.entries(config.vms ?? {})) {
-    const capability = vmCapability(profile);
+    const capability = vmAdapterCapability(profile);
     checks.push({
       status: capability.available ? "pass" : "fail",
       subject: `vm:${id}`,

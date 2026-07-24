@@ -4,6 +4,10 @@
 import path from "node:path";
 
 import {
+  ADAPTER_REGISTRY,
+  validateAdapterRegistryCompleteness,
+} from "../src/core/adapters.js";
+import {
   checkCatalogSafety,
   checkContracts,
   loadContracts,
@@ -34,6 +38,16 @@ issues.push(
 );
 if (registry) {
   issues.push(...checkRegistryCompleteness(entries, registry.manifests));
+  try {
+    validateAdapterRegistryCompleteness(ADAPTER_REGISTRY, {
+      toolIds: entries.map((entry) => entry.id),
+    });
+  } catch (error) {
+    issues.push({
+      file: "src/core/adapters.ts",
+      message: `src/core/adapters.ts: ${(error as Error).message}`,
+    });
+  }
   try {
     for (const update of await computeDocsUpdates()) {
       if (update.updated === update.current) continue;

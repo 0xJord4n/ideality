@@ -9,12 +9,11 @@ import { resolveExecution } from "../core/execution.js";
 import { ensureNetwork } from "../core/network-manager.js";
 import { runProcess } from "../core/process.js";
 import { loadRuntime, resolveExecutable } from "../core/runtime.js";
+import { vmAdapterCapability, vmAdapterCommand } from "../core/adapters.js";
 import {
   ensureVmRunning,
   guestWorkspacePath,
   networkDnsServers,
-  vmCapability,
-  vmCommand,
   writeVmConfig,
 } from "../core/vm.js";
 import { commandArguments, requirePositional } from "./shared.js";
@@ -58,7 +57,7 @@ const runCommand = defineCommand({
     if (execution.target === "vm") {
       const vmId = execution.vmId!;
       const vm = execution.vm!;
-      const capability = vmCapability(vm);
+      const capability = vmAdapterCapability(vm);
       if (!capability.available) throw new Error(capability.detail);
       const workspaceTarget = vm.workspaceTarget ?? "/workspace";
       const guestHome = vm.guestHome ?? "/home/ideality";
@@ -93,7 +92,7 @@ const runCommand = defineCommand({
         networkDns: networkDnsServers(execution.network?.dns),
         networkRequired: Boolean(execution.networkId),
       });
-      await ensureVmRunning(vmId, vm, configPath);
+      await ensureVmRunning(vmId, vm, configPath, runProcess, vmAdapterCommand);
       const hostEnv: Record<string, string> = {};
       for (const name of [
         "HOME",
@@ -113,7 +112,7 @@ const runCommand = defineCommand({
       });
       for (const name of environment.unset) delete hostEnv[name];
       const result = await runProcess(
-        vmCommand(vmId, vm, "exec", {
+        vmAdapterCommand(vmId, vm, "exec", {
           workdir: guestCwd,
           command: [executable, ...environment.args, ...userArgs],
         }),

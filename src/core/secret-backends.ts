@@ -4,6 +4,8 @@ import path from "node:path";
 import type { IdealityConfig, SecretBackendConfig } from "../domain/config.js";
 import { expandHome } from "./resolution.js";
 
+export type SecretBackendType = SecretBackendConfig["type"];
+
 interface CommandResult {
   exitCode: number;
   stdout: Uint8Array;

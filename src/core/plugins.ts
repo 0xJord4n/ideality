@@ -5,9 +5,8 @@ import { type ParseError, parse, printParseErrorCode } from "jsonc-parser";
 import { z } from "zod";
 
 import type { IdealityConfig } from "../domain/config.js";
+import { createToolAdapterEnvelope } from "./adapters.js";
 import {
-  compileToolDefinition,
-  compileToolProfile,
   parseToolAdapterManifest,
   TOOL_ADAPTER_SCHEMA_VERSION,
   type ToolAdapterManifest,
@@ -173,9 +172,10 @@ export function applyPlugin(
   manifest: ToolAdapterManifest,
 ): IdealityConfig {
   const next = structuredClone(config);
-  next.tools[manifest.id] = compileToolDefinition(manifest);
+  const adapter = createToolAdapterEnvelope(manifest, { builtIn: false });
+  next.tools[manifest.id] = adapter.contract.definition;
   for (const identity of Object.values(next.identities)) {
-    identity.tools[manifest.id] = compileToolProfile(manifest, {
+    identity.tools[manifest.id] = adapter.contract.compileProfile({
       git: identity.git,
     });
   }

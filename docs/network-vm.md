@@ -31,6 +31,14 @@ ideality explain codex
 
 Profile IDs are derived from labels. Use `--id` only to override them.
 
+The built-in network and VM drivers are registered core adapters. Their
+registry entries expose platform and privilege metadata, but the lifecycle
+plans still come from trusted core code that emits argv arrays; a project file
+or plugin cannot replace those implementations. The `custom` network and VM
+drivers are also registry entries, but they are marked non-trusted
+user-configured argv wrappers because the actual command arrays come from the
+user's config.
+
 The equivalent non-interactive setup is:
 
 ```bash

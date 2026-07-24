@@ -117,6 +117,8 @@ bun run check        # typecheck + catalog:check + full test suite
 - the editor JSON schema has not drifted from the runtime parser,
 - every behavior contract matches the compiled manifest exactly (detection
   order, auth argv, profile env/args per identity shape, redaction set),
+- the versioned adapter registry covers every catalog manifest plus every
+  trusted network, VM, and secret backend adapter,
 - catalog-wide safety invariants hold for every manifest: no sensitive-named
   env var with a literal value, no secret sources in shell-scoped adapters,
   and every secret key scoped per identity with `{{identity}}`.
@@ -134,6 +136,12 @@ same `typecheck` / `catalog:check` / `bun test` gate as `bun run check`.
 - **Manifests are data.** They are parsed, never executed; auth commands and
   args are argv arrays appended to the tool's own executable. Don't propose
   shell hooks or command strings.
+- **Core owns privileged lifecycle.** Tool manifests and plugins describe
+  behavior, but host network control, VM helpers, and secret backend reads or
+  writes are trusted implementations registered in `src/core/adapters.ts`
+  with explicit platform and privilege metadata. Custom network and VM
+  profiles remain supported as non-trusted argv-array wrappers; they are not
+  contributor code plugins and are never labeled trusted core lifecycle.
 - **No new runtime dependencies.** Tooling and adapters must work with the
   existing dependency set.
 - **Secrets stay logical.** `secret:` references resolve through the user's

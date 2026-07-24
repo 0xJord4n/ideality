@@ -8,11 +8,12 @@ import {
   loadConfig,
   saveConfig,
 } from "../core/config-store.js";
+import { networkAdapterCapability } from "../core/adapters.js";
 import { redactConfig } from "../core/environment.js";
 import { resolveExecution } from "../core/execution.js";
 import { findNetworkConfigFiles } from "../core/file-search.js";
 import { deriveIdentityId } from "../core/identity-id.js";
-import { loadActiveNetwork, networkCapability } from "../core/network.js";
+import { loadActiveNetwork } from "../core/network.js";
 import {
   activateNetwork,
   deactivateNetwork,
@@ -115,7 +116,7 @@ const networkCommand = defineGroup({
         const config = await loadConfig();
         const active = await loadActiveNetwork(getIdealityHome());
         for (const [id, profile] of Object.entries(config.networks ?? {})) {
-          const capability = networkCapability(profile);
+          const capability = networkAdapterCapability(profile);
           const marker = active?.profile === id ? colors.green("*") : " ";
           console.log(
             `${marker} ${id.padEnd(18)} ${profile.driver.padEnd(10)} ${(profile.killSwitch ?? "required").padEnd(9)} ${capability.detail}`,
