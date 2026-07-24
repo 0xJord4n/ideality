@@ -67,7 +67,8 @@ identity now performs the complete dispatch automatically.
 `ideality network add`:
 
 1. Profile label.
-2. Provider: Mullvad, WireGuard, OpenVPN, or custom.
+2. Provider: Mullvad, Tailscale exit node, Cloudflare WARP, WireGuard,
+   OpenVPN, or custom.
 3. Fuzzy file search for WireGuard/OpenVPN configuration when applicable.
 4. Provider settings, DNS, IPv6, LAN policy, and required kill-switch level.
 5. Review and confirmation.
@@ -104,6 +105,31 @@ mode before connecting and reasserts it before every process. Raw `wg-quick`
 and OpenVPN configure tunnels, not an independent host firewall, so `required`
 fails closed for those drivers. Use a custom operating-system adapter with
 `verifiedKillSwitch: true`, or explicitly select weaker enforcement.
+
+Tailscale profiles require an explicit exit node and call `tailscale up` with
+the selected LAN, subnet-route, and Shields Up policies. WARP profiles call
+`warp-cli connect` and verify provider status. Both are marked provider-level:
+the tunnel establishes the route, but a verified no-leak claim still requires
+host firewall enforcement. For managed WARP deployments, configure Always On
+and Switch Locked in Cloudflare One.
+
+```bash
+ideality network add --non-interactive \
+  --label "Team exit node" \
+  --driver tailscale \
+  --exit-node exit.example.net \
+  --kill-switch provider
+
+ideality network add --non-interactive \
+  --label "Managed WARP" \
+  --driver warp \
+  --kill-switch provider
+```
+
+See the upstream
+[Tailscale exit-node CLI](https://tailscale.com/docs/features/exit-nodes) and
+[Cloudflare WARP connectivity](https://developers.cloudflare.com/cloudflare-one/team-and-resources/devices/cloudflare-one-client/troubleshooting/connectivity-status/)
+documentation.
 
 Only one host network profile can own the lease. Changing the system route
 affects every native application, not only the child process.
@@ -213,6 +239,18 @@ does not rebuild the guest automatically.
         "from": "secret",
         "key": "sample/vpn/password"
       }
+    },
+    "team-exit-node": {
+      "driver": "tailscale",
+      "killSwitch": "provider",
+      "exitNode": "exit.example.net",
+      "allowLanAccess": false,
+      "acceptRoutes": true,
+      "shieldsUp": true
+    },
+    "managed-warp": {
+      "driver": "warp",
+      "killSwitch": "provider"
     }
   },
   "vms": {

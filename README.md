@@ -5,9 +5,10 @@ Folder-based identity orchestration for developer tools, built with
 [OpenTUI](https://opentui.com/docs/getting-started/).
 
 Ideality selects an identity from the current directory and starts each tool
-with only that identity's process environment. It supports Git, GitHub CLI,
-Railway, Cloudflare, Vercel, Codex, Claude Code, OpenCode, Chrome, Firefox, and
-declarative custom plugins.
+with only that identity's process environment. It supports Git plus
+identity-aware packs for cloud accounts, source-control CLIs, editors and
+desktop apps, package registries, deployment platforms, AI tools, browsers,
+VPNs, VMs, and declarative custom plugins.
 
 ## Install
 
@@ -34,6 +35,8 @@ ideality init --non-interactive \
   --git-name "Example Developer" \
   --git-email developer@example.com \
   --generate-ssh \
+  --packs essentials,cloud,ai \
+  --tools gh,cf,codex,aws,gcloud,gemini,copilot \
   --install \
   --shell zsh
 ```
@@ -99,13 +102,48 @@ The user registry under `~/.ideality` remains intact. Applying a project adds
 the project root and selected profiles to its local identity without deleting
 unrelated identities or tools.
 
+## Tool Packs
+
+`ideality init` and `ideality identity add` first select packs with arrow keys
+and Space, then allow fine-grained tool selection. Only selected tools receive
+identity profiles and managed shims.
+
+```bash
+ideality tool packs
+ideality tool enable-pack <identity> cloud
+ideality tool disable-pack <identity> editors
+ideality tool enable <identity> stripe
+ideality tool list
+```
+
+The built-in catalog covers:
+
+- Cloud: AWS, Google Cloud, Azure, and DigitalOcean.
+- Source control: GitHub, GitLab, Gitea/Forgejo, Bitbucket, and Gerrit.
+- Editors and desktop: VS Code, Cursor, Windsurf, Zed, JetBrains IDEs, Slack,
+  and Discord.
+- Registries: npm, pnpm, Yarn, Bun, Cargo, uv/pip, RubyGems, Composer, Maven,
+  Gradle, and NuGet.
+- Deployment: Railway, Cloudflare, Vercel, Fly.io, Netlify, Supabase, Firebase,
+  Heroku, Render, SST, Pulumi, Shopify, and Stripe.
+- AI: Codex, Claude Code, OpenCode, Gemini, Copilot, Aider, Amp, Goose,
+  Continue, Kiro, and Qwen Code.
+
+Adapters report `full`, `partial`, or `credentials` isolation based on the
+controls exposed by the upstream application. See the
+[tool-pack and isolation matrix](docs/tool-packs.md).
+
 ## Automatic Dispatch
 
 `ideality install` adds `~/.ideality/bin` to `PATH`. Managed shims in that
-directory intercept every registered tool, resolve the identity from `$PWD`,
+directory intercept every configured tool, resolve the identity from `$PWD`,
 strip variables managed by other identities, inject the selected tool profile,
 and execute the real binary. Running `vercel`, `gh`, `railway`, `cf`, an AI
 CLI, or a browser needs no explicit wrapper.
+
+Bun is intentionally not shimmed because it may be the runtime starting
+Ideality itself. Use `ideality run bun -- <args>` when registry isolation is
+required.
 
 ```bash
 ideality status
@@ -122,6 +160,8 @@ Network and VM profiles are folder-aware execution requirements. The shim
 enforces the selected host VPN before it starts a native tool or VM. Mullvad
 Lockdown mode is the built-in strict adapter; raw WireGuard and OpenVPN refuse
 `required` mode until an operating-system kill-switch helper is configured.
+Tailscale exit nodes and Cloudflare WARP are supported as provider-enforced
+profiles.
 
 ```bash
 ideality network add
@@ -280,7 +320,7 @@ ideality explain
 ideality prompt
 ideality auth <tool> login|status|logout
 ideality identity list|show|add|remove|bind|unbind|default|ssh-public
-ideality tool list|add|remove|env|args|enable|disable
+ideality tool list|packs|enable-pack|disable-pack|add|remove|env|args|enable|disable
 ideality network list|show|add|bind|up|down|status|remove
 ideality vm list|show|add|bind|unbind|start|stop|status|exec|remove
 ideality plugin list|validate|install|remove
