@@ -56,12 +56,13 @@ Run the project wizard anywhere inside a repository:
 ideality setup
 ```
 
-The normal arrow-key flow has four decisions:
+The normal arrow-key flow has five decisions:
 
 1. Store a complete handover in `.ideality/project.jsonc`, or activate locally.
 2. Fuzzy-select an existing identity, import the project identity, or create one.
 3. Select project tools with Up/Down, Space, and Enter.
-4. Review the exact identity, tools, files, and integrations before applying.
+4. Optionally select a host VPN or VM execution profile.
+5. Review the exact identity, tools, files, and integrations before applying.
 
 Only relevant branches appear. Creating an identity asks for Git details.
 `--advanced` also exposes SSH key selection, full versus requirements-only
@@ -72,8 +73,10 @@ The project file uses the complete Ideality configuration schema. It may carry
 Git and SSH settings, built-in or custom tool definitions, isolated profiles,
 arguments, environment sources, secret backend settings, and literal values.
 Credential-like literals require an explicit interactive confirmation. The
-file never executes commands merely because a repository was opened; a
-teammate reviews and applies it with `ideality setup`.
+same review covers custom adapter commands and VM provisioning scripts.
+Non-interactive trust requires `--yes`. The file never executes commands
+merely because a repository was opened; a teammate reviews and applies it with
+`ideality setup`.
 
 Automation uses the same operation without prompts:
 
@@ -112,6 +115,28 @@ ideality auth gh status
 ideality auth railway login --identity work
 ideality tui
 ```
+
+## VPN And VM Isolation
+
+Network and VM profiles are folder-aware execution requirements. The shim
+enforces the selected host VPN before it starts a native tool or VM. Mullvad
+Lockdown mode is the built-in strict adapter; raw WireGuard and OpenVPN refuse
+`required` mode until an operating-system kill-switch helper is configured.
+
+```bash
+ideality network add
+ideality vm add
+ideality vm bind <identity> <vm-profile>
+ideality network bind <identity> <network-profile> --tool chrome
+ideality network up <network-profile>
+ideality vm exec <vm-profile> -- bun test
+ideality doctor --strict
+```
+
+Lima is the executable macOS/Linux VM backend. Apple VZ, Cloud Hypervisor, and
+Firecracker are capability-checked helper backends. Full configuration,
+wizard steps, secret handling, and leak-prevention boundaries are in
+[Network and VM isolation](docs/network-vm.md).
 
 The longest matching folder root wins. Outside all roots, the configured
 default identity is used. An explicit invocation remains available:
@@ -256,6 +281,8 @@ ideality prompt
 ideality auth <tool> login|status|logout
 ideality identity list|show|add|remove|bind|unbind|default|ssh-public
 ideality tool list|add|remove|env|args|enable|disable
+ideality network list|show|add|bind|up|down|status|remove
+ideality vm list|show|add|bind|unbind|start|stop|status|exec|remove
 ideality plugin list|validate|install|remove
 ideality secret set|list|backend
 ideality install
