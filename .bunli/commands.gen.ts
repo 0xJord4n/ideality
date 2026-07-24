@@ -25,10 +25,11 @@ import Setup from '../src/commands/setup.js'
 import Status from '../src/commands/status.js'
 import Tool from '../src/commands/tool.js'
 import Tui from '../src/commands/tui.js'
+import Update from '../src/commands/update.js'
 import Vm from '../src/commands/vm.js'
 
 // Narrow list of command names to avoid typeof-cycles in types
-const names = ['auth', 'completion', 'config', 'doctor', 'env', 'explain', 'hook', 'identity', 'init', 'install', 'network', 'plugin', 'policy', 'prompt', 'rollback', 'run', 'secret', 'setup', 'status', 'tool', 'tui', 'vm'] as const
+const names = ['auth', 'completion', 'config', 'doctor', 'env', 'explain', 'hook', 'identity', 'init', 'install', 'network', 'plugin', 'policy', 'prompt', 'rollback', 'run', 'secret', 'setup', 'status', 'tool', 'tui', 'update', 'vm'] as const
 type GeneratedNames = typeof names[number]
 
 const modules: Record<GeneratedNames, Command<any>> = {
@@ -53,6 +54,7 @@ const modules: Record<GeneratedNames, Command<any>> = {
   'status': Status,
   'tool': Tool,
   'tui': Tui,
+  'update': Update,
   'vm': Vm
 } as const
 
@@ -555,6 +557,18 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
         'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for initial identity selection', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' }
       },
       path: './src/commands/tui'
+    },
+  'update': {
+      name: 'update',
+      description: 'Safely update a direct binary install',
+      options: {
+        'check': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Check release metadata without downloading or installing', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":331,"end":336,"loc":{"start":{"line":11,"column":38,"index":331},"end":{"line":11,"column":43,"index":336}},"value":false}}]}, validator: '(val) => true' },
+        'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Verify the release artifact and migration readiness without replacing the executable', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":498,"end":503,"loc":{"start":{"line":15,"column":42,"index":498},"end":{"line":15,"column":47,"index":503}},"value":false}}]}, validator: '(val) => true' },
+        'version': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Install a specific release version when metadata is available', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+        'allow-downgrade': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Permit an explicit downgrade', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":854,"end":859,"loc":{"start":{"line":24,"column":50,"index":854},"end":{"line":24,"column":55,"index":859}},"value":false}}]}, validator: '(val) => true' },
+        'base-url': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override the release artifact base URL (used for offline rehearsals)', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' }
+      },
+      path: './src/commands/update'
     },
   'vm': {
       name: 'vm',

@@ -4,12 +4,14 @@
 #
 # Proves, in order:
 #   1. SHA256SUMS.txt covers every archive and every archive matches it
-#   2. each archive contains exactly one member: the `ideality` binary
-#   3. the host-platform binary reports the package.json version and passes
+#   2. release-metadata.json matches the package version, archives, and checksums
+#   3. each archive contains exactly one member: the `ideality` binary
+#   4. the host-platform binary reports the package.json version and passes
 #      the full smoke suite (scripts/smoke.sh in an isolated HOME)
-#   4. scripts/install.sh installs from these exact artifacts served over
-#      file:// (IDEALITY_BASE_URL) and the installed binary runs
-#   5. scripts/homebrew-formula.ts renders a well-formed formula from the
+#   5. scripts/install.sh installs from these exact artifacts served over
+#      file:// (IDEALITY_BASE_URL) with a controlled fake metadata verifier,
+#      and the installed binary runs
+#   6. scripts/homebrew-formula.ts renders a well-formed formula from the
 #      manifest; targets that were not built are padded with placeholder
 #      checksums and the rendered file never leaves the rehearsal tmpdir
 #
@@ -71,6 +73,8 @@ fi
 [ -d "$release_dir" ] || fail "release dir '$release_dir' does not exist (run scripts/build-release.sh or pass --release-dir)"
 manifest="$release_dir/SHA256SUMS.txt"
 [ -f "$manifest" ] || fail "'$manifest' does not exist"
+metadata="$release_dir/release-metadata.json"
+[ -f "$metadata" ] || fail "'$metadata' does not exist"
 
 archives=()
 for archive in "$release_dir"/ideality-*.tar.gz; do
@@ -92,6 +96,45 @@ done
   fi
 ) || fail "checksum verification failed"
 
+step "Verifying release-metadata.json matches archives and SHA256SUMS.txt"
+bun --eval '
+const [manifestPath, metadataPath, ...archives] = Bun.argv.slice(1);
+const fail = (message) => {
+  console.error(message);
+  process.exit(1);
+};
+const manifest = new Map(
+  (await Bun.file(manifestPath).text())
+    .trim()
+    .split(/\n+/)
+    .map((line) => {
+      const [sha, filename] = line.trim().split(/\s+\*?/);
+      return [filename, sha];
+    }),
+);
+const metadata = await Bun.file(metadataPath).json();
+if (metadata.schemaVersion !== 1) fail("metadata schemaVersion must be 1");
+if (metadata.package !== "ideality") fail("metadata package must be ideality");
+if (metadata.version !== "'$expected_version'") {
+  fail(`metadata version ${metadata.version} does not match package version '$expected_version'`);
+}
+const artifactNames = Object.values(metadata.artifacts ?? {}).map((artifact) => artifact.filename).sort();
+const archiveNames = archives.slice().sort();
+if (JSON.stringify(artifactNames) !== JSON.stringify(archiveNames)) {
+  fail(`metadata artifacts ${artifactNames.join(",")} do not match archives ${archiveNames.join(",")}`);
+}
+for (const [target, artifact] of Object.entries(metadata.artifacts ?? {})) {
+  if (!/^ideality-(linux|darwin)-(x64|arm64)\.tar\.gz$/.test(artifact.filename)) {
+    fail(`metadata target ${target} has invalid filename ${artifact.filename}`);
+  }
+  const manifestSum = manifest.get(artifact.filename);
+  if (!manifestSum) fail(`metadata artifact ${artifact.filename} is missing from SHA256SUMS.txt`);
+  if (artifact.sha256 !== manifestSum) {
+    fail(`metadata checksum for ${artifact.filename} does not match SHA256SUMS.txt`);
+  }
+}
+' "$manifest" "$metadata" "${archives[@]}" || fail "metadata verification failed"
+
 step "Verifying archive layout (single 'ideality' member)"
 for archive in "${archives[@]}"; do
   members="$(tar -tzf "$release_dir/$archive")"
@@ -112,15 +155,49 @@ tar -C "$rehearsal_tmp" -xzf "$release_dir/$host_archive" ideality
 bash scripts/smoke.sh "$rehearsal_tmp/ideality"
 
 step "Rehearsing scripts/install.sh offline (file:// artifacts)"
-abs_release_dir="$(cd "$release_dir" && pwd)"
+install_release_dir="$rehearsal_tmp/install-release"
+mkdir -p "$install_release_dir"
+cp "$release_dir"/ideality-*.tar.gz "$install_release_dir"/
+cp "$release_dir"/release-metadata.json "$install_release_dir"/
+printf '{"fakeBundle":true}\n' > "$install_release_dir/release-metadata.json.sigstore.json"
+fake_cosign="$rehearsal_tmp/cosign"
+cosign_log="$rehearsal_tmp/cosign.args"
+cat > "$fake_cosign" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$@" > "$cosign_log"
+exit 0
+EOF
+chmod +x "$fake_cosign"
+abs_release_dir="$(cd "$install_release_dir" && pwd)"
 install_home="$rehearsal_tmp/install-home"
 mkdir -p "$install_home"
 HOME="$install_home" \
   IDEALITY_BASE_URL="file://$abs_release_dir" \
+  IDEALITY_COSIGN="$fake_cosign" \
   IDEALITY_INSTALL_DIR="$install_home/bin" \
   bash scripts/install.sh
 "$install_home/bin/ideality" --version | grep -qF "$expected_version" ||
   fail "installed binary does not report version $expected_version"
+bundle_arg="$(sed -n '3p' "$cosign_log")"
+metadata_arg="$(sed -n '8p' "$cosign_log")"
+[ "$(basename "$bundle_arg")" = "release-metadata.json.sigstore.json" ] ||
+  fail "offline verifier bundle argument must be release-metadata.json.sigstore.json"
+[ "$(basename "$metadata_arg")" = "release-metadata.json" ] ||
+  fail "offline verifier metadata argument must be release-metadata.json"
+expected_cosign_args="$rehearsal_tmp/expected-cosign.args"
+cat > "$expected_cosign_args" <<EOF
+verify-blob
+--bundle
+$bundle_arg
+--certificate-identity-regexp
+https://github.com/0xJord4n/ideality/\.github/workflows/release\.yml.*
+--certificate-oidc-issuer
+https://token.actions.githubusercontent.com
+$metadata_arg
+EOF
+diff -u "$expected_cosign_args" "$cosign_log" ||
+  fail "offline metadata verifier arguments changed"
+echo "Verified offline metadata signature command"
 
 step "Rendering the Homebrew formula from the manifest"
 formula_sums="$rehearsal_tmp/SHA256SUMS.txt"

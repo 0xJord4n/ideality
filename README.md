@@ -20,8 +20,9 @@ brew install 0xJord4n/tap/ideality
 
 ### Install script
 
-Downloads the release binary for your platform, verifies its checksum, and
-installs it to `~/.local/bin`:
+Downloads the signed release metadata, verifies its Sigstore bundle with
+`cosign`, verifies the platform archive checksum from that metadata, and
+installs the binary to `~/.local/bin`:
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/install.sh | bash
@@ -30,11 +31,26 @@ curl -fsSL https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/inst
 Set `IDEALITY_VERSION` to pin a version and `IDEALITY_INSTALL_DIR` to change
 the destination.
 
+Direct binary installs can update themselves safely:
+
+```bash
+ideality update --check
+ideality update --dry-run
+ideality update
+```
+
+`ideality update --version <version>` installs a specific release when its
+metadata is available. Package-manager installs are not overwritten; for
+example, Homebrew installs are refused with the native
+`brew upgrade 0xJord4n/tap/ideality` command.
+
 ### Prebuilt binaries
 
 Every release ships `ideality-<os>-<arch>.tar.gz` archives for Linux and
 macOS (x64 and arm64) with a `SHA256SUMS.txt` manifest, Sigstore keyless
-signatures (`*.sigstore.json`), and GitHub build provenance attestations.
+signatures (`*.sigstore.json`), GitHub build provenance attestations,
+`release-metadata.json`, and `release-metadata.json.sigstore.json` used by
+the installer and `ideality update`.
 Download from the [releases page](https://github.com/0xJord4n/ideality/releases),
 then verify and unpack:
 
@@ -389,6 +405,7 @@ ideality plugin list|validate|install|remove
 ideality policy check
 ideality secret set|list|backend
 ideality install
+ideality update
 ideality hook
 ideality completion zsh|bash|fish
 ideality rollback

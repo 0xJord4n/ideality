@@ -42,7 +42,7 @@ jobs:
       - name: Build release archives (Linux/macOS x64/arm64)
         run: bash scripts/build-release.sh
 
-      - name: Rehearse release offline (checksums, archive layout, binary smoke, installer, formula)
+      - name: Rehearse release offline (metadata, checksums, archive layout, binary smoke, installer, formula)
         run: bash scripts/release-rehearsal.sh --no-build
 
       - name: Install cosign
@@ -50,7 +50,7 @@ jobs:
 
       - name: Sign artifacts (Sigstore keyless)
         run: |
-          for artifact in dist/release/ideality-*.tar.gz dist/release/SHA256SUMS.txt; do
+          for artifact in dist/release/ideality-*.tar.gz dist/release/SHA256SUMS.txt dist/release/release-metadata.json; do
             cosign sign-blob --yes --bundle "${artifact}.sigstore.json" "$artifact"
           done
 
@@ -65,6 +65,8 @@ jobs:
           files: |
             dist/release/ideality-*.tar.gz
             dist/release/SHA256SUMS.txt
+            dist/release/release-metadata.json
+            dist/release/release-metadata.json.sigstore.json
             dist/release/*.sigstore.json
           generate_release_notes: true
           fail_on_unmatched_files: true
