@@ -17,11 +17,14 @@ const tuiCommand = defineCommand({
   },
   handler: async ({ flags }) => {
     const runtime = await loadRuntime(flags.path);
-    const action = await runDashboard(
-      runtime.config,
-      runtime.resolved.id,
-      flags.path,
-    );
+    const action = await runDashboard({
+      config: runtime.config,
+      activeIdentity: runtime.resolved.id,
+      path: flags.path,
+      configPath: getConfigPath(),
+      home: runtime.home,
+      idealityHome: runtime.idealityHome,
+    });
     if (action === "edit") {
       const editor = process.env.EDITOR || process.env.VISUAL || "vi";
       const child = Bun.spawn([editor, getConfigPath()], {

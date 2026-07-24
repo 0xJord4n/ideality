@@ -14,6 +14,7 @@ import initCommand from "./commands/init.js";
 import installCommand from "./commands/install.js";
 import networkCommand from "./commands/network.js";
 import pluginCommand from "./commands/plugin.js";
+import policyCommand from "./commands/policy.js";
 import promptCommand from "./commands/prompt.js";
 import rollbackCommand from "./commands/rollback.js";
 import runCommand from "./commands/run.js";
@@ -46,6 +47,7 @@ for (const command of [
   identityCommand,
   toolCommand,
   pluginCommand,
+  policyCommand,
   installCommand,
   hookCommand,
   completionCommand,

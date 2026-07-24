@@ -1,0 +1,37 @@
+// Handover bundle that satisfies the team policy fixture.
+{
+  "version": 1,
+  "defaultIdentity": "sample",
+  "secretBackend": { "type": "bitwarden" },
+  "networks": {
+    "private": {
+      "driver": "wireguard",
+      "config": { "from": "secret", "key": "bw://wireguard/private" },
+      "killSwitch": "required",
+    },
+  },
+  "vms": {
+    "workspace": {
+      "driver": "lima",
+      "network": "private",
+    },
+  },
+  "identities": {
+    "sample": {
+      "label": "Sample",
+      "roots": ["."],
+      "execution": { "target": "vm", "vm": "workspace" },
+      "tools": {
+        "gh": { "enabled": true },
+        "custom": {
+          "enabled": true,
+          "env": { "CUSTOM_TOKEN": { "from": "secret", "key": "bw://custom" } },
+        },
+      },
+    },
+  },
+  "tools": {
+    "gh": { "executable": "gh", "isolation": "process" },
+    "custom": { "executable": "custom-cli", "isolation": "process" },
+  },
+}

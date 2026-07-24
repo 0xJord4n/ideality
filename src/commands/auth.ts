@@ -1,7 +1,14 @@
+import os from "node:os";
+
 import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
-import { authArguments } from "../core/auth.js";
+import {
+  authArguments,
+  collectAuthHealth,
+  type AuthHealthState,
+} from "../core/auth.js";
+import { getIdealityHome, loadConfig } from "../core/config-store.js";
 import {
   buildChildEnvironment,
   buildEnvironment,
@@ -10,6 +17,7 @@ import { loadRuntime, resolveExecutable } from "../core/runtime.js";
 import type { AuthAction } from "../domain/config.js";
 import {
   commandArguments,
+  printJson,
   requirePositional,
 } from "./shared.js";
 
@@ -27,8 +35,45 @@ const authCommand = defineCommand({
       short: "i",
       description: "Override folder-based selection",
     }),
+    all: option(z.boolean().default(false), {
+      description: "Report auth status for every identity/tool pairing",
+      argumentKind: "flag",
+    }),
+    json: option(z.boolean().default(false), {
+      description: "Emit JSON (with --all)",
+      argumentKind: "flag",
+    }),
   },
   handler: async ({ positional, flags, signal, colors }) => {
+    if (flags.all) {
+      const action = positional[0] ?? "status";
+      if (action !== "status") {
+        throw new Error(`Auth --all supports only the status action`);
+      }
+      const results = await collectAuthHealth(await loadConfig(), {
+        home: os.homedir(),
+        idealityHome: getIdealityHome(),
+      });
+      if (flags.json) {
+        printJson(results);
+        return;
+      }
+      const markers: Record<AuthHealthState, string> = {
+        "logged-in": colors.green("logged-in"),
+        expired: colors.red("expired"),
+        unavailable: colors.yellow("unavailable"),
+        unsupported: colors.dim("unsupported"),
+      };
+      for (const result of results) {
+        console.log(
+          `${result.identity.padEnd(12)} ${result.tool.padEnd(10)} ${markers[
+            result.state
+          ].padEnd(22)} ${result.detail}`,
+        );
+      }
+      return;
+    }
+
     const tool = requirePositional(positional, 0, "tool name");
     const runtime = await loadRuntime(flags.path, flags.identity);
     if (tool === "list") {

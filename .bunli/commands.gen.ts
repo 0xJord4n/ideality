@@ -16,6 +16,7 @@ import Init from '../src/commands/init.js'
 import Install from '../src/commands/install.js'
 import Network from '../src/commands/network.js'
 import Plugin from '../src/commands/plugin.js'
+import Policy from '../src/commands/policy.js'
 import Prompt from '../src/commands/prompt.js'
 import Rollback from '../src/commands/rollback.js'
 import Run from '../src/commands/run.js'
@@ -27,7 +28,7 @@ import Tui from '../src/commands/tui.js'
 import Vm from '../src/commands/vm.js'
 
 // Narrow list of command names to avoid typeof-cycles in types
-const names = ['auth', 'completion', 'config', 'doctor', 'env', 'explain', 'hook', 'identity', 'init', 'install', 'network', 'plugin', 'prompt', 'rollback', 'run', 'secret', 'setup', 'status', 'tool', 'tui', 'vm'] as const
+const names = ['auth', 'completion', 'config', 'doctor', 'env', 'explain', 'hook', 'identity', 'init', 'install', 'network', 'plugin', 'policy', 'prompt', 'rollback', 'run', 'secret', 'setup', 'status', 'tool', 'tui', 'vm'] as const
 type GeneratedNames = typeof names[number]
 
 const modules: Record<GeneratedNames, Command<any>> = {
@@ -43,6 +44,7 @@ const modules: Record<GeneratedNames, Command<any>> = {
   'install': Install,
   'network': Network,
   'plugin': Plugin,
+  'policy': Policy,
   'prompt': Prompt,
   'rollback': Rollback,
   'run': Run,
@@ -60,7 +62,9 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
       description: 'Manage a tool\'s authentication inside one identity',
       options: {
         'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
-        'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' }
+        'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+        'all': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Report auth status for every identity/tool pairing', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1072,"end":1077,"loc":{"start":{"line":38,"column":36,"index":1072},"end":{"line":38,"column":41,"index":1077}},"value":false}}]}, validator: '(val) => true' },
+        'json': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Emit JSON (with --all)', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1228,"end":1233,"loc":{"start":{"line":42,"column":37,"index":1228},"end":{"line":42,"column":42,"index":1233}},"value":false}}]}, validator: '(val) => true' }
       },
       path: './src/commands/auth'
     },
@@ -388,6 +392,11 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
         }
       ],
       path: './src/commands/plugin'
+    },
+  'policy': {
+      name: 'policy',
+      description: 'Team policy contracts for project handovers',
+      path: './src/commands/policy'
     },
   'prompt': {
       name: 'prompt',

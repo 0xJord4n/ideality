@@ -1,0 +1,27 @@
+// Team policy contract shipped alongside project handovers.
+{
+  "version": 1,
+  "label": "Platform team baseline",
+  "tools": {
+    // Only these tools may appear in the handover bundle.
+    "permitted": ["custom", "gh"],
+  },
+  "network": {
+    "required": true,
+    "permittedDrivers": ["wireguard"],
+  },
+  "vm": {
+    "required": true,
+    "permittedDrivers": ["lima"],
+  },
+  "secrets": {
+    "requireBackend": true,
+    "permittedBackends": ["bitwarden"],
+  },
+  "custom": {
+    "toolCommands": false,
+    "networkCommands": false,
+    "vmCommands": false,
+    "vmProvisioning": false,
+  },
+}

@@ -37,4 +37,16 @@ describe("buildDashboardModel", () => {
       network: null,
     });
   });
+
+  test("reflects staged tool enablement from the draft config", () => {
+    const draft = structuredClone(config);
+    draft.identities.personal!.tools.gh = { enabled: false };
+    const model = buildDashboardModel(draft, "personal", () => true);
+
+    expect(model.selected.tools[0]).toMatchObject({
+      name: "gh",
+      configured: true,
+      enabled: false,
+    });
+  });
 });
