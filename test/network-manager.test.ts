@@ -134,4 +134,192 @@ describe("network lifecycle", () => {
     await Promise.all([activateNetwork(options), activateNetwork(options)]);
     expect(connections).toBe(1);
   });
+
+  test("does not lease WARP when the status command reports disconnected", async () => {
+    temporary = await mkdtemp(path.join(os.tmpdir(), "ideality-network-"));
+    const { config, resolved } = providerFixture(temporary, {
+      driver: "warp",
+      executable: "true",
+      killSwitch: "provider",
+    });
+
+    await expect(
+      activateNetwork({
+        config,
+        resolved,
+        profileId: "private",
+        home: temporary,
+        idealityHome: temporary,
+        quiet: true,
+        runner: async (command) => ({
+          exitCode: 0,
+          stdout: command[1] === "status"
+            ? "Status update: Disconnected\n"
+            : "",
+          stderr: "",
+        }),
+      }),
+    ).rejects.toThrow("Cloudflare WARP is not connected");
+    expect(await loadActiveNetwork(temporary)).toBeNull();
+  });
+
+  test("leases WARP only after connected status is confirmed", async () => {
+    temporary = await mkdtemp(path.join(os.tmpdir(), "ideality-network-"));
+    const { config, resolved } = providerFixture(temporary, {
+      driver: "warp",
+      executable: "true",
+      killSwitch: "provider",
+    });
+
+    await activateNetwork({
+      config,
+      resolved,
+      profileId: "private",
+      home: temporary,
+      idealityHome: temporary,
+      quiet: true,
+      runner: async (command) => ({
+        exitCode: 0,
+        stdout: command[1] === "status"
+          ? "Status update: Connected\n"
+          : "",
+        stderr: "",
+      }),
+    });
+
+    expect(await loadActiveNetwork(temporary)).toMatchObject({
+      profile: "private",
+      driver: "warp",
+      enforcement: "provider",
+    });
+  });
+
+  test("requires a running Tailscale backend with an active exit node", async () => {
+    temporary = await mkdtemp(path.join(os.tmpdir(), "ideality-network-"));
+    const { config, resolved } = providerFixture(temporary, {
+      driver: "tailscale",
+      executable: "true",
+      exitNode: "exit.example.net",
+      killSwitch: "provider",
+    });
+
+    await expect(
+      activateNetwork({
+        config,
+        resolved,
+        profileId: "private",
+        home: temporary,
+        idealityHome: temporary,
+        quiet: true,
+        runner: async (command) => ({
+          exitCode: 0,
+          stdout: command[1] === "status"
+            ? JSON.stringify({ BackendState: "Running" })
+            : "",
+          stderr: "",
+        }),
+      }),
+    ).rejects.toThrow(
+      "Tailscale is not connected through exit node 'exit.example.net'",
+    );
+    expect(await loadActiveNetwork(temporary)).toBeNull();
+  });
+
+  test("rejects an offline Tailscale exit node", async () => {
+    temporary = await mkdtemp(path.join(os.tmpdir(), "ideality-network-"));
+    const { config, resolved } = providerFixture(temporary, {
+      driver: "tailscale",
+      executable: "true",
+      exitNode: "exit.example.net",
+      killSwitch: "provider",
+    });
+
+    await expect(
+      activateNetwork({
+        config,
+        resolved,
+        profileId: "private",
+        home: temporary,
+        idealityHome: temporary,
+        quiet: true,
+        runner: async (command) => ({
+          exitCode: 0,
+          stdout: command[1] === "status"
+            ? JSON.stringify({
+                BackendState: "Running",
+                ExitNodeStatus: { ID: "node-id", Online: false },
+              })
+            : "",
+          stderr: "",
+        }),
+      }),
+    ).rejects.toThrow(
+      "Tailscale is not connected through exit node 'exit.example.net'",
+    );
+    expect(await loadActiveNetwork(temporary)).toBeNull();
+  });
+
+  test("leases Tailscale after confirming an online exit node", async () => {
+    temporary = await mkdtemp(path.join(os.tmpdir(), "ideality-network-"));
+    const { config, resolved } = providerFixture(temporary, {
+      driver: "tailscale",
+      executable: "true",
+      exitNode: "exit.example.net",
+      killSwitch: "provider",
+    });
+
+    await activateNetwork({
+      config,
+      resolved,
+      profileId: "private",
+      home: temporary,
+      idealityHome: temporary,
+      quiet: true,
+      runner: async (command) => ({
+        exitCode: 0,
+        stdout: command[1] === "status"
+          ? JSON.stringify({
+              BackendState: "Running",
+              ExitNodeStatus: { ID: "node-id", Online: true },
+            })
+          : "",
+        stderr: "",
+      }),
+    });
+
+    expect(await loadActiveNetwork(temporary)).toMatchObject({
+      profile: "private",
+      driver: "tailscale",
+      enforcement: "provider",
+    });
+  });
 });
+
+function providerFixture(
+  root: string,
+  profile: NonNullable<IdealityConfig["networks"]>[string],
+): { config: IdealityConfig; resolved: ResolvedIdentity } {
+  const config: IdealityConfig = {
+    version: 1,
+    defaultIdentity: "sample",
+    identities: {
+      sample: {
+        label: "Sample",
+        roots: [root],
+        tools: {},
+      },
+    },
+    tools: {},
+    networks: { private: profile },
+  };
+  return {
+    config,
+    resolved: {
+      id: "sample",
+      identity: config.identities.sample!,
+      path: root,
+      matchedRoot: root,
+      isDefault: true,
+    },
+  };
+}

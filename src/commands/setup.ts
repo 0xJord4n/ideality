@@ -376,12 +376,7 @@ const setupCommand = defineCommand({
             roots: [projectRoot],
             color: "#22d3ee",
             git,
-            tools: {
-              ...Object.fromEntries(
-                Object.keys(working.tools).map((tool) => [tool, {}]),
-              ),
-              ...createToolProfiles(identityId),
-            },
+            tools: {},
           };
           generatedIdentity = true;
         } else {
@@ -397,7 +392,7 @@ const setupCommand = defineCommand({
           return {
             label: definition.description ?? name,
             value: name,
-            hint: `${name}  ${executable ? "installed" : "missing"}`,
+            hint: `${definition.pack ?? "custom"} / ${definition.stateIsolation ?? "partial"} / ${executable ? "installed" : "missing"}`,
           };
         });
       const projectTools = existingProject
@@ -531,6 +526,16 @@ const setupCommand = defineCommand({
     }
     if (!working.identities[identityId]) {
       throw new Error(`Identity '${identityId}' does not exist`);
+    }
+    const identity = working.identities[identityId]!;
+    const defaultProfiles = createToolProfiles(
+      identityId,
+      selectedTools,
+      identity.git?.sshKey,
+    );
+    for (const tool of selectedTools) {
+      identity.tools[tool] ??=
+        defaultProfiles[tool] ?? {};
     }
     if (execution?.target === "vm" && !working.vms?.[execution.vm]) {
       throw new Error(`VM profile '${execution.vm}' does not exist`);

@@ -59,6 +59,9 @@ export interface ToolDefinition {
   executable: string;
   description?: string;
   isolation?: "shell" | "process";
+  pack?: string;
+  stateIsolation?: "full" | "partial" | "credentials";
+  shim?: boolean;
   detect?: string[];
   auth?: Partial<Record<AuthAction, string[]>>;
 }
@@ -105,6 +108,18 @@ export type NetworkProfile =
         city?: string;
         hostname?: string;
       };
+    })
+  | (NetworkProfileBase & {
+      driver: "tailscale";
+      executable?: string;
+      exitNode: string;
+      allowLanAccess?: boolean;
+      acceptRoutes?: boolean;
+      shieldsUp?: boolean;
+    })
+  | (NetworkProfileBase & {
+      driver: "warp";
+      executable?: string;
     })
   | (NetworkProfileBase & {
       driver: "custom";

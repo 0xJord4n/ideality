@@ -53,7 +53,16 @@ export async function installShims(
   await mkdir(directory, { recursive: true, mode: 0o700 });
 
   const previous = await readManifest(manifestPath);
-  const tools = Object.keys(config.tools).sort();
+  const configuredTools = new Set(
+    Object.values(config.identities).flatMap((identity) =>
+      Object.entries(identity.tools)
+        .filter(([, profile]) => profile.enabled !== false)
+        .map(([tool]) => tool),
+    ),
+  );
+  const tools = [...configuredTools]
+    .filter((tool) => config.tools[tool]?.shim !== false)
+    .sort();
   const active = new Set(tools);
   for (const stale of previous) {
     if (!active.has(stale)) {

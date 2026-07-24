@@ -2,11 +2,16 @@ import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
 import {
+  BUILTIN_TOOL_PACKS,
+  BUILTIN_TOOLS,
+} from "../adapters/builtins.js";
+import {
   getIdealityHome,
   loadConfig,
   saveConfig,
 } from "../core/config-store.js";
 import { resolveExecutable } from "../core/runtime.js";
+import { createToolProfiles } from "../core/starter.js";
 import type { ValueSource } from "../domain/config.js";
 import { installShims } from "../integrations/shims.js";
 import { syncInstalledCompletions } from "../integrations/completion.js";
@@ -40,13 +45,70 @@ const toolCommand = defineGroup({
         for (const [name, tool] of Object.entries(config.tools)) {
           const installed = Boolean(resolveExecutable(config, name));
           console.log(
-            `${name.padEnd(12)} ${(tool.isolation ?? "shell").padEnd(8)} ${
+            `${name.padEnd(14)} ${(tool.pack ?? "custom").padEnd(15)} ${(tool.stateIsolation ?? "partial").padEnd(11)} ${
               installed ? colors.green("ready") : colors.yellow("missing")
             }  ${tool.executable}`,
           );
         }
       },
     }),
+    defineCommand({
+      name: "packs",
+      description: "List built-in tool packs",
+      handler: async () => {
+        for (const [id, pack] of Object.entries(BUILTIN_TOOL_PACKS)) {
+          console.log(
+            `${id.padEnd(16)} ${pack.label}\n${"".padEnd(18)}${pack.tools.join(", ")}`,
+          );
+        }
+      },
+    }),
+    ...(["enable-pack", "disable-pack"] as const).map((action) =>
+      defineCommand({
+        name: action,
+        description: `${action === "enable-pack" ? "Enable" : "Disable"} every tool in a built-in pack`,
+        options: {
+          "dry-run": option(z.boolean().default(false), {
+            description: "Show the change without saving it",
+            argumentKind: "flag",
+          }),
+        },
+        handler: async ({ positional, flags, colors }) => {
+          const identityId = requirePositional(positional, 0, "identity ID");
+          const packId = requirePositional(positional, 1, "tool pack");
+          const config = await loadConfig();
+          const identity = config.identities[identityId];
+          const pack = BUILTIN_TOOL_PACKS[packId];
+          if (!identity) {
+            throw new Error(`Identity '${identityId}' does not exist`);
+          }
+          if (!pack) throw new Error(`Tool pack '${packId}' does not exist`);
+          const profiles = createToolProfiles(
+            identityId,
+            pack.tools,
+            identity.git?.sshKey,
+          );
+          for (const tool of pack.tools) {
+            if (!BUILTIN_TOOLS[tool]) continue;
+            identity.tools[tool] = {
+              ...(profiles[tool] ?? {}),
+              ...(identity.tools[tool] ?? {}),
+              enabled: action === "enable-pack",
+            };
+          }
+          if (!flags["dry-run"]) {
+            await saveConfig(config);
+            await installShims(config, getIdealityHome());
+            await syncInstalledCompletions(config, getIdealityHome());
+          }
+          console.log(
+            colors.green(
+              `${action === "enable-pack" ? "Enabled" : "Disabled"} '${packId}' for '${identityId}'`,
+            ),
+          );
+        },
+      }),
+    ),
     defineCommand({
       name: "add",
       description: "Register a custom executable",
@@ -204,8 +266,22 @@ const toolCommand = defineGroup({
           if (!identity || !config.tools[toolName]) {
             throw new Error("Unknown identity or tool");
           }
-          (identity.tools[toolName] ??= {}).enabled = action === "enable";
-          if (!flags["dry-run"]) await saveConfig(config);
+          const starter =
+            createToolProfiles(
+              identityId,
+              [toolName],
+              identity.git?.sshKey,
+            )[toolName] ?? {};
+          identity.tools[toolName] = {
+            ...starter,
+            ...(identity.tools[toolName] ?? {}),
+            enabled: action === "enable",
+          };
+          if (!flags["dry-run"]) {
+            await saveConfig(config);
+            await installShims(config, getIdealityHome());
+            await syncInstalledCompletions(config, getIdealityHome());
+          }
           console.log(colors.green(`${action}d ${identityId}/${toolName}`));
         },
       }),

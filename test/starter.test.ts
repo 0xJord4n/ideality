@@ -1,7 +1,14 @@
 import { describe, expect, test } from "bun:test";
 
-import { BUILTIN_TOOLS } from "../src/adapters/builtins.js";
-import { createToolProfiles } from "../src/core/starter.js";
+import {
+  BUILTIN_TOOL_PACKS,
+  BUILTIN_TOOLS,
+  toolsInPacks,
+} from "../src/adapters/builtins.js";
+import {
+  createStarterConfig,
+  createToolProfiles,
+} from "../src/core/starter.js";
 
 describe("starter tool profiles", () => {
   test("provides every supported built-in adapter", () => {
@@ -42,5 +49,60 @@ describe("starter tool profiles", () => {
         (definition) => definition.isolation === "process",
       ),
     ).toBe(true);
+  });
+
+  test("keeps every built-in in exactly one selectable pack", () => {
+    const packed = Object.values(BUILTIN_TOOL_PACKS).flatMap(
+      (pack) => pack.tools,
+    );
+
+    expect([...new Set(packed)].sort()).toEqual(Object.keys(BUILTIN_TOOLS).sort());
+    expect(packed).toHaveLength(Object.keys(BUILTIN_TOOLS).length);
+    expect(toolsInPacks(["cloud"])).toEqual([
+      "aws",
+      "gcloud",
+      "az",
+      "doctl",
+    ]);
+  });
+
+  test("creates only selected profiles while retaining the complete catalog", () => {
+    const config = createStarterConfig({
+      id: "sample",
+      label: "Sample",
+      root: "~/code/sample",
+      git: { name: "Sample Developer", email: "sample@example.com" },
+      tools: ["aws", "copilot"],
+    });
+
+    expect(Object.keys(config.identities.sample!.tools)).toEqual([
+      "aws",
+      "copilot",
+    ]);
+    expect(config.identities.sample!.tools.aws?.env).toMatchObject({
+      AWS_CONFIG_FILE: expect.stringContaining("/sample/cloud/aws/config"),
+      AWS_SHARED_CREDENTIALS_FILE: expect.stringContaining(
+        "/sample/cloud/aws/credentials",
+      ),
+    });
+    expect(config.identities.sample!.tools.copilot?.env).toMatchObject({
+      COPILOT_HOME: expect.stringContaining("/sample/ai/copilot"),
+    });
+    expect(Object.keys(config.tools).sort()).toEqual(
+      Object.keys(BUILTIN_TOOLS).sort(),
+    );
+  });
+
+  test("routes Gerrit SSH through the identity key", () => {
+    const profiles = createToolProfiles(
+      "sample",
+      ["gerrit"],
+      "/home/sample/.ssh/id_ed25519",
+    );
+
+    expect(profiles.gerrit?.args).toEqual([
+      "-i",
+      "/home/sample/.ssh/id_ed25519",
+    ]);
   });
 });

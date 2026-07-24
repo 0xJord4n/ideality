@@ -146,7 +146,15 @@ export async function runDoctor(
     }
   }
 
+  const configuredTools = new Set(
+    Object.values(config.identities).flatMap((identity) =>
+      Object.entries(identity.tools)
+        .filter(([, profile]) => profile.enabled !== false)
+        .map(([tool]) => tool),
+    ),
+  );
   for (const [tool, definition] of Object.entries(config.tools)) {
+    if (!configuredTools.has(tool)) continue;
     const executable = resolveExecutable(config, tool);
     checks.push({
       status: executable ? "pass" : "warn",
@@ -177,7 +185,8 @@ export async function runDoctor(
       ? `${shimDirectory} is active in PATH`
       : `${shimDirectory} is not active in PATH; reload the shell integration`,
   });
-  for (const tool of Object.keys(config.tools)) {
+  for (const tool of configuredTools) {
+    if (config.tools[tool]?.shim === false) continue;
     const file = path.join(shimDirectory, tool);
     try {
       const info = await stat(file);

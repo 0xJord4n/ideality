@@ -6,6 +6,12 @@ import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
 import {
+  BUILTIN_TOOL_PACKS,
+  BUILTIN_TOOLS,
+  DEFAULT_TOOL_PACKS,
+  toolsInPacks,
+} from "../adapters/builtins.js";
+import {
   getConfigPath,
   getIdealityHome,
   saveConfig,
@@ -37,6 +43,12 @@ async function wizardStep<T>(prompt: Promise<T>): Promise<T> {
   const value = await prompt;
   await Bun.sleep(0);
   return value;
+}
+
+function parseList(value: string | undefined): string[] {
+  return value
+    ? [...new Set(value.split(",").map((item) => item.trim()).filter(Boolean))]
+    : [];
 }
 
 function detectedShell(): SupportedShell {
@@ -85,6 +97,12 @@ const initCommand = defineCommand({
     "generate-ssh": option(z.boolean().default(false), {
       description: "Generate an Ed25519 SSH key",
       argumentKind: "flag",
+    }),
+    packs: option(z.string().optional(), {
+      description: "Comma-separated built-in tool packs",
+    }),
+    tools: option(z.string().optional(), {
+      description: "Comma-separated tools enabled for the identity",
     }),
     install: option(z.boolean().default(false), {
       description: "Install shell and Git integrations",
@@ -175,6 +193,22 @@ const initCommand = defineCommand({
           ...(flags["no-git"] ? [] : (["git"] as const)),
         ]
       : [];
+    const requestedPacks = parseList(flags.packs);
+    const requestedTools = parseList(flags.tools);
+    let selectedPacks =
+      requestedPacks.length > 0
+        ? requestedPacks
+        : requestedTools.length > 0
+          ? Object.entries(BUILTIN_TOOL_PACKS)
+              .filter(([, pack]) =>
+                pack.tools.some((tool) => requestedTools.includes(tool)),
+              )
+              .map(([pack]) => pack)
+          : [...DEFAULT_TOOL_PACKS];
+    let selectedTools =
+      requestedTools.length > 0
+        ? requestedTools
+        : toolsInPacks(selectedPacks);
 
     if (interactive) {
       // Bunli keeps each OpenTUI view's keyboard hooks until session disposal.
@@ -279,6 +313,33 @@ const initCommand = defineCommand({
         }
       }
 
+      selectedPacks = await wizardStep(
+        prompt.multiselect<string>("Tool packs", {
+          options: Object.entries(BUILTIN_TOOL_PACKS).map(([id, pack]) => ({
+            label: pack.label,
+            value: id,
+            hint: pack.description,
+          })),
+          initialValues: selectedPacks,
+          min: 1,
+        }),
+      );
+      const packTools = toolsInPacks(selectedPacks);
+      selectedTools = await wizardStep(
+        prompt.multiselect<string>("Tools enabled for this identity", {
+          options: packTools.map((tool) => ({
+            label: BUILTIN_TOOLS[tool]?.description ?? tool,
+            value: tool,
+            hint: `${tool} / ${BUILTIN_TOOLS[tool]?.stateIsolation ?? "partial"}`,
+          })),
+          initialValues:
+            requestedTools.length > 0
+              ? selectedTools.filter((tool) => packTools.includes(tool))
+              : packTools,
+          min: 1,
+        }),
+      );
+
       integrations = await wizardStep(
         prompt.multiselect<Integration>("Install integrations", {
           options: [
@@ -319,6 +380,8 @@ const initCommand = defineCommand({
           `Git:  ${gitName} <${gitEmail}>`,
           `SSH:  ${sshMode}`,
           `Home: ${idealityHome}`,
+          `Packs: ${selectedPacks.join(", ")}`,
+          `Tools: ${selectedTools.join(", ")}`,
           `Integrations: ${integrations.join(", ") || "none"}`,
         ].join("\n"),
         "Review",
@@ -338,6 +401,15 @@ const initCommand = defineCommand({
 
     if (!id) id = deriveIdentityId(label, []);
     assertIdentityId(id);
+    for (const pack of selectedPacks) {
+      if (!BUILTIN_TOOL_PACKS[pack]) {
+        throw new Error(`Unknown tool pack '${pack}'`);
+      }
+    }
+    const knownTools = new Set(toolsInPacks(Object.keys(BUILTIN_TOOL_PACKS)));
+    for (const tool of selectedTools) {
+      if (!knownTools.has(tool)) throw new Error(`Unknown built-in tool '${tool}'`);
+    }
     const git = { name: gitName, email: gitEmail };
     if (sshMode === "existing") {
       const expanded = expandHome(sshKey!, home);
@@ -360,7 +432,13 @@ const initCommand = defineCommand({
       }
     }
 
-    const config = createStarterConfig({ id, label, root, git });
+    const config = createStarterConfig({
+      id,
+      label,
+      root,
+      git,
+      tools: selectedTools,
+    });
     if (flags["dry-run"]) {
       console.log(
         JSON.stringify(

@@ -51,6 +51,7 @@ describe("network adapters", () => {
       {
         description: "Read Mullvad status",
         command: ["mullvad", "status"],
+        verifyConnection: { provider: "mullvad" },
       },
     ]);
   });
@@ -102,6 +103,73 @@ describe("network adapters", () => {
         command: ["private-vpn", "status"],
       },
     ]);
+  });
+
+  test("routes Tailscale through an explicit exit node without overstating enforcement", () => {
+    const profile: NetworkProfile = {
+      driver: "tailscale",
+      exitNode: "exit.example.net",
+      allowLanAccess: false,
+      acceptRoutes: true,
+      shieldsUp: true,
+      killSwitch: "provider",
+    };
+
+    expect(networkCapability(profile)).toMatchObject({
+      executable: "tailscale",
+      strictKillSwitch: false,
+    });
+    expect(buildNetworkPlan("tailnet", profile, "up")).toEqual([
+      {
+        description:
+          "Connect Tailscale through exit node exit.example.net",
+        command: [
+          "tailscale",
+          "up",
+          "--exit-node=exit.example.net",
+          "--exit-node-allow-lan-access=false",
+          "--accept-routes=true",
+          "--shields-up=true",
+        ],
+      },
+      {
+        description: "Read Tailscale status",
+        command: ["tailscale", "status", "--json"],
+        verifyConnection: {
+          provider: "tailscale",
+          exitNode: "exit.example.net",
+        },
+      },
+    ]);
+  });
+
+  test("connects WARP and requires an external layer for strict mode", () => {
+    const profile: NetworkProfile = {
+      driver: "warp",
+      killSwitch: "provider",
+    };
+
+    expect(networkCapability(profile)).toMatchObject({
+      executable: "warp-cli",
+      strictKillSwitch: false,
+    });
+    expect(buildNetworkPlan("warp", profile, "up")).toEqual([
+      {
+        description: "Connect Cloudflare WARP",
+        command: ["warp-cli", "connect"],
+      },
+      {
+        description: "Read Cloudflare WARP status",
+        command: ["warp-cli", "status"],
+        verifyConnection: { provider: "warp" },
+      },
+    ]);
+    expect(() =>
+      buildNetworkPlan("strict-warp", {
+        ...profile,
+        killSwitch: "required",
+      }, "up"),
+    ).toThrow("requires a verified kill switch");
   });
 });
 

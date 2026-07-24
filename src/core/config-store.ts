@@ -159,6 +159,20 @@ const networkSchema = z.discriminatedUnion("driver", [
   }),
   z.object({
     ...networkBase,
+    driver: z.literal("tailscale"),
+    executable: z.string().min(1).optional(),
+    exitNode: z.string().min(1),
+    allowLanAccess: z.boolean().optional(),
+    acceptRoutes: z.boolean().optional(),
+    shieldsUp: z.boolean().optional(),
+  }),
+  z.object({
+    ...networkBase,
+    driver: z.literal("warp"),
+    executable: z.string().min(1).optional(),
+  }),
+  z.object({
+    ...networkBase,
     driver: z.literal("custom"),
     connect: z.array(z.string()).min(1),
     disconnect: z.array(z.string()).min(1),
@@ -237,6 +251,11 @@ const configSchema = z
         executable: z.string().min(1),
         description: z.string().optional(),
         isolation: z.enum(["shell", "process"]).optional(),
+        pack: z.string().min(1).optional(),
+        stateIsolation: z
+          .enum(["full", "partial", "credentials"])
+          .optional(),
+        shim: z.boolean().optional(),
         detect: z.array(z.string().min(1)).optional(),
         auth: z
           .object({

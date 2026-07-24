@@ -391,14 +391,72 @@ async function executeSteps(
     if (value !== undefined) env[name] = value;
   }
   for (const step of steps) {
-    await requireSuccessfulProcess(
+    const result = await requireSuccessfulProcess(
       step.command,
       {
         env: { ...env, ...step.env },
-        inherit: !quiet,
+        inherit: !quiet && !step.verifyConnection,
       },
       runner,
     );
+    if (step.verifyConnection) {
+      verifyConnectionOutput(step, result.stdout, result.stderr);
+      if (!quiet) {
+        if (result.stdout) process.stdout.write(result.stdout);
+        if (result.stderr) process.stderr.write(result.stderr);
+      }
+    }
+  }
+}
+
+function verifyConnectionOutput(
+  step: NetworkCommandStep,
+  stdout: string,
+  stderr: string,
+): void {
+  const verification = step.verifyConnection;
+  if (!verification) return;
+  const output = `${stdout}\n${stderr}`;
+  if (verification.provider === "tailscale") {
+    let status: unknown;
+    try {
+      status = JSON.parse(stdout);
+    } catch {
+      throw new Error("Tailscale status did not return valid JSON");
+    }
+    if (!status || typeof status !== "object") {
+      throw new Error("Tailscale status is invalid");
+    }
+    const value = status as Record<string, unknown>;
+    const exitStatus = value.ExitNodeStatus;
+    const exitNode =
+      exitStatus && typeof exitStatus === "object"
+        ? (exitStatus as Record<string, unknown>)
+        : null;
+    if (
+      value.BackendState !== "Running" ||
+      !exitNode ||
+      typeof exitNode.ID !== "string" ||
+      exitNode.ID.length === 0 ||
+      exitNode.Online !== true
+    ) {
+      throw new Error(
+        `Tailscale is not connected through exit node '${verification.exitNode}'`,
+      );
+    }
+    return;
+  }
+  if (
+    verification.provider === "warp" &&
+    (!/\bconnected\b/i.test(output) || /\bdisconnected\b/i.test(output))
+  ) {
+    throw new Error("Cloudflare WARP is not connected");
+  }
+  if (
+    verification.provider === "mullvad" &&
+    (!/\bconnected\b/i.test(output) || /\bdisconnected\b/i.test(output))
+  ) {
+    throw new Error("Mullvad is not connected");
   }
 }
 

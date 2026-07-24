@@ -9,6 +9,10 @@ export interface NetworkCommandStep {
   description: string;
   command: string[];
   env?: Record<string, string>;
+  verifyConnection?: {
+    provider: "mullvad" | "tailscale" | "warp";
+    exitNode?: string;
+  };
 }
 
 export interface NetworkCapability {
@@ -43,6 +47,18 @@ export function networkCapability(
         executable: profile.executable ?? "mullvad",
         strictKillSwitch: true,
         detail: "Mullvad lockdown mode",
+      };
+    case "tailscale":
+      return {
+        executable: profile.executable ?? "tailscale",
+        strictKillSwitch: false,
+        detail: "Tailscale exit-node routing requires provider or OS enforcement",
+      };
+    case "warp":
+      return {
+        executable: profile.executable ?? "warp-cli",
+        strictKillSwitch: false,
+        detail: "WARP requires managed Always On and Switch Locked for enforcement",
       };
     case "wireguard":
       return {
@@ -97,6 +113,10 @@ export function buildNetworkPlan(
   switch (profile.driver) {
     case "mullvad":
       return mullvadPlan(profile, executable, action, options.release);
+    case "tailscale":
+      return tailscalePlan(profile, executable, action);
+    case "warp":
+      return warpPlan(executable, action);
     case "wireguard": {
       const prefix = profile.sudo ? ["sudo"] : [];
       return [
@@ -194,6 +214,88 @@ export function buildNetworkPlan(
   }
 }
 
+function tailscalePlan(
+  profile: Extract<NetworkProfile, { driver: "tailscale" }>,
+  executable: string,
+  action: NetworkAction,
+): NetworkCommandStep[] {
+  if (action === "status") {
+    return [
+      {
+        description: "Read Tailscale status",
+        command: [executable, "status", "--json"],
+        verifyConnection: {
+          provider: "tailscale",
+          exitNode: profile.exitNode,
+        },
+      },
+    ];
+  }
+  if (action === "down") {
+    return [
+      {
+        description: "Disconnect Tailscale",
+        command: [executable, "down"],
+      },
+    ];
+  }
+  return [
+    {
+      description: `Connect Tailscale through exit node ${profile.exitNode}`,
+      command: [
+        executable,
+        "up",
+        `--exit-node=${profile.exitNode}`,
+        `--exit-node-allow-lan-access=${profile.allowLanAccess ?? false}`,
+        `--accept-routes=${profile.acceptRoutes ?? true}`,
+        `--shields-up=${profile.shieldsUp ?? false}`,
+      ],
+    },
+    {
+      description: "Read Tailscale status",
+      command: [executable, "status", "--json"],
+      verifyConnection: {
+        provider: "tailscale",
+        exitNode: profile.exitNode,
+      },
+    },
+  ];
+}
+
+function warpPlan(
+  executable: string,
+  action: NetworkAction,
+): NetworkCommandStep[] {
+  if (action === "status") {
+    return [
+      {
+        description: "Read Cloudflare WARP status",
+        command: [executable, "status"],
+        verifyConnection: { provider: "warp" },
+      },
+    ];
+  }
+  if (action === "down") {
+    return [
+      {
+        description: "Disconnect Cloudflare WARP",
+        command: [executable, "disconnect"],
+      },
+    ];
+  }
+  return [
+    {
+      description: "Connect Cloudflare WARP",
+      command: [executable, "connect"],
+    },
+    {
+      description: "Read Cloudflare WARP status",
+      command: [executable, "status"],
+      verifyConnection: { provider: "warp" },
+    },
+  ];
+}
+
 function mullvadPlan(
   profile: Extract<NetworkProfile, { driver: "mullvad" }>,
   executable: string,
@@ -205,6 +307,7 @@ function mullvadPlan(
       {
         description: "Read Mullvad status",
         command: [executable, "status"],
+        verifyConnection: { provider: "mullvad" },
       },
     ];
   }
@@ -293,6 +396,7 @@ function mullvadPlan(
     {
       description: "Read Mullvad status",
       command: [executable, "status"],
+      verifyConnection: { provider: "mullvad" },
     },
   );
   return steps;
@@ -351,7 +455,14 @@ function isActiveNetworkState(value: unknown): value is ActiveNetworkState {
     state.version === 1 &&
     typeof state.profile === "string" &&
     typeof state.identity === "string" &&
-    ["wireguard", "openvpn", "mullvad", "custom"].includes(
+    [
+      "wireguard",
+      "openvpn",
+      "mullvad",
+      "tailscale",
+      "warp",
+      "custom",
+    ].includes(
       state.driver ?? "",
     ) &&
     ["strict", "provider", "off", "unverified"].includes(

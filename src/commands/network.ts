@@ -149,7 +149,16 @@ const networkCommand = defineGroup({
           description: "Display label",
         }),
         driver: option(
-          z.enum(["mullvad", "wireguard", "openvpn", "custom"]).optional(),
+          z
+            .enum([
+              "mullvad",
+              "tailscale",
+              "warp",
+              "wireguard",
+              "openvpn",
+              "custom",
+            ])
+            .optional(),
           { description: "VPN driver" },
         ),
         config: option(z.string().optional(), {
@@ -170,6 +179,20 @@ const networkCommand = defineGroup({
         hostname: option(z.string().optional(), {
           description: "Mullvad relay hostname",
         }),
+        "exit-node": option(z.string().optional(), {
+          description: "Tailscale exit-node hostname or IP",
+        }),
+        "allow-lan-access": option(z.boolean().default(false), {
+          description: "Allow LAN access while using a Tailscale exit node",
+          argumentKind: "flag",
+        }),
+        "accept-routes": option(z.boolean().default(true), {
+          description: "Accept Tailscale subnet routes",
+        }),
+        "shields-up": option(z.boolean().default(false), {
+          description: "Block incoming Tailscale connections",
+          argumentKind: "flag",
+        }),
         dns: option(z.string().default("provider"), {
           description: "Mullvad DNS: provider or comma-separated server list",
         }),
@@ -180,7 +203,7 @@ const networkCommand = defineGroup({
           description: "Mullvad local-network policy",
         }),
         "kill-switch": option(
-          z.enum(["required", "provider", "off"]).default("required"),
+          z.enum(["required", "provider", "off"]).optional(),
           { description: "Required enforcement level" },
         ),
         connect: option(z.string().optional(), {
@@ -221,6 +244,10 @@ const networkCommand = defineGroup({
         let country = flags.country;
         let city = flags.city;
         let hostname = flags.hostname;
+        let exitNode = flags["exit-node"];
+        let allowLanAccess = flags["allow-lan-access"];
+        let acceptRoutes = flags["accept-routes"];
+        let shieldsUp = flags["shields-up"];
         let dns = flags.dns;
         let ipv6 = flags.ipv6;
         let lan = flags.lan;
@@ -239,6 +266,16 @@ const networkCommand = defineGroup({
             default: driver ?? "mullvad",
             options: [
               { label: "Mullvad", value: "mullvad", hint: "verified lockdown mode" },
+              {
+                label: "Tailscale exit node",
+                value: "tailscale",
+                hint: "routes internet traffic through a selected node",
+              },
+              {
+                label: "Cloudflare WARP",
+                value: "warp",
+                hint: "managed Always On policy recommended",
+              },
               { label: "WireGuard", value: "wireguard", hint: "requires OS helper for strict mode" },
               { label: "OpenVPN", value: "openvpn", hint: "requires OS helper for strict mode" },
               { label: "Custom adapter", value: "custom" },
@@ -309,7 +346,7 @@ const networkCommand = defineGroup({
             killSwitch = await prompt.select<
               "required" | "provider" | "off"
             >("Leak prevention", {
-              default: killSwitch,
+              default: killSwitch ?? "required",
               options: [
                 {
                   label: "Require Mullvad Lockdown mode",
@@ -375,6 +412,61 @@ const networkCommand = defineGroup({
                 { label: "Allow LAN access", value: "allow" },
               ],
             });
+          } else if (driver === "tailscale") {
+            exitNode = await prompt.text("Exit node", {
+              default: exitNode ?? "",
+              placeholder: "hostname or 100.x.y.z",
+              validate: (value) =>
+                value.length > 0 || "A Tailscale exit node is required",
+            });
+            allowLanAccess = await prompt.confirm(
+              "Allow access to the local network?",
+              { default: allowLanAccess },
+            );
+            acceptRoutes = await prompt.confirm("Accept subnet routes?", {
+              default: acceptRoutes,
+            });
+            shieldsUp = await prompt.confirm(
+              "Block incoming Tailscale connections?",
+              { default: shieldsUp },
+            );
+            killSwitch = await prompt.select<
+              "required" | "provider" | "off"
+            >("Leak prevention", {
+              default: killSwitch ?? "provider",
+              options: [
+                {
+                  label: "Trust Tailscale exit-node routing",
+                  value: "provider",
+                  hint: "status is checked before each launch",
+                },
+                {
+                  label: "Require verified OS enforcement",
+                  value: "required",
+                  hint: "fails closed until a helper is installed",
+                },
+                { label: "No enforcement", value: "off" },
+              ],
+            });
+          } else if (driver === "warp") {
+            killSwitch = await prompt.select<
+              "required" | "provider" | "off"
+            >("Leak prevention", {
+              default: killSwitch ?? "provider",
+              options: [
+                {
+                  label: "Trust managed WARP policy",
+                  value: "provider",
+                  hint: "use Traffic mode with Always On and Switch Locked",
+                },
+                {
+                  label: "Require verified OS enforcement",
+                  value: "required",
+                  hint: "fails closed until a helper is installed",
+                },
+                { label: "No enforcement", value: "off" },
+              ],
+            });
           } else {
             connect = await prompt.text("Connect command (JSON array)", {
               default: connect ?? '["vpn-helper","connect"]',
@@ -433,6 +525,10 @@ const networkCommand = defineGroup({
           }
         }
         if (!driver) throw new Error("--driver is required in non-interactive mode");
+        killSwitch ??=
+          driver === "tailscale" || driver === "warp"
+            ? "provider"
+            : "required";
         const id =
           flags.id ??
           deriveIdentityId(label, Object.keys(config.networks ?? {}));
@@ -453,6 +549,23 @@ const networkCommand = defineGroup({
                     hostname: hostname || undefined,
                   }
                 : undefined,
+          };
+        } else if (driver === "tailscale") {
+          if (!exitNode) throw new Error("Tailscale requires --exit-node");
+          profile = {
+            driver,
+            label,
+            killSwitch,
+            exitNode,
+            allowLanAccess,
+            acceptRoutes,
+            shieldsUp,
+          };
+        } else if (driver === "warp") {
+          profile = {
+            driver,
+            label,
+            killSwitch,
           };
         } else if (driver === "wireguard") {
           if (!configSource) throw new Error("WireGuard requires --config");

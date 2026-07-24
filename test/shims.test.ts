@@ -89,4 +89,20 @@ describe("managed executable shims", () => {
       "keep",
     );
   });
+
+  test("skips definitions that are unsafe to intercept", async () => {
+    const idealityHome = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-shims-"),
+    );
+    temporaryDirectories.push(idealityHome);
+    const config = configWithTools("bun", "npm");
+    config.tools.bun!.shim = false;
+
+    const result = await installShims(config, idealityHome);
+
+    expect(result.tools).toEqual(["npm"]);
+    expect(await Bun.file(path.join(result.directory, "bun")).exists()).toBe(
+      false,
+    );
+  });
 });

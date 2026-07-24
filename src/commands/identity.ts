@@ -6,6 +6,12 @@ import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
 import {
+  BUILTIN_TOOL_PACKS,
+  BUILTIN_TOOLS,
+  DEFAULT_TOOL_PACKS,
+  toolsInPacks,
+} from "../adapters/builtins.js";
+import {
   getIdealityHome,
   loadConfig,
   saveConfig,
@@ -42,6 +48,12 @@ async function wizardStep<T>(pending: Promise<T>): Promise<T> {
   const value = await pending;
   await Bun.sleep(0);
   return value;
+}
+
+function parseList(value: string | undefined): string[] {
+  return value
+    ? [...new Set(value.split(",").map((item) => item.trim()).filter(Boolean))]
+    : [];
 }
 
 function displayHomePath(file: string, home: string): string {
@@ -126,6 +138,12 @@ const identityCommand = defineGroup({
           description: "Generate a new Ed25519 key",
           argumentKind: "flag",
         }),
+        packs: option(z.string().optional(), {
+          description: "Comma-separated built-in tool packs",
+        }),
+        tools: option(z.string().optional(), {
+          description: "Comma-separated tools enabled for the identity",
+        }),
         interactive: option(z.boolean().default(false), {
           description: "Force the identity wizard",
           argumentKind: "flag",
@@ -176,6 +194,22 @@ const identityCommand = defineGroup({
             ? "generate"
             : "agent";
         let sshKey = flags["ssh-key"];
+        const requestedPacks = parseList(flags.packs);
+        const requestedTools = parseList(flags.tools);
+        let selectedPacks =
+          requestedPacks.length > 0
+            ? requestedPacks
+            : requestedTools.length > 0
+              ? Object.entries(BUILTIN_TOOL_PACKS)
+                  .filter(([, pack]) =>
+                    pack.tools.some((tool) => requestedTools.includes(tool)),
+                  )
+                  .map(([pack]) => pack)
+              : [...DEFAULT_TOOL_PACKS];
+        let selectedTools =
+          requestedTools.length > 0
+            ? requestedTools
+            : toolsInPacks(selectedPacks);
 
         if (interactive) {
           setMaxListeners(Math.max(defaultMaxListeners, 64));
@@ -300,12 +334,43 @@ const identityCommand = defineGroup({
                   );
           }
 
+          selectedPacks = await wizardStep(
+            prompt.multiselect<string>("Tool packs", {
+              options: Object.entries(BUILTIN_TOOL_PACKS).map(([pack, value]) => ({
+                label: value.label,
+                value: pack,
+                hint: value.description,
+              })),
+              initialValues: selectedPacks,
+              min: 1,
+            }),
+          );
+          const availableTools = toolsInPacks(selectedPacks);
+          selectedTools = await wizardStep(
+            prompt.multiselect<string>("Tools enabled for this identity", {
+              options: availableTools.map((tool) => ({
+                label: BUILTIN_TOOLS[tool]?.description ?? tool,
+                value: tool,
+                hint: `${tool} / ${BUILTIN_TOOLS[tool]?.stateIsolation ?? "partial"}`,
+              })),
+              initialValues:
+                requestedTools.length > 0
+                  ? selectedTools.filter((tool) =>
+                      availableTools.includes(tool),
+                    )
+                  : availableTools,
+              min: 1,
+            }),
+          );
+
           prompt.note(
             [
               `${label} (${id})`,
               `Root: ${root}`,
               `Git:  ${git.name} <${git.email}>`,
               `SSH:  ${sshMode}`,
+              `Packs: ${selectedPacks.join(", ")}`,
+              `Tools: ${selectedTools.join(", ")}`,
             ].join("\n"),
             "Review",
           );
@@ -325,6 +390,16 @@ const identityCommand = defineGroup({
         }
 
         assertIdentityId(id);
+        for (const pack of selectedPacks) {
+          if (!BUILTIN_TOOL_PACKS[pack]) {
+            throw new Error(`Unknown tool pack '${pack}'`);
+          }
+        }
+        for (const tool of selectedTools) {
+          if (!BUILTIN_TOOLS[tool]) {
+            throw new Error(`Unknown built-in tool '${tool}'`);
+          }
+        }
         if (config.identities[id]) {
           throw new Error(`Identity '${id}' already exists`);
         }
@@ -351,7 +426,7 @@ const identityCommand = defineGroup({
           roots: [root],
           color: flags.color,
           git,
-          tools: createToolProfiles(id),
+          tools: createToolProfiles(id, selectedTools, git.sshKey),
         };
         if (flags["dry-run"]) {
           printJson({ id, ...config.identities[id] });
