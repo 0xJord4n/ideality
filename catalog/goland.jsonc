@@ -1,0 +1,23 @@
+// GoLand - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "goland",
+  "displayName": "GoLand",
+  "pack": "editors",
+  "executable": {
+    "primary": "goland"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "partial"
+  },
+  "profile": {
+    "env": {
+      "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/goland/config",
+      "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/goland/data",
+      "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/goland/state",
+      "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/goland/cache"
+    }
+  }
+}

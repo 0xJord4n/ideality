@@ -1,0 +1,25 @@
+// Gemini CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "gemini",
+  "displayName": "Gemini CLI",
+  "pack": "ai",
+  "executable": {
+    "primary": "gemini"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "profile": {
+    "env": {
+      "GEMINI_CLI_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/gemini",
+      "GEMINI_API_KEY": {
+        "from": "secret",
+        "key": "{{identity}}/gemini-api-key",
+        "optional": true
+      }
+    }
+  }
+}

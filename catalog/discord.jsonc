@@ -1,0 +1,20 @@
+// Discord desktop - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "discord",
+  "displayName": "Discord desktop",
+  "pack": "editors",
+  "executable": {
+    "primary": "discord"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "partial"
+  },
+  "profile": {
+    "args": [
+      "--user-data-dir={{idealityHome}}/profiles/{{identity}}/desktop/discord"
+    ]
+  }
+}

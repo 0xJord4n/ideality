@@ -1,0 +1,34 @@
+// Vercel CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "vercel",
+  "displayName": "Vercel CLI",
+  "pack": "essentials",
+  "executable": {
+    "primary": "vercel"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "login"
+    ],
+    "status": [
+      "whoami"
+    ],
+    "logout": [
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/vercel/config",
+      "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/vercel/data",
+      "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/vercel/state",
+      "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/vercel/cache"
+    }
+  }
+}

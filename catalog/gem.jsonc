@@ -1,0 +1,22 @@
+// RubyGems client - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "gem",
+  "displayName": "RubyGems client",
+  "pack": "registries",
+  "executable": {
+    "primary": "gem"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "profile": {
+    "env": {
+      "GEM_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/rubygems/gems",
+      "GEM_PATH": "{{idealityHome}}/profiles/{{identity}}/registries/rubygems/gems",
+      "GEMRC": "{{idealityHome}}/profiles/{{identity}}/registries/rubygems/gemrc"
+    }
+  }
+}

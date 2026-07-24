@@ -1,0 +1,35 @@
+// Google Cloud CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "gcloud",
+  "displayName": "Google Cloud CLI",
+  "pack": "cloud",
+  "executable": {
+    "primary": "gcloud"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "auth",
+      "login"
+    ],
+    "status": [
+      "auth",
+      "list"
+    ],
+    "logout": [
+      "auth",
+      "revoke",
+      "--all"
+    ]
+  },
+  "profile": {
+    "env": {
+      "CLOUDSDK_CONFIG": "{{idealityHome}}/profiles/{{identity}}/cloud/gcloud"
+    }
+  }
+}

@@ -1,0 +1,23 @@
+// Cursor - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "cursor",
+  "displayName": "Cursor",
+  "pack": "editors",
+  "executable": {
+    "primary": "cursor"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "partial"
+  },
+  "profile": {
+    "args": [
+      "--user-data-dir",
+      "{{idealityHome}}/profiles/{{identity}}/editors/cursor/user-data",
+      "--extensions-dir",
+      "{{idealityHome}}/profiles/{{identity}}/editors/cursor/extensions"
+    ]
+  }
+}

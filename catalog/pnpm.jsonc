@@ -1,0 +1,33 @@
+// pnpm registry client - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "pnpm",
+  "displayName": "pnpm registry client",
+  "pack": "registries",
+  "executable": {
+    "primary": "pnpm"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "login"
+    ],
+    "status": [
+      "whoami"
+    ],
+    "logout": [
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/{{identity}}/registries/pnpm/npmrc",
+      "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/{{identity}}/registries/pnpm/cache",
+      "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/pnpm/data"
+    }
+  }
+}

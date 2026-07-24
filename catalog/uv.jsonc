@@ -1,0 +1,24 @@
+// uv Python package client - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "uv",
+  "displayName": "uv Python package client",
+  "pack": "registries",
+  "executable": {
+    "primary": "uv"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "profile": {
+    "env": {
+      "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/uv/config",
+      "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/uv/data",
+      "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/uv/state",
+      "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/uv/cache",
+      "UV_CACHE_DIR": "{{idealityHome}}/profiles/{{identity}}/registries/uv/cache"
+    }
+  }
+}

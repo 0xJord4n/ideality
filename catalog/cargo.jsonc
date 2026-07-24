@@ -1,0 +1,28 @@
+// Cargo registry client - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "cargo",
+  "displayName": "Cargo registry client",
+  "pack": "registries",
+  "executable": {
+    "primary": "cargo"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "login"
+    ],
+    "logout": [
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "CARGO_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/cargo"
+    }
+  }
+}

@@ -61,3 +61,18 @@ For reusable integrations, prefer a plugin manifest. `ideality plugin install`
 validates the manifest, creates a process-scoped definition and profile for
 every identity, stores the manifest under `~/.ideality/plugins`, and
 synchronizes the universal shim directory.
+
+The canonical plugin format is `schemas/tool-adapter.v1.schema.json`. Existing
+version-1 plugin manifests remain supported through a compatibility
+translation, but they now receive the same strict safety checks: safe
+executable names, process isolation, known fields only, and no shell hooks.
+
+## Contributing a built-in adapter
+
+Built-in adapters are declarative manifests under `catalog/<id>.jsonc`,
+validated by `schemas/tool-adapter.v1.schema.json` in the editor (see
+`.vscode/settings.json`) and by the runtime parser in CI. Scaffold one with
+`bun run catalog:new`, verify with `bun run catalog:check`, and follow the
+checklist in [CONTRIBUTING.md](../CONTRIBUTING.md). Plugin manifests use the
+same schema, so a proven local plugin can be promoted to the catalog by
+changing its `pack`.

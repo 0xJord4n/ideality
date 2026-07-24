@@ -1,0 +1,29 @@
+// Continue CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "cn",
+  "displayName": "Continue CLI",
+  "pack": "ai",
+  "executable": {
+    "primary": "cn"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "credentials"
+  },
+  "auth": {
+    "login": [
+      "login"
+    ]
+  },
+  "profile": {
+    "env": {
+      "CONTINUE_API_KEY": {
+        "from": "secret",
+        "key": "{{identity}}/continue-api-key",
+        "optional": true
+      }
+    }
+  }
+}

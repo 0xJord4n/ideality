@@ -1,0 +1,32 @@
+// Azure CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "az",
+  "displayName": "Azure CLI",
+  "pack": "cloud",
+  "executable": {
+    "primary": "az"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "login"
+    ],
+    "status": [
+      "account",
+      "show"
+    ],
+    "logout": [
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "AZURE_CONFIG_DIR": "{{idealityHome}}/profiles/{{identity}}/cloud/azure"
+    }
+  }
+}

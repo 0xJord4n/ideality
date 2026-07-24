@@ -116,18 +116,17 @@ ideality tool enable <identity> stripe
 ideality tool list
 ```
 
-The built-in catalog covers:
+<!-- generated:catalog-summary:begin -->
+The built-in catalog ships 58 adapters across 7 selectable packs:
 
-- Cloud: AWS, Google Cloud, Azure, and DigitalOcean.
-- Source control: GitHub, GitLab, Gitea/Forgejo, Bitbucket, and Gerrit.
-- Editors and desktop: VS Code, Cursor, Windsurf, Zed, JetBrains IDEs, Slack,
-  and Discord.
-- Registries: npm, pnpm, Yarn, Bun, Cargo, uv/pip, RubyGems, Composer, Maven,
-  Gradle, and NuGet.
-- Deployment: Railway, Cloudflare, Vercel, Fly.io, Netlify, Supabase, Firebase,
-  Heroku, Render, SST, Pulumi, Shopify, and Stripe.
-- AI: Codex, Claude Code, OpenCode, Gemini, Copilot, Aider, Amp, Goose,
-  Continue, Kiro, and Qwen Code.
+- **Developer essentials**: `cf`, `chrome`, `claude`, `codex`, `firefox`, `gh`, `opencode`, `railway`, `vercel`
+- **Cloud accounts**: `aws`, `az`, `doctl`, `gcloud`
+- **Source control**: `bitbucket`, `gerrit`, `glab`, `tea`
+- **Editors and desktop**: `code`, `cursor`, `discord`, `goland`, `idea`, `pycharm`, `rustrover`, `slack`, `webstorm`, `windsurf`, `zed`
+- **Package registries**: `bun`, `cargo`, `composer`, `gem`, `gradle`, `mvn`, `npm`, `nuget`, `pip`, `pnpm`, `uv`, `yarn`
+- **Deployment platforms**: `firebase`, `fly`, `heroku`, `netlify`, `pulumi`, `render`, `shopify`, `sst`, `stripe`, `supabase`
+- **AI tools**: `aider`, `amp`, `cn`, `copilot`, `gemini`, `goose`, `kiro-cli`, `qwen`
+<!-- generated:catalog-summary:end -->
 
 Adapters report `full`, `partial`, or `credentials` isolation based on the
 controls exposed by the upstream application. See the
@@ -261,10 +260,19 @@ Portable plugin manifest:
 
 ```jsonc
 {
-  "version": 1,
-  "name": "acme",
-  "executable": "acme",
-  "detect": ["acme-cli"],
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "acme",
+  "displayName": "Acme CLI",
+  "pack": "custom",
+  "executable": {
+    "primary": "acme",
+    "alternatives": ["acme-cli"]
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "credentials"
+  },
   "auth": { "status": ["account", "show"] },
   "profile": {
     "env": {
@@ -283,7 +291,9 @@ ideality plugin install acme.ideality.jsonc
 ```
 
 Templates support `{{identity}}`, `{{home}}`, `{{idealityHome}}`, and
-`{{root}}`. See [custom adapters](docs/custom-adapters.md).
+`{{root}}`. Existing version-1 plugin manifests are translated into this
+canonical format during validation and installation. See
+[custom adapters](docs/custom-adapters.md).
 
 ## Safety
 
@@ -341,6 +351,11 @@ bun run dev -- --help
 bun run check
 bun run build
 ```
+
+Adding a built-in tool adapter is fully tooled: `bun run catalog:new`
+scaffolds the one manifest you author, and `bun run catalog:check` validates
+the catalog, registry, docs, and editor schema. See
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

@@ -1,0 +1,28 @@
+// Goose - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "goose",
+  "displayName": "Goose",
+  "pack": "ai",
+  "executable": {
+    "primary": "goose"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "partial"
+  },
+  "profile": {
+    "env": {
+      "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/goose/config",
+      "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/goose/data",
+      "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/goose/state",
+      "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/goose/cache",
+      "GOOSE_API_KEY": {
+        "from": "secret",
+        "key": "{{identity}}/goose-api-key",
+        "optional": true
+      }
+    }
+  }
+}

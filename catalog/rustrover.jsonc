@@ -1,0 +1,23 @@
+// RustRover - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "rustrover",
+  "displayName": "RustRover",
+  "pack": "editors",
+  "executable": {
+    "primary": "rustrover"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "partial"
+  },
+  "profile": {
+    "env": {
+      "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/rustrover/config",
+      "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/rustrover/data",
+      "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/rustrover/state",
+      "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/rustrover/cache"
+    }
+  }
+}

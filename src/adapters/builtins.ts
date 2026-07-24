@@ -1,4 +1,68 @@
+import {
+  compileToolDefinition,
+  parseToolAdapterManifest,
+  type ToolAdapterManifest,
+} from "../core/tool-adapters.js";
 import type { ToolDefinition } from "../domain/config.js";
+
+import ghManifest from "../../catalog/gh.jsonc" with { type: "text" };
+import railwayManifest from "../../catalog/railway.jsonc" with { type: "text" };
+import cfManifest from "../../catalog/cf.jsonc" with { type: "text" };
+import vercelManifest from "../../catalog/vercel.jsonc" with { type: "text" };
+import codexManifest from "../../catalog/codex.jsonc" with { type: "text" };
+import claudeManifest from "../../catalog/claude.jsonc" with { type: "text" };
+import opencodeManifest from "../../catalog/opencode.jsonc" with { type: "text" };
+import chromeManifest from "../../catalog/chrome.jsonc" with { type: "text" };
+import firefoxManifest from "../../catalog/firefox.jsonc" with { type: "text" };
+import awsManifest from "../../catalog/aws.jsonc" with { type: "text" };
+import gcloudManifest from "../../catalog/gcloud.jsonc" with { type: "text" };
+import azManifest from "../../catalog/az.jsonc" with { type: "text" };
+import doctlManifest from "../../catalog/doctl.jsonc" with { type: "text" };
+import glabManifest from "../../catalog/glab.jsonc" with { type: "text" };
+import teaManifest from "../../catalog/tea.jsonc" with { type: "text" };
+import bitbucketManifest from "../../catalog/bitbucket.jsonc" with { type: "text" };
+import gerritManifest from "../../catalog/gerrit.jsonc" with { type: "text" };
+import codeManifest from "../../catalog/code.jsonc" with { type: "text" };
+import cursorManifest from "../../catalog/cursor.jsonc" with { type: "text" };
+import windsurfManifest from "../../catalog/windsurf.jsonc" with { type: "text" };
+import zedManifest from "../../catalog/zed.jsonc" with { type: "text" };
+import ideaManifest from "../../catalog/idea.jsonc" with { type: "text" };
+import pycharmManifest from "../../catalog/pycharm.jsonc" with { type: "text" };
+import webstormManifest from "../../catalog/webstorm.jsonc" with { type: "text" };
+import golandManifest from "../../catalog/goland.jsonc" with { type: "text" };
+import rustroverManifest from "../../catalog/rustrover.jsonc" with { type: "text" };
+import slackManifest from "../../catalog/slack.jsonc" with { type: "text" };
+import discordManifest from "../../catalog/discord.jsonc" with { type: "text" };
+import npmManifest from "../../catalog/npm.jsonc" with { type: "text" };
+import pnpmManifest from "../../catalog/pnpm.jsonc" with { type: "text" };
+import yarnManifest from "../../catalog/yarn.jsonc" with { type: "text" };
+import bunManifest from "../../catalog/bun.jsonc" with { type: "text" };
+import cargoManifest from "../../catalog/cargo.jsonc" with { type: "text" };
+import uvManifest from "../../catalog/uv.jsonc" with { type: "text" };
+import pipManifest from "../../catalog/pip.jsonc" with { type: "text" };
+import gemManifest from "../../catalog/gem.jsonc" with { type: "text" };
+import composerManifest from "../../catalog/composer.jsonc" with { type: "text" };
+import mvnManifest from "../../catalog/mvn.jsonc" with { type: "text" };
+import gradleManifest from "../../catalog/gradle.jsonc" with { type: "text" };
+import nugetManifest from "../../catalog/nuget.jsonc" with { type: "text" };
+import flyManifest from "../../catalog/fly.jsonc" with { type: "text" };
+import netlifyManifest from "../../catalog/netlify.jsonc" with { type: "text" };
+import supabaseManifest from "../../catalog/supabase.jsonc" with { type: "text" };
+import firebaseManifest from "../../catalog/firebase.jsonc" with { type: "text" };
+import herokuManifest from "../../catalog/heroku.jsonc" with { type: "text" };
+import renderManifest from "../../catalog/render.jsonc" with { type: "text" };
+import sstManifest from "../../catalog/sst.jsonc" with { type: "text" };
+import pulumiManifest from "../../catalog/pulumi.jsonc" with { type: "text" };
+import shopifyManifest from "../../catalog/shopify.jsonc" with { type: "text" };
+import stripeManifest from "../../catalog/stripe.jsonc" with { type: "text" };
+import geminiManifest from "../../catalog/gemini.jsonc" with { type: "text" };
+import copilotManifest from "../../catalog/copilot.jsonc" with { type: "text" };
+import aiderManifest from "../../catalog/aider.jsonc" with { type: "text" };
+import ampManifest from "../../catalog/amp.jsonc" with { type: "text" };
+import gooseManifest from "../../catalog/goose.jsonc" with { type: "text" };
+import cnManifest from "../../catalog/cn.jsonc" with { type: "text" };
+import kiroCliManifest from "../../catalog/kiro-cli.jsonc" with { type: "text" };
+import qwenManifest from "../../catalog/qwen.jsonc" with { type: "text" };
 
 export interface ToolPack {
   label: string;
@@ -6,314 +70,145 @@ export interface ToolPack {
   tools: string[];
 }
 
-type ToolOptions = Omit<ToolDefinition, "executable" | "description" | "pack">;
+const MANIFEST_SOURCES: readonly string[] = [
+  ghManifest,
+  railwayManifest,
+  cfManifest,
+  vercelManifest,
+  codexManifest,
+  claudeManifest,
+  opencodeManifest,
+  chromeManifest,
+  firefoxManifest,
+  awsManifest,
+  gcloudManifest,
+  azManifest,
+  doctlManifest,
+  glabManifest,
+  teaManifest,
+  bitbucketManifest,
+  gerritManifest,
+  codeManifest,
+  cursorManifest,
+  windsurfManifest,
+  zedManifest,
+  ideaManifest,
+  pycharmManifest,
+  webstormManifest,
+  golandManifest,
+  rustroverManifest,
+  slackManifest,
+  discordManifest,
+  npmManifest,
+  pnpmManifest,
+  yarnManifest,
+  bunManifest,
+  cargoManifest,
+  uvManifest,
+  pipManifest,
+  gemManifest,
+  composerManifest,
+  mvnManifest,
+  gradleManifest,
+  nugetManifest,
+  flyManifest,
+  netlifyManifest,
+  supabaseManifest,
+  firebaseManifest,
+  herokuManifest,
+  renderManifest,
+  sstManifest,
+  pulumiManifest,
+  shopifyManifest,
+  stripeManifest,
+  geminiManifest,
+  copilotManifest,
+  aiderManifest,
+  ampManifest,
+  gooseManifest,
+  cnManifest,
+  kiroCliManifest,
+  qwenManifest,
+];
 
-function tool(
-  executable: string,
-  description: string,
-  pack: string,
-  options: ToolOptions = {},
-): ToolDefinition {
+const PACK_DETAILS: Record<string, Omit<ToolPack, "tools">> = {
+  essentials: {
+    label: "Developer essentials",
+    description: "GitHub, hosting, AI agents, and browsers",
+  },
+  cloud: {
+    label: "Cloud accounts",
+    description: "AWS, Google Cloud, Azure, and DigitalOcean",
+  },
+  "source-control": {
+    label: "Source control",
+    description: "GitLab, Gitea/Forgejo, Bitbucket, and Gerrit",
+  },
+  editors: {
+    label: "Editors and desktop",
+    description: "Editors, JetBrains IDEs, Slack, and Discord",
+  },
+  registries: {
+    label: "Package registries",
+    description: "JavaScript, Python, Rust, Ruby, PHP, JVM, and NuGet",
+  },
+  deployment: {
+    label: "Deployment platforms",
+    description: "Fly, Netlify, Supabase, Firebase, Heroku, and more",
+  },
+  ai: {
+    label: "AI tools",
+    description: "Gemini, Copilot, Aider, Amp, Goose, Continue, Kiro, and Qwen",
+  },
+};
+
+/** Parsed built-in adapter manifests keyed by tool ID, in catalog order. */
+export const BUILTIN_TOOL_MANIFESTS: Record<string, ToolAdapterManifest> =
+  Object.fromEntries(
+    MANIFEST_SOURCES.map((source) => {
+      const manifest = parseToolAdapterManifest(source);
+      if (!PACK_DETAILS[manifest.pack]) {
+        throw new Error(
+          `Tool adapter '${manifest.id}' references unknown pack '${manifest.pack}'`,
+        );
+      }
+      return [manifest.id, manifest] as const;
+    }),
+  );
+
+if (Object.keys(BUILTIN_TOOL_MANIFESTS).length !== MANIFEST_SOURCES.length) {
+  throw new Error("Duplicate tool adapter IDs in the built-in catalog");
+}
+
+function toToolDefinition(manifest: ToolAdapterManifest): ToolDefinition {
+  const {
+    displayName,
+    description,
+    executable,
+    pack,
+    isolation,
+    stateIsolation,
+    ...extras
+  } = compileToolDefinition(manifest);
+  // The manifest displayName doubles as the legacy `description` label so
+  // existing configs and prompts keep their wording.
   return {
     executable,
-    description,
+    description: description ?? displayName,
     pack,
-    isolation: "process",
-    stateIsolation: "partial",
-    ...options,
+    isolation,
+    stateIsolation,
+    ...extras,
   };
 }
 
-export const BUILTIN_TOOLS: Record<string, ToolDefinition> = {
-  gh: tool("gh", "GitHub CLI", "essentials", {
-    stateIsolation: "full",
-    auth: {
-      login: ["auth", "login"],
-      status: ["auth", "status"],
-      logout: ["auth", "logout"],
-    },
-  }),
-  railway: tool("railway", "Railway CLI", "essentials", {
-    stateIsolation: "credentials",
-    auth: {
-      login: ["login"],
-      status: ["whoami"],
-      logout: ["logout"],
-    },
-  }),
-  cf: tool("cf", "Cloudflare CLI", "essentials", {
-    stateIsolation: "credentials",
-    auth: {
-      login: ["auth", "login"],
-      status: ["auth", "whoami"],
-      logout: ["auth", "logout"],
-    },
-  }),
-  vercel: tool("vercel", "Vercel CLI", "essentials", {
-    stateIsolation: "full",
-    auth: {
-      login: ["login"],
-      status: ["whoami"],
-      logout: ["logout"],
-    },
-  }),
-  codex: tool("codex", "OpenAI Codex CLI", "essentials", {
-    stateIsolation: "full",
-    auth: {
-      login: ["login"],
-      status: ["login", "status"],
-      logout: ["logout"],
-    },
-  }),
-  claude: tool("claude", "Claude Code", "essentials", {
-    stateIsolation: "full",
-    auth: {
-      login: ["auth", "login"],
-      status: ["auth", "status"],
-      logout: ["auth", "logout"],
-    },
-  }),
-  opencode: tool("opencode", "OpenCode", "essentials", {
-    stateIsolation: "full",
-    auth: {
-      login: ["auth", "login"],
-      status: ["auth", "list"],
-      logout: ["auth", "logout"],
-    },
-  }),
-  chrome: tool("google-chrome", "Google Chrome", "essentials", {
-    stateIsolation: "full",
-    detect: [
-      "google-chrome",
-      "google-chrome-stable",
-      "chromium",
-      "chromium-browser",
-    ],
-  }),
-  firefox: tool("firefox", "Firefox", "essentials", {
-    stateIsolation: "full",
-  }),
-
-  aws: tool("aws", "AWS CLI", "cloud", {
-    stateIsolation: "full",
-    auth: {
-      login: ["sso", "login"],
-      status: ["sts", "get-caller-identity"],
-      logout: ["sso", "logout"],
-    },
-  }),
-  gcloud: tool("gcloud", "Google Cloud CLI", "cloud", {
-    stateIsolation: "full",
-    auth: {
-      login: ["auth", "login"],
-      status: ["auth", "list"],
-      logout: ["auth", "revoke", "--all"],
-    },
-  }),
-  az: tool("az", "Azure CLI", "cloud", {
-    stateIsolation: "full",
-    auth: {
-      login: ["login"],
-      status: ["account", "show"],
-      logout: ["logout"],
-    },
-  }),
-  doctl: tool("doctl", "DigitalOcean CLI", "cloud", {
-    stateIsolation: "full",
-    auth: {
-      login: ["auth", "init"],
-      status: ["account", "get"],
-    },
-  }),
-
-  glab: tool("glab", "GitLab CLI", "source-control", {
-    stateIsolation: "full",
-    auth: {
-      login: ["auth", "login"],
-      status: ["auth", "status"],
-      logout: ["auth", "logout"],
-    },
-  }),
-  tea: tool("tea", "Gitea and Forgejo CLI", "source-control", {
-    stateIsolation: "partial",
-    auth: { status: ["login", "list"] },
-  }),
-  bitbucket: tool("bitbucket", "Bitbucket community CLI", "source-control", {
-    stateIsolation: "credentials",
-    detect: ["bb"],
-  }),
-  gerrit: tool("ssh", "Gerrit SSH command transport", "source-control", {
-    stateIsolation: "credentials",
-  }),
-
-  code: tool("code", "Visual Studio Code", "editors", {
-    stateIsolation: "full",
-    detect: ["code-insiders"],
-  }),
-  cursor: tool("cursor", "Cursor", "editors", {
-    stateIsolation: "partial",
-  }),
-  windsurf: tool("windsurf", "Windsurf", "editors", {
-    stateIsolation: "partial",
-  }),
-  zed: tool("zed", "Zed", "editors", { stateIsolation: "partial" }),
-  idea: tool("idea", "IntelliJ IDEA", "editors", {
-    stateIsolation: "partial",
-  }),
-  pycharm: tool("pycharm", "PyCharm", "editors", {
-    stateIsolation: "partial",
-  }),
-  webstorm: tool("webstorm", "WebStorm", "editors", {
-    stateIsolation: "partial",
-  }),
-  goland: tool("goland", "GoLand", "editors", {
-    stateIsolation: "partial",
-  }),
-  rustrover: tool("rustrover", "RustRover", "editors", {
-    stateIsolation: "partial",
-  }),
-  slack: tool("slack", "Slack desktop", "editors", {
-    stateIsolation: "partial",
-  }),
-  discord: tool("discord", "Discord desktop", "editors", {
-    stateIsolation: "partial",
-  }),
-
-  npm: tool("npm", "npm registry client", "registries", {
-    stateIsolation: "full",
-    auth: { login: ["login"], status: ["whoami"], logout: ["logout"] },
-  }),
-  pnpm: tool("pnpm", "pnpm registry client", "registries", {
-    stateIsolation: "full",
-    auth: { login: ["login"], status: ["whoami"], logout: ["logout"] },
-  }),
-  yarn: tool("yarn", "Yarn registry client", "registries", {
-    stateIsolation: "full",
-    auth: { login: ["npm", "login"], status: ["npm", "whoami"] },
-  }),
-  bun: tool("bun", "Bun package registry client", "registries", {
-    stateIsolation: "full",
-    shim: false,
-  }),
-  cargo: tool("cargo", "Cargo registry client", "registries", {
-    stateIsolation: "full",
-    auth: { login: ["login"], logout: ["logout"] },
-  }),
-  uv: tool("uv", "uv Python package client", "registries", {
-    stateIsolation: "full",
-  }),
-  pip: tool("pip", "pip Python package client", "registries", {
-    stateIsolation: "full",
-    detect: ["pip3"],
-  }),
-  gem: tool("gem", "RubyGems client", "registries", {
-    stateIsolation: "full",
-  }),
-  composer: tool("composer", "Composer registry client", "registries", {
-    stateIsolation: "full",
-  }),
-  mvn: tool("mvn", "Maven registry client", "registries", {
-    stateIsolation: "partial",
-  }),
-  gradle: tool("gradle", "Gradle registry client", "registries", {
-    stateIsolation: "full",
-    detect: ["gradlew"],
-  }),
-  nuget: tool("nuget", "NuGet client", "registries", {
-    stateIsolation: "partial",
-  }),
-
-  fly: tool("fly", "Fly.io CLI", "deployment", {
-    stateIsolation: "credentials",
-    detect: ["flyctl"],
-    auth: {
-      login: ["auth", "login"],
-      status: ["auth", "whoami"],
-      logout: ["auth", "logout"],
-    },
-  }),
-  netlify: tool("netlify", "Netlify CLI", "deployment", {
-    stateIsolation: "full",
-    auth: {
-      login: ["login"],
-      status: ["status"],
-      logout: ["logout"],
-    },
-  }),
-  supabase: tool("supabase", "Supabase CLI", "deployment", {
-    stateIsolation: "credentials",
-    auth: { login: ["login"] },
-  }),
-  firebase: tool("firebase", "Firebase CLI", "deployment", {
-    stateIsolation: "full",
-    auth: {
-      login: ["login"],
-      status: ["login:list"],
-      logout: ["logout"],
-    },
-  }),
-  heroku: tool("heroku", "Heroku CLI", "deployment", {
-    stateIsolation: "credentials",
-    auth: {
-      login: ["login"],
-      status: ["auth:whoami"],
-      logout: ["logout"],
-    },
-  }),
-  render: tool("render", "Render CLI", "deployment", {
-    stateIsolation: "credentials",
-  }),
-  sst: tool("sst", "SST CLI", "deployment", {
-    stateIsolation: "credentials",
-  }),
-  pulumi: tool("pulumi", "Pulumi CLI", "deployment", {
-    stateIsolation: "full",
-    auth: {
-      login: ["login"],
-      status: ["whoami"],
-      logout: ["logout"],
-    },
-  }),
-  shopify: tool("shopify", "Shopify CLI", "deployment", {
-    stateIsolation: "credentials",
-    auth: { logout: ["auth", "logout"] },
-  }),
-  stripe: tool("stripe", "Stripe CLI", "deployment", {
-    stateIsolation: "credentials",
-    auth: {
-      login: ["login"],
-      status: ["config", "--list"],
-    },
-  }),
-
-  gemini: tool("gemini", "Gemini CLI", "ai", {
-    stateIsolation: "full",
-  }),
-  copilot: tool("copilot", "GitHub Copilot CLI", "ai", {
-    stateIsolation: "full",
-    auth: { login: ["login"] },
-  }),
-  aider: tool("aider", "Aider", "ai", {
-    stateIsolation: "credentials",
-  }),
-  amp: tool("amp", "Amp", "ai", {
-    stateIsolation: "full",
-  }),
-  goose: tool("goose", "Goose", "ai", {
-    stateIsolation: "partial",
-  }),
-  cn: tool("cn", "Continue CLI", "ai", {
-    stateIsolation: "credentials",
-    auth: { login: ["login"] },
-  }),
-  "kiro-cli": tool("kiro-cli", "Kiro CLI", "ai", {
-    stateIsolation: "full",
-  }),
-  qwen: tool("qwen", "Qwen Code", "ai", {
-    stateIsolation: "full",
-    auth: { login: ["auth"] },
-  }),
-};
+/** Built-in tool definitions compiled from the catalog manifests. */
+export const BUILTIN_TOOLS: Record<string, ToolDefinition> = Object.fromEntries(
+  Object.entries(BUILTIN_TOOL_MANIFESTS).map(([id, manifest]) => [
+    id,
+    toToolDefinition(manifest),
+  ]),
+);
 
 function toolsFor(pack: string): string[] {
   return Object.entries(BUILTIN_TOOLS)
@@ -321,43 +216,12 @@ function toolsFor(pack: string): string[] {
     .map(([name]) => name);
 }
 
-export const BUILTIN_TOOL_PACKS: Record<string, ToolPack> = {
-  essentials: {
-    label: "Developer essentials",
-    description: "GitHub, hosting, AI agents, and browsers",
-    tools: toolsFor("essentials"),
-  },
-  cloud: {
-    label: "Cloud accounts",
-    description: "AWS, Google Cloud, Azure, and DigitalOcean",
-    tools: toolsFor("cloud"),
-  },
-  "source-control": {
-    label: "Source control",
-    description: "GitLab, Gitea/Forgejo, Bitbucket, and Gerrit",
-    tools: toolsFor("source-control"),
-  },
-  editors: {
-    label: "Editors and desktop",
-    description: "Editors, JetBrains IDEs, Slack, and Discord",
-    tools: toolsFor("editors"),
-  },
-  registries: {
-    label: "Package registries",
-    description: "JavaScript, Python, Rust, Ruby, PHP, JVM, and NuGet",
-    tools: toolsFor("registries"),
-  },
-  deployment: {
-    label: "Deployment platforms",
-    description: "Fly, Netlify, Supabase, Firebase, Heroku, and more",
-    tools: toolsFor("deployment"),
-  },
-  ai: {
-    label: "AI tools",
-    description: "Gemini, Copilot, Aider, Amp, Goose, Continue, Kiro, and Qwen",
-    tools: toolsFor("ai"),
-  },
-};
+export const BUILTIN_TOOL_PACKS: Record<string, ToolPack> = Object.fromEntries(
+  Object.entries(PACK_DETAILS).map(([id, details]) => [
+    id,
+    { ...details, tools: toolsFor(id) },
+  ]),
+);
 
 export const DEFAULT_TOOL_PACKS = ["essentials"];
 

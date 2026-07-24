@@ -1,0 +1,11 @@
+{
+  // Schema-aware editing for catalog manifests: completion, hovers, and
+  // inline validation. The manifests themselves cannot carry a "$schema"
+  // property because the runtime parser rejects unknown fields.
+  "json.schemas": [
+    {
+      "fileMatch": ["/catalog/*.jsonc"],
+      "url": "./schemas/tool-adapter.v1.schema.json"
+    }
+  ]
+}

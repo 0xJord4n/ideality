@@ -1,0 +1,23 @@
+// Windsurf - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "windsurf",
+  "displayName": "Windsurf",
+  "pack": "editors",
+  "executable": {
+    "primary": "windsurf"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "partial"
+  },
+  "profile": {
+    "args": [
+      "--user-data-dir",
+      "{{idealityHome}}/profiles/{{identity}}/editors/windsurf/user-data",
+      "--extensions-dir",
+      "{{idealityHome}}/profiles/{{identity}}/editors/windsurf/extensions"
+    ]
+  }
+}

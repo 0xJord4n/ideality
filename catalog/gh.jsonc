@@ -1,0 +1,34 @@
+// GitHub CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "gh",
+  "displayName": "GitHub CLI",
+  "pack": "essentials",
+  "executable": {
+    "primary": "gh"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "auth",
+      "login"
+    ],
+    "status": [
+      "auth",
+      "status"
+    ],
+    "logout": [
+      "auth",
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "GH_CONFIG_DIR": "{{idealityHome}}/profiles/{{identity}}/gh"
+    }
+  }
+}

@@ -1,0 +1,35 @@
+// Railway CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "railway",
+  "displayName": "Railway CLI",
+  "pack": "essentials",
+  "executable": {
+    "primary": "railway"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "credentials"
+  },
+  "auth": {
+    "login": [
+      "login"
+    ],
+    "status": [
+      "whoami"
+    ],
+    "logout": [
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "RAILWAY_API_TOKEN": {
+        "from": "secret",
+        "key": "{{identity}}/railway-token",
+        "optional": true
+      }
+    }
+  }
+}

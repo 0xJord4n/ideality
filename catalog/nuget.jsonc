@@ -1,0 +1,21 @@
+// NuGet client - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "nuget",
+  "displayName": "NuGet client",
+  "pack": "registries",
+  "executable": {
+    "primary": "nuget"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "partial"
+  },
+  "profile": {
+    "env": {
+      "NUGET_PACKAGES": "{{idealityHome}}/profiles/{{identity}}/registries/nuget/packages",
+      "DOTNET_CLI_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/nuget/dotnet-home"
+    }
+  }
+}

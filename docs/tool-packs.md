@@ -29,15 +29,39 @@ identities are removed before the selected profile is injected.
 
 ## Built-in matrix
 
-| Pack | Tools | Grade and mechanism |
-| --- | --- | --- |
-| Essentials | `gh`, `railway`, `cf`, `vercel`, `codex`, `claude`, `opencode`, `chrome`, `firefox` | Dedicated config homes where available; secret-backed tokens for Railway and Cloudflare; browser profile arguments |
-| Cloud | `aws`, `gcloud`, `az`, `doctl` | Full: `AWS_CONFIG_FILE`, `AWS_SHARED_CREDENTIALS_FILE`, `CLOUDSDK_CONFIG`, `AZURE_CONFIG_DIR`, and `doctl --config` |
-| Source control | `glab`, `tea`, `bitbucket`, `gerrit` | GitLab is full through `GLAB_CONFIG_DIR`; Tea is partial through XDG; Bitbucket is a credential adapter for community CLIs; Gerrit dispatches SSH and uses identity keys |
-| Editors | `code`, `cursor`, `windsurf`, `zed`, `idea`, `pycharm`, `webstorm`, `goland`, `rustrover`, `slack`, `discord` | VS Code is full; Electron-compatible and XDG profiles are partial because support varies by application and operating system |
-| Registries | `npm`, `pnpm`, `yarn`, `bun`, `cargo`, `uv`, `pip`, `gem`, `composer`, `mvn`, `gradle`, `nuget` | Dedicated npmrc, cache, Cargo, XDG, Composer, and Gradle homes; Maven and NuGet are partial |
-| Deployment | `fly`, `netlify`, `supabase`, `firebase`, `heroku`, `render`, `sst`, `pulumi`, `shopify`, `stripe` | Netlify, Firebase, and Pulumi relocate state; other adapters prioritize logical token isolation and supported XDG state |
-| AI | `gemini`, `copilot`, `aider`, `amp`, `goose`, `cn`, `kiro-cli`, `qwen` | Gemini, Copilot, Amp, Kiro, and Qwen expose profile homes; Aider and Continue isolate credentials; Goose uses XDG state |
+<!-- generated:tool-pack-matrix:begin -->
+Generated from `catalog/*.jsonc` by `bun run catalog:docs`; do not edit between the markers.
+
+| Pack | Adapters (isolation grade) |
+| --- | --- |
+| Developer essentials | `cf` (credentials), `chrome` (full), `claude` (full), `codex` (full), `firefox` (full), `gh` (full), `opencode` (full), `railway` (credentials), `vercel` (full) |
+| Cloud accounts | `aws` (full), `az` (full), `doctl` (full), `gcloud` (full) |
+| Source control | `bitbucket` (credentials), `gerrit` (credentials), `glab` (full), `tea` (partial) |
+| Editors and desktop | `code` (full), `cursor` (partial), `discord` (partial), `goland` (partial), `idea` (partial), `pycharm` (partial), `rustrover` (partial), `slack` (partial), `webstorm` (partial), `windsurf` (partial), `zed` (partial) |
+| Package registries | `bun` (full), `cargo` (full), `composer` (full), `gem` (full), `gradle` (full), `mvn` (partial), `npm` (full), `nuget` (partial), `pip` (full), `pnpm` (full), `uv` (full), `yarn` (full) |
+| Deployment platforms | `firebase` (full), `fly` (credentials), `heroku` (credentials), `netlify` (full), `pulumi` (full), `render` (credentials), `shopify` (credentials), `sst` (credentials), `stripe` (credentials), `supabase` (credentials) |
+| AI tools | `aider` (credentials), `amp` (full), `cn` (credentials), `copilot` (full), `gemini` (full), `goose` (partial), `kiro-cli` (full), `qwen` (full) |
+<!-- generated:tool-pack-matrix:end -->
+
+### Mechanism notes
+
+- **Developer essentials**: dedicated config homes where available;
+  secret-backed tokens for Railway and Cloudflare; browser profile arguments.
+- **Cloud accounts**: full through `AWS_CONFIG_FILE`,
+  `AWS_SHARED_CREDENTIALS_FILE`, `CLOUDSDK_CONFIG`, `AZURE_CONFIG_DIR`, and
+  `doctl --config`.
+- **Source control**: GitLab is full through `GLAB_CONFIG_DIR`; Tea is partial
+  through XDG; Bitbucket is a credential adapter for community CLIs; Gerrit
+  dispatches SSH and uses identity keys.
+- **Editors and desktop**: VS Code is full; Electron-compatible and XDG
+  profiles are partial because support varies by application and operating
+  system.
+- **Package registries**: dedicated npmrc, cache, Cargo, XDG, Composer, and
+  Gradle homes; Maven and NuGet are partial.
+- **Deployment platforms**: Netlify, Firebase, and Pulumi relocate state; other
+  adapters prioritize logical token isolation and supported XDG state.
+- **AI tools**: Gemini, Copilot, Amp, Kiro, and Qwen expose profile homes;
+  Aider and Continue isolate credentials; Goose uses XDG state.
 
 Bun has a profile but no automatic shim. A Bun shim could intercept the
 `#!/usr/bin/env bun` used to start Ideality and recurse. Run it explicitly:

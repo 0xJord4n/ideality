@@ -1,0 +1,23 @@
+// IntelliJ IDEA - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "idea",
+  "displayName": "IntelliJ IDEA",
+  "pack": "editors",
+  "executable": {
+    "primary": "idea"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "partial"
+  },
+  "profile": {
+    "env": {
+      "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/idea/config",
+      "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/idea/data",
+      "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/idea/state",
+      "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/idea/cache"
+    }
+  }
+}

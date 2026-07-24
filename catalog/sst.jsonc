@@ -1,0 +1,26 @@
+// SST CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "sst",
+  "displayName": "SST CLI",
+  "pack": "deployment",
+  "executable": {
+    "primary": "sst"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "credentials"
+  },
+  "profile": {
+    "env": {
+      "SST_AUTH_TOKEN": {
+        "from": "secret",
+        "key": "{{identity}}/sst-token",
+        "optional": true
+      },
+      "AWS_CONFIG_FILE": "{{idealityHome}}/profiles/{{identity}}/cloud/aws/config",
+      "AWS_SHARED_CREDENTIALS_FILE": "{{idealityHome}}/profiles/{{identity}}/cloud/aws/credentials"
+    }
+  }
+}

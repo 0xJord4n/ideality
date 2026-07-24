@@ -1,0 +1,32 @@
+// Yarn registry client - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "yarn",
+  "displayName": "Yarn registry client",
+  "pack": "registries",
+  "executable": {
+    "primary": "yarn"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "npm",
+      "login"
+    ],
+    "status": [
+      "npm",
+      "whoami"
+    ]
+  },
+  "profile": {
+    "env": {
+      "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/{{identity}}/registries/yarn/npmrc",
+      "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/{{identity}}/registries/yarn/npm-cache",
+      "YARN_CACHE_FOLDER": "{{idealityHome}}/profiles/{{identity}}/registries/yarn/cache"
+    }
+  }
+}

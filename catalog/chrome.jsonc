@@ -1,0 +1,26 @@
+// Google Chrome - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "chrome",
+  "displayName": "Google Chrome",
+  "pack": "essentials",
+  "executable": {
+    "primary": "google-chrome",
+    "alternatives": [
+      "google-chrome-stable",
+      "chromium",
+      "chromium-browser"
+    ]
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "profile": {
+    "args": [
+      "--user-data-dir={{idealityHome}}/profiles/{{identity}}/browsers/chrome",
+      "--profile-directory=Default"
+    ]
+  }
+}

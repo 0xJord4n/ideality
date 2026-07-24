@@ -249,6 +249,7 @@ const configSchema = z
     tools: z.record(
       z.object({
         executable: z.string().min(1),
+        displayName: z.string().optional(),
         description: z.string().optional(),
         isolation: z.enum(["shell", "process"]).optional(),
         pack: z.string().min(1).optional(),

@@ -4,69 +4,144 @@ import path from "node:path";
 import { parse, printParseErrorCode, type ParseError } from "jsonc-parser";
 import { z } from "zod";
 
-import type {
-  AuthAction,
-  IdealityConfig,
-  ToolDefinition,
-  ToolProfile,
-} from "../domain/config.js";
+import type { IdealityConfig } from "../domain/config.js";
+import {
+  compileToolDefinition,
+  compileToolProfile,
+  parseToolAdapterManifest,
+  TOOL_ADAPTER_SCHEMA_VERSION,
+  type ToolAdapterManifest,
+} from "./tool-adapters.js";
 
-const valueSourceSchema = z.union([
-  z.string(),
-  z.object({
-    from: z.literal("file"),
-    path: z.string().min(1),
-    optional: z.boolean().optional(),
-  }),
-  z.object({
-    from: z.literal("env"),
-    name: z.string().min(1),
-    optional: z.boolean().optional(),
-  }),
-  z.object({
-    from: z.literal("secret"),
-    key: z.string().min(1),
-    optional: z.boolean().optional(),
-  }),
-]);
+/** Pack assigned to translated version-1 plugins; mirrors the `tool list` fallback label. */
+export const PLUGIN_PACK = "custom";
 
-const authSchema = z
+const legacyAuthSchema = z
   .object({
     login: z.array(z.string()).optional(),
     status: z.array(z.string()).optional(),
     logout: z.array(z.string()).optional(),
   })
-  .optional();
+  .strict();
 
-const pluginSchema = z.object({
-  version: z.literal(1),
-  name: z.string().regex(/^[a-z][a-z0-9_-]*$/),
-  description: z.string().optional(),
-  executable: z.string().min(1),
-  detect: z.array(z.string().min(1)).optional(),
-  auth: authSchema,
-  profile: z
-    .object({
-      enabled: z.boolean().optional(),
-      executable: z.string().min(1).optional(),
-      isolation: z.literal("process").optional(),
-      env: z.record(valueSourceSchema.nullable()).optional(),
-      args: z.array(z.string()).optional(),
-    })
-    .optional(),
-});
+const legacyPluginSchema = z
+  .object({
+    version: z.literal(1),
+    name: z.string(),
+    description: z.string().optional(),
+    executable: z.string(),
+    detect: z.array(z.string()).optional(),
+    auth: legacyAuthSchema.optional(),
+    profile: z
+      .object({
+        enabled: z.boolean().optional(),
+        executable: z.string().optional(),
+        isolation: z.literal("process").optional(),
+        env: z.record(z.unknown()).optional(),
+        args: z.array(z.string()).optional(),
+      })
+      .strict()
+      .optional(),
+  })
+  .strict()
+  .superRefine((manifest, context) => {
+    // `enabled: true` is the implicit default everywhere, so only `false` is untranslatable.
+    if (manifest.profile?.enabled === false) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["profile", "enabled"],
+        message:
+          "Cannot be translated to a tool adapter manifest; plugins always install enabled",
+      });
+    }
+    if (manifest.profile?.executable !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        path: ["profile", "executable"],
+        message:
+          "Cannot be translated to a tool adapter manifest; set the top-level executable instead",
+      });
+    }
+  });
 
-export interface PluginManifest {
-  version: 1;
-  name: string;
-  description?: string;
-  executable: string;
-  detect?: string[];
-  auth?: Partial<Record<AuthAction, string[]>>;
-  profile?: ToolProfile;
+type LegacyPluginManifest = z.infer<typeof legacyPluginSchema>;
+
+function translateLegacyPlugin(
+  legacy: LegacyPluginManifest,
+): Record<string, unknown> {
+  const profile: Record<string, unknown> = {};
+  const env = legacy.profile?.env ?? {};
+  if (Object.keys(env).length > 0) {
+    profile.env = env;
+  }
+  if (legacy.profile?.args?.length) {
+    profile.args = legacy.profile.args;
+  }
+  return {
+    schemaVersion: TOOL_ADAPTER_SCHEMA_VERSION,
+    kind: "tool",
+    id: legacy.name,
+    displayName: legacy.name,
+    ...(legacy.description !== undefined
+      ? { description: legacy.description }
+      : {}),
+    pack: PLUGIN_PACK,
+    executable: {
+      primary: legacy.executable,
+      ...(legacy.detect?.length ? { alternatives: legacy.detect } : {}),
+    },
+    ...(legacy.auth && Object.keys(legacy.auth).length > 0
+      ? { auth: legacy.auth }
+      : {}),
+    ...(Object.keys(profile).length > 0 ? { profile } : {}),
+  };
 }
 
-export function parsePluginManifest(source: string): PluginManifest {
+function rebrandAdapterError(message: string): string {
+  const remapped = message
+    .replace(/^Invalid tool adapter manifest: /, "")
+    .split("; ")
+    .map((segment) =>
+      segment
+        .replace(/^id: /, "name: ")
+        .replace(/^executable\.primary: /, "executable: ")
+        .replace(/^executable\.alternatives\./, "detect."),
+    )
+    .join("; ");
+  return `Invalid plugin manifest: ${remapped}`;
+}
+
+function parseTranslatedLegacy(value: unknown): ToolAdapterManifest {
+  const result = legacyPluginSchema.safeParse(value);
+  if (!result.success) {
+    throw new Error(
+      `Invalid plugin manifest: ${result.error.issues
+        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
+        .join("; ")}`,
+    );
+  }
+  try {
+    return parseToolAdapterManifest(
+      JSON.stringify(translateLegacyPlugin(result.data)),
+    );
+  } catch (error) {
+    throw new Error(rebrandAdapterError((error as Error).message));
+  }
+}
+
+function assertProcessScoped(manifest: ToolAdapterManifest): void {
+  if (manifest.isolation.scope !== "process") {
+    throw new Error(
+      "Invalid plugin manifest: isolation.scope: plugins must use process isolation; shell scope would export plugin state through shell hooks",
+    );
+  }
+}
+
+/**
+ * Parse a plugin manifest into the canonical tool adapter shape, accepting the
+ * version-1 plugin format through a lossless translation.
+ */
+export function parsePluginManifest(source: string): ToolAdapterManifest {
   const errors: ParseError[] = [];
   const value: unknown = parse(source, errors, {
     allowTrailingComma: true,
@@ -79,34 +154,30 @@ export function parsePluginManifest(source: string): PluginManifest {
         .join(", ")}`,
     );
   }
-  const result = pluginSchema.safeParse(value);
-  if (!result.success) {
-    throw new Error(
-      `Invalid plugin manifest: ${result.error.issues
-        .map((issue) => `${issue.path.join(".")}: ${issue.message}`)
-        .join("; ")}`,
-    );
-  }
-  return result.data;
+  const isLegacy =
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    "version" in value &&
+    !("schemaVersion" in value);
+  const manifest = isLegacy
+    ? parseTranslatedLegacy(value)
+    : parseToolAdapterManifest(source);
+  assertProcessScoped(manifest);
+  return manifest;
 }
 
+/** Register the compiled tool definition and per-identity default profiles. */
 export function applyPlugin(
   config: IdealityConfig,
-  manifest: PluginManifest,
+  manifest: ToolAdapterManifest,
 ): IdealityConfig {
   const next = structuredClone(config);
-  const definition: ToolDefinition = {
-    executable: manifest.executable,
-    isolation: "process",
-    ...(manifest.description ? { description: manifest.description } : {}),
-    ...(manifest.detect ? { detect: manifest.detect } : {}),
-    ...(manifest.auth ? { auth: manifest.auth } : {}),
-  };
-  next.tools[manifest.name] = definition;
+  next.tools[manifest.id] = compileToolDefinition(manifest);
   for (const identity of Object.values(next.identities)) {
-    identity.tools[manifest.name] = structuredClone(
-      manifest.profile ?? { isolation: "process" },
-    );
+    identity.tools[manifest.id] = compileToolProfile(manifest, {
+      git: identity.git,
+    });
   }
   return next;
 }
@@ -116,12 +187,12 @@ export function pluginDirectory(idealityHome: string): string {
 }
 
 export async function writePluginManifest(
-  manifest: PluginManifest,
+  manifest: ToolAdapterManifest,
   idealityHome: string,
 ): Promise<string> {
   const directory = pluginDirectory(idealityHome);
   await mkdir(directory, { recursive: true, mode: 0o700 });
-  const target = path.join(directory, `${manifest.name}.jsonc`);
+  const target = path.join(directory, `${manifest.id}.jsonc`);
   const temporary = `${target}.${process.pid}.tmp`;
   await Bun.write(temporary, `${JSON.stringify(manifest, null, 2)}\n`);
   await chmod(temporary, 0o600);
@@ -131,7 +202,7 @@ export async function writePluginManifest(
 
 export async function listPluginManifests(
   idealityHome: string,
-): Promise<Array<{ file: string; manifest: PluginManifest }>> {
+): Promise<Array<{ file: string; manifest: ToolAdapterManifest }>> {
   const directory = pluginDirectory(idealityHome);
   try {
     const files = (await readdir(directory))

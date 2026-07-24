@@ -1,0 +1,24 @@
+// pip Python package client - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "pip",
+  "displayName": "pip Python package client",
+  "pack": "registries",
+  "executable": {
+    "primary": "pip",
+    "alternatives": [
+      "pip3"
+    ]
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "profile": {
+    "env": {
+      "PIP_CONFIG_FILE": "{{idealityHome}}/profiles/{{identity}}/registries/pip/pip.conf",
+      "PIP_CACHE_DIR": "{{idealityHome}}/profiles/{{identity}}/registries/pip/cache"
+    }
+  }
+}

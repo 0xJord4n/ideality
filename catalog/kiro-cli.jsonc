@@ -1,0 +1,20 @@
+// Kiro CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "kiro-cli",
+  "displayName": "Kiro CLI",
+  "pack": "ai",
+  "executable": {
+    "primary": "kiro-cli"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "profile": {
+    "env": {
+      "KIRO_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/kiro"
+    }
+  }
+}

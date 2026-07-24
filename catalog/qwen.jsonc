@@ -1,0 +1,31 @@
+// Qwen Code - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "qwen",
+  "displayName": "Qwen Code",
+  "pack": "ai",
+  "executable": {
+    "primary": "qwen"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "auth"
+    ]
+  },
+  "profile": {
+    "env": {
+      "QWEN_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/qwen",
+      "QWEN_RUNTIME_DIR": "{{idealityHome}}/profiles/{{identity}}/ai/qwen/runtime",
+      "OPENAI_API_KEY": {
+        "from": "secret",
+        "key": "{{identity}}/qwen-api-key",
+        "optional": true
+      }
+    }
+  }
+}

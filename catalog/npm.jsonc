@@ -1,0 +1,32 @@
+// npm registry client - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "npm",
+  "displayName": "npm registry client",
+  "pack": "registries",
+  "executable": {
+    "primary": "npm"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "login"
+    ],
+    "status": [
+      "whoami"
+    ],
+    "logout": [
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/{{identity}}/registries/npm/npmrc",
+      "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/{{identity}}/registries/npm/cache"
+    }
+  }
+}
