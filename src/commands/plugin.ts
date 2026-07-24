@@ -13,8 +13,8 @@ import {
   removePluginManifest,
   writePluginManifest,
 } from "../core/plugins.js";
-import { installShims } from "../integrations/shims.js";
 import { syncInstalledCompletions } from "../integrations/completion.js";
+import { installShims } from "../integrations/shims.js";
 import { requirePositional } from "./shared.js";
 
 const pluginCommand = defineGroup({
@@ -27,8 +27,12 @@ const pluginCommand = defineGroup({
       handler: async ({ colors }) => {
         const idealityHome = getIdealityHome();
         const config = await loadConfig();
-        for (const { file, manifest } of await listPluginManifests(idealityHome)) {
-          const state = config.tools[manifest.name] ? colors.green("active") : colors.yellow("detached");
+        for (const { file, manifest } of await listPluginManifests(
+          idealityHome,
+        )) {
+          const state = config.tools[manifest.name]
+            ? colors.green("active")
+            : colors.yellow("detached");
           console.log(
             `${manifest.name.padEnd(16)} ${state.padEnd(8)} ${manifest.executable}  ${file}`,
           );
@@ -73,7 +77,10 @@ const pluginCommand = defineGroup({
           return;
         }
         await saveConfig(next);
-        const installed = await writePluginManifest(manifest, getIdealityHome());
+        const installed = await writePluginManifest(
+          manifest,
+          getIdealityHome(),
+        );
         await installShims(next, getIdealityHome());
         await syncInstalledCompletions(next, getIdealityHome());
         console.log(colors.green(`Installed plugin '${manifest.name}'`));

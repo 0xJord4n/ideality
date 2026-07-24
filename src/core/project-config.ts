@@ -47,9 +47,7 @@ export async function loadProjectConfig(
   projectRoot: string,
 ): Promise<IdealityConfig | null> {
   const configPath = getProjectConfigPath(projectRoot);
-  return (await Bun.file(configPath).exists())
-    ? loadConfig(configPath)
-    : null;
+  return (await Bun.file(configPath).exists()) ? loadConfig(configPath) : null;
 }
 
 export async function saveProjectConfig(

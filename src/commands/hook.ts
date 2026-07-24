@@ -8,7 +8,11 @@ const hookCommand = defineCommand({
   name: "hook",
   description: "Print a shell hook",
   handler: async ({ positional }) => {
-    const shell = requirePositional(positional, 0, "shell (zsh, bash, or fish)");
+    const shell = requirePositional(
+      positional,
+      0,
+      "shell (zsh, bash, or fish)",
+    );
     if (!["zsh", "bash", "fish"].includes(shell)) {
       throw new Error(`Unsupported shell '${shell}'`);
     }

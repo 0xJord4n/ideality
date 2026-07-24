@@ -14,7 +14,9 @@ describe("starter tool profiles", () => {
   test("provides every supported built-in adapter", () => {
     const profiles = createToolProfiles("sample");
 
-    expect(Object.keys(profiles).sort()).toEqual(Object.keys(BUILTIN_TOOLS).sort());
+    expect(Object.keys(profiles).sort()).toEqual(
+      Object.keys(BUILTIN_TOOLS).sort(),
+    );
     expect(profiles.gh?.env?.GH_CONFIG_DIR).toContain("/sample/gh");
     expect(profiles.railway?.env?.RAILWAY_API_TOKEN).toEqual({
       from: "secret",
@@ -40,7 +42,9 @@ describe("starter tool profiles", () => {
     });
     expect(profiles.codex?.env?.CODEX_HOME).toContain("/sample/codex");
     expect(profiles.claude?.env?.CLAUDE_CONFIG_DIR).toContain("/sample/claude");
-    expect(profiles.opencode?.env?.XDG_CONFIG_HOME).toContain("/sample/opencode/");
+    expect(profiles.opencode?.env?.XDG_CONFIG_HOME).toContain(
+      "/sample/opencode/",
+    );
     expect(profiles.vercel?.env?.XDG_CONFIG_HOME).toContain("/sample/vercel/");
     expect(profiles.chrome?.args?.[0]).toContain("/sample/browsers/chrome");
     expect(profiles.firefox?.args?.[1]).toContain("/sample/browsers/firefox");
@@ -56,14 +60,11 @@ describe("starter tool profiles", () => {
       (pack) => pack.tools,
     );
 
-    expect([...new Set(packed)].sort()).toEqual(Object.keys(BUILTIN_TOOLS).sort());
+    expect([...new Set(packed)].sort()).toEqual(
+      Object.keys(BUILTIN_TOOLS).sort(),
+    );
     expect(packed).toHaveLength(Object.keys(BUILTIN_TOOLS).length);
-    expect(toolsInPacks(["cloud"])).toEqual([
-      "aws",
-      "gcloud",
-      "az",
-      "doctl",
-    ]);
+    expect(toolsInPacks(["cloud"])).toEqual(["aws", "gcloud", "az", "doctl"]);
   });
 
   test("creates only selected profiles while retaining the complete catalog", () => {

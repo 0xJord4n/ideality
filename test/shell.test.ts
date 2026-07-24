@@ -1,11 +1,10 @@
 import { describe, expect, test } from "bun:test";
-
+import type { IdealityConfig } from "../src/domain/config.js";
 import {
   collectManagedVariables,
   renderShellAssignments,
   renderShellHook,
 } from "../src/integrations/shell.js";
-import type { IdealityConfig } from "../src/domain/config.js";
 
 describe("renderShellAssignments", () => {
   test("quotes values and unsets stale variables for zsh", () => {
@@ -70,9 +69,7 @@ describe("renderShellAssignments", () => {
 
     const hook = renderShellHook(config, "zsh", "/home/dev/.ideality");
 
-    expect(hook).toContain(
-      "export PATH='/home/dev/.ideality/bin':\"$PATH\"",
-    );
+    expect(hook).toContain("export PATH='/home/dev/.ideality/bin':\"$PATH\"");
     expect(hook).not.toContain("sample()");
     expect(hook).toContain("ideality env --shell zsh");
   });

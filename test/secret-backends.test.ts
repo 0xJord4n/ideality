@@ -5,8 +5,8 @@ import path from "node:path";
 
 import {
   readSecretValue,
-  writeSecretValue,
   type SecretCommandRunner,
+  writeSecretValue,
 } from "../src/core/secret-backends.js";
 import type { IdealityConfig } from "../src/domain/config.js";
 

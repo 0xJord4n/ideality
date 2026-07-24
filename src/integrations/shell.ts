@@ -1,6 +1,6 @@
-import type { IdealityConfig } from "../domain/config.js";
 import { chmod, copyFile, mkdir } from "node:fs/promises";
 import path from "node:path";
+import type { IdealityConfig } from "../domain/config.js";
 
 export type SupportedShell = "bash" | "zsh" | "fish";
 
@@ -79,7 +79,7 @@ export function renderShellHook(
       "end",
       `test -r ${fishQuote(completion)}; and source ${fishQuote(completion)}`,
       "function __ideality_apply --on-variable PWD",
-      "  command ideality env --shell fish --path \"$PWD\" | source",
+      '  command ideality env --shell fish --path "$PWD" | source',
       "end",
       "function ideality-refresh",
       "  __ideality_apply",
@@ -97,9 +97,9 @@ export function renderShellHook(
           "add-zsh-hook precmd _ideality_apply",
         ]
       : [
-          "case \";${PROMPT_COMMAND:-};\" in",
+          'case ";${PROMPT_COMMAND:-};" in',
           "  *';_ideality_apply;'*) ;;",
-          "  *) PROMPT_COMMAND=\"_ideality_apply${PROMPT_COMMAND:+;$PROMPT_COMMAND}\" ;;",
+          '  *) PROMPT_COMMAND="_ideality_apply${PROMPT_COMMAND:+;$PROMPT_COMMAND}" ;;',
           "esac",
         ];
 
@@ -136,9 +136,10 @@ export async function installShellIntegration(
   const existing = (await rcFile.exists()) ? await rcFile.text() : "";
   const begin = "# >>> ideality >>>";
   const end = "# <<< ideality <<<";
-  const source = shell === "fish"
-    ? `source ${fishQuote(hookPath)}`
-    : `source ${singleQuote(hookPath)}`;
+  const source =
+    shell === "fish"
+      ? `source ${fishQuote(hookPath)}`
+      : `source ${singleQuote(hookPath)}`;
   const block = `${begin}\n${source}\n${end}`;
   const matcher = new RegExp(
     `${begin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${end.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,

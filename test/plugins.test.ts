@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  applyPlugin,
-  parsePluginManifest,
-} from "../src/core/plugins.js";
+import { applyPlugin, parsePluginManifest } from "../src/core/plugins.js";
 import type { IdealityConfig } from "../src/domain/config.js";
 
 const config: IdealityConfig = {
@@ -42,9 +39,7 @@ describe("plugin manifests", () => {
 
   test("rejects unsafe names and shell-wide plugin isolation", () => {
     expect(() =>
-      parsePluginManifest(
-        `{"version":1,"name":"../bad","executable":"bad"}`,
-      ),
+      parsePluginManifest(`{"version":1,"name":"../bad","executable":"bad"}`),
     ).toThrow("Invalid plugin manifest");
     expect(() =>
       parsePluginManifest(

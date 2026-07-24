@@ -14,12 +14,7 @@ interface DashboardProps {
   onExit: (action: DashboardAction) => void;
 }
 
-function Dashboard({
-  config,
-  activeIdentity,
-  path,
-  onExit,
-}: DashboardProps) {
+function Dashboard({ config, activeIdentity, path, onExit }: DashboardProps) {
   const [selectedId, setSelectedId] = useState(activeIdentity);
   const [refresh, setRefresh] = useState(0);
   const model = useMemo(
@@ -158,7 +153,9 @@ function Dashboard({
           backgroundColor: "#172026",
         }}
       >
-        <text fg="#8da2ad">up/down navigate   e edit config   d doctor   r refresh   q quit</text>
+        <text fg="#8da2ad">
+          up/down navigate e edit config d doctor r refresh q quit
+        </text>
       </box>
     </box>
   );

@@ -1,10 +1,7 @@
 import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
-import {
-  BUILTIN_TOOL_PACKS,
-  BUILTIN_TOOLS,
-} from "../adapters/builtins.js";
+import { BUILTIN_TOOL_PACKS, BUILTIN_TOOLS } from "../adapters/builtins.js";
 import {
   getIdealityHome,
   loadConfig,
@@ -13,8 +10,8 @@ import {
 import { resolveExecutable } from "../core/runtime.js";
 import { createToolProfiles } from "../core/starter.js";
 import type { ValueSource } from "../domain/config.js";
-import { installShims } from "../integrations/shims.js";
 import { syncInstalledCompletions } from "../integrations/completion.js";
+import { installShims } from "../integrations/shims.js";
 import { commandArguments, requirePositional } from "./shared.js";
 
 function parseSource(value: string, optional: boolean): ValueSource | null {
@@ -192,7 +189,8 @@ const toolCommand = defineGroup({
     }),
     defineCommand({
       name: "env",
-      description: "Set a variable: secret:key, file:path, env:NAME, value:text, or unset",
+      description:
+        "Set a variable: secret:key, file:path, env:NAME, value:text, or unset",
       options: {
         optional: option(z.boolean().default(false), {
           description: "Allow a missing file or source variable",
@@ -223,7 +221,9 @@ const toolCommand = defineGroup({
         profile.env ??= {};
         profile.env[variable] = parseSource(value, flags.optional);
         if (!flags["dry-run"]) await saveConfig(config);
-        console.log(colors.green(`Updated ${identityId}/${toolName}:${variable}`));
+        console.log(
+          colors.green(`Updated ${identityId}/${toolName}:${variable}`),
+        );
       },
     }),
     defineCommand({
@@ -243,9 +243,14 @@ const toolCommand = defineGroup({
         if (!identity || !config.tools[toolName]) {
           throw new Error(`Unknown identity or tool`);
         }
-        (identity.tools[toolName] ??= {}).args = commandArguments(positional, 2);
+        (identity.tools[toolName] ??= {}).args = commandArguments(
+          positional,
+          2,
+        );
         if (!flags["dry-run"]) await saveConfig(config);
-        console.log(colors.green(`Updated arguments for ${identityId}/${toolName}`));
+        console.log(
+          colors.green(`Updated arguments for ${identityId}/${toolName}`),
+        );
       },
     }),
     ...(["enable", "disable"] as const).map((action) =>
@@ -267,11 +272,9 @@ const toolCommand = defineGroup({
             throw new Error("Unknown identity or tool");
           }
           const starter =
-            createToolProfiles(
-              identityId,
-              [toolName],
-              identity.git?.sshKey,
-            )[toolName] ?? {};
+            createToolProfiles(identityId, [toolName], identity.git?.sshKey)[
+              toolName
+            ] ?? {};
           identity.tools[toolName] = {
             ...starter,
             ...(identity.tools[toolName] ?? {}),

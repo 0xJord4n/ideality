@@ -8,14 +8,20 @@
     "ideality": "./src/index.ts"
   },
   "type": "module",
+  "packageManager": "bun@1.3.14",
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bunli build",
     "build:all": "bunli build --targets all",
+    "format": "biome format --write .",
+    "format:check": "biome format .",
+    "lint": "biome lint .",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "typecheck": "tsc --noEmit",
-    "check": "bun run typecheck && bun test"
+    "audit": "bun audit --audit-level=high",
+    "perf:check": "bun run build && bun run scripts/check-performance.ts",
+    "check": "bun run format:check && bun run lint && bun run typecheck && bun test"
   },
   "dependencies": {
     "@bunli/core": "0.9.1",
@@ -27,6 +33,7 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.5",
     "@bunli/test": "0.6.0",
     "@tsconfig/bun": "1.0.10",
     "@types/bun": "1.3.14",

@@ -339,8 +339,13 @@ ideality tui
 ```bash
 bun run dev -- --help
 bun run check
+bun run audit
+bun run perf:check
 bun run build
 ```
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for the full workflow, Conventional
+Commit requirements, and the performance budgets enforced in CI.
 
 ## License
 

@@ -108,20 +108,21 @@ const secretCommand = defineGroup({
         }
         const value = flags.stdin
           ? await Bun.stdin.text()
-          : await prompt.password(`Value for ${identityId}/${toolName}:${variable}`, {
-              validate: (input) => input.length > 0 || "Value is required",
-            });
+          : await prompt.password(
+              `Value for ${identityId}/${toolName}:${variable}`,
+              {
+                validate: (input) => input.length > 0 || "Value is required",
+              },
+            );
         if (source.from === "secret") {
           const key = renderedReference;
-          await writeSecretValue(
-            config,
-            key,
-            value,
-            home,
-            getIdealityHome(),
+          await writeSecretValue(config, key, value, home, getIdealityHome());
+          console.log(
+            colors.green(`Stored ${identityId}/${toolName}:${variable}`),
           );
-          console.log(colors.green(`Stored ${identityId}/${toolName}:${variable}`));
-          console.log(colors.dim(`${config.secretBackend?.type ?? "file"}:${key}`));
+          console.log(
+            colors.dim(`${config.secretBackend?.type ?? "file"}:${key}`),
+          );
           return;
         }
         const target = secretTarget(
@@ -131,7 +132,9 @@ const secretCommand = defineGroup({
           getIdealityHome(),
         );
         await writeSecret(target, value);
-        console.log(colors.green(`Stored ${identityId}/${toolName}:${variable}`));
+        console.log(
+          colors.green(`Stored ${identityId}/${toolName}:${variable}`),
+        );
         console.log(colors.dim(target));
       },
     }),
@@ -146,9 +149,8 @@ const secretCommand = defineGroup({
           ([identityId, identity]) =>
             Object.entries(identity.tools).flatMap(([toolName, profile]) =>
               Object.entries(profile.env ?? {})
-                .filter(
-                  (entry): entry is [string, StoredSource] =>
-                    isStoredSource(entry[1]),
+                .filter((entry): entry is [string, StoredSource] =>
+                  isStoredSource(entry[1]),
                 )
                 .flatMap(([variable, source]) =>
                   listSecretContexts(
@@ -159,7 +161,12 @@ const secretCommand = defineGroup({
                   ).map((resolved) => {
                     const reference =
                       source.from === "file"
-                        ? secretTarget(source.path, resolved, home, idealityHome)
+                        ? secretTarget(
+                            source.path,
+                            resolved,
+                            home,
+                            idealityHome,
+                          )
                         : renderTemplate(
                             source.key,
                             resolved,
@@ -170,15 +177,16 @@ const secretCommand = defineGroup({
                       identity: identityId,
                       tool: toolName,
                       variable,
-                      root: (
-                        source.from === "file" ? source.path : source.key
+                      root: (source.from === "file"
+                        ? source.path
+                        : source.key
                       ).includes("{{root}}")
                         ? resolved.matchedRoot
                         : null,
                       backend:
                         source.from === "file"
                           ? "file"
-                          : config.secretBackend?.type ?? "file",
+                          : (config.secretBackend?.type ?? "file"),
                       reference,
                       present:
                         source.from === "file"
@@ -234,7 +242,9 @@ const secretCommand = defineGroup({
         const config = await loadConfig();
         const type = positional[0];
         if (!type) {
-          console.log(JSON.stringify(config.secretBackend ?? { type: "file" }, null, 2));
+          console.log(
+            JSON.stringify(config.secretBackend ?? { type: "file" }, null, 2),
+          );
           return;
         }
         if (type === "file") {

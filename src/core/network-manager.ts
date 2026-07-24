@@ -9,19 +9,19 @@ import type {
 } from "../domain/config.js";
 import { resolveValueSource } from "./environment.js";
 import {
+  type ActiveNetworkState,
   buildNetworkPlan,
   clearActiveNetwork,
   loadActiveNetwork,
+  type NetworkAction,
+  type NetworkCommandStep,
   networkCapability,
   networkEnforcement,
   saveActiveNetwork,
-  type ActiveNetworkState,
-  type NetworkAction,
-  type NetworkCommandStep,
 } from "./network.js";
 import {
-  requireSuccessfulProcess,
   type ProcessRunner,
+  requireSuccessfulProcess,
   runProcess,
 } from "./process.js";
 import { findExecutable } from "./runtime.js";
@@ -84,10 +84,7 @@ async function activateNetworkUnlocked(
     });
   }
 
-  const enforcement = networkEnforcement(
-    profile,
-    options.allowUnverified,
-  );
+  const enforcement = networkEnforcement(profile, options.allowUnverified);
   const prepared = await prepareNetworkPlan(profile, "up", options);
   try {
     if (!options.dryRun) {
@@ -154,9 +151,8 @@ async function deactivateNetworkUnlocked(
   return {
     profileId: options.profileId,
     action: "down",
-    enforcement: active?.profile === options.profileId
-      ? active.enforcement
-      : null,
+    enforcement:
+      active?.profile === options.profileId ? active.enforcement : null,
     steps: prepared.publicSteps,
     active: options.dryRun
       ? active
@@ -186,9 +182,8 @@ export async function networkStatus(
   return {
     profileId: options.profileId,
     action: "status",
-    enforcement: active?.profile === options.profileId
-      ? active.enforcement
-      : null,
+    enforcement:
+      active?.profile === options.profileId ? active.enforcement : null,
     steps: prepared.publicSteps,
     active,
   };
@@ -228,7 +223,8 @@ function requireProfile(
   profileId: string,
 ): NetworkProfile {
   const profile = config.networks?.[profileId];
-  if (!profile) throw new Error(`Network profile '${profileId}' does not exist`);
+  if (!profile)
+    throw new Error(`Network profile '${profileId}' does not exist`);
   return profile;
 }
 
@@ -240,7 +236,9 @@ function assertNetworkExecutable(profile: NetworkProfile): void {
     );
   }
   if (profile.sudo && !findExecutable("sudo")) {
-    throw new Error("Network profile requires sudo, but 'sudo' is not installed");
+    throw new Error(
+      "Network profile requires sudo, but 'sudo' is not installed",
+    );
   }
 }
 
@@ -253,7 +251,11 @@ async function prepareNetworkPlan(
   publicSteps: NetworkCommandStep[];
   cleanup: () => Promise<void>;
 }> {
-  const runtimeDirectory = path.join(options.idealityHome, "runtime", "networks");
+  const runtimeDirectory = path.join(
+    options.idealityHome,
+    "runtime",
+    "networks",
+  );
   await mkdir(runtimeDirectory, { recursive: true, mode: 0o700 });
   const pidPath = path.join(runtimeDirectory, `${options.profileId}.pid`);
   const temporary = await mkdtemp(path.join(runtimeDirectory, "materialized-"));
@@ -267,8 +269,7 @@ async function prepareNetworkPlan(
         ? "<materialized-config>"
         : undefined,
     authPath:
-      profile.driver === "openvpn" &&
-      (profile.username || profile.password)
+      profile.driver === "openvpn" && (profile.username || profile.password)
         ? "<materialized-auth>"
         : undefined,
   };
@@ -491,7 +492,9 @@ async function withNetworkLock<T>(
 
 async function lockOwnerIsDead(lock: string): Promise<boolean> {
   try {
-    const owner = Number((await Bun.file(path.join(lock, "owner")).text()).trim());
+    const owner = Number(
+      (await Bun.file(path.join(lock, "owner")).text()).trim(),
+    );
     if (!Number.isInteger(owner) || owner <= 0) return true;
     process.kill(owner, 0);
     return false;

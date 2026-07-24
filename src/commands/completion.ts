@@ -3,9 +3,9 @@ import { z } from "zod";
 
 import { getIdealityHome, loadConfig } from "../core/config-store.js";
 import {
+  type CompletionShell,
   installCompletion,
   renderCompletion,
-  type CompletionShell,
 } from "../integrations/completion.js";
 import { requirePositional } from "./shared.js";
 
@@ -19,7 +19,11 @@ const completionCommand = defineCommand({
     }),
   },
   handler: async ({ positional, flags, colors }) => {
-    const shell = requirePositional(positional, 0, "shell (zsh, bash, or fish)");
+    const shell = requirePositional(
+      positional,
+      0,
+      "shell (zsh, bash, or fish)",
+    );
     if (!["zsh", "bash", "fish"].includes(shell)) {
       throw new Error(`Unsupported shell '${shell}'`);
     }

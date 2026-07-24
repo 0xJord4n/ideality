@@ -5,16 +5,16 @@ import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
 import { getIdealityHome, loadConfig } from "../core/config-store.js";
+import {
+  installCompletion,
+  renderCompletion,
+} from "../integrations/completion.js";
 import { installGitIntegration } from "../integrations/git.js";
 import {
   installShellIntegration,
   type SupportedShell,
 } from "../integrations/shell.js";
 import { installShims } from "../integrations/shims.js";
-import {
-  installCompletion,
-  renderCompletion,
-} from "../integrations/completion.js";
 
 function defaultRc(shell: SupportedShell, home: string): string {
   if (shell === "fish") {

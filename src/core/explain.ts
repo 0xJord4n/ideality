@@ -1,11 +1,8 @@
 import path from "node:path";
 
 import type { IdealityConfig, ResolvedIdentity } from "../domain/config.js";
-import {
-  buildEnvironment,
-  type EnvironmentOptions,
-} from "./environment.js";
-import { resolveExecution, type ResolvedExecution } from "./execution.js";
+import { buildEnvironment, type EnvironmentOptions } from "./environment.js";
+import { type ResolvedExecution, resolveExecution } from "./execution.js";
 
 export interface ToolExplanation {
   identity: string;
@@ -59,9 +56,7 @@ export async function explainTool(
     shim: path.join(idealityHome, "bin", options.tool),
     intercepted: options.intercepted ?? true,
     isolation:
-      profile.isolation ??
-      config.tools[options.tool]?.isolation ??
-      "process",
+      profile.isolation ?? config.tools[options.tool]?.isolation ?? "process",
     arguments: environment.args,
     environment: environment.redacted,
     unset: environment.unset,

@@ -1,10 +1,7 @@
 import { chmod, mkdir, rename } from "node:fs/promises";
 import path from "node:path";
 
-import type {
-  IdealityConfig,
-  SecretBackendConfig,
-} from "../domain/config.js";
+import type { IdealityConfig, SecretBackendConfig } from "../domain/config.js";
 import { expandHome } from "./resolution.js";
 
 interface CommandResult {
@@ -126,7 +123,9 @@ export async function readSecretValue(
 ): Promise<string> {
   const selected = backend(config);
   if (selected.type === "file") {
-    return (await Bun.file(secretFile(selected, key, home, idealityHome)).text()).trim();
+    return (
+      await Bun.file(secretFile(selected, key, home, idealityHome)).text()
+    ).trim();
   }
   if (selected.type === "age") {
     const file = secretFile(selected, key, home, idealityHome);
@@ -154,10 +153,7 @@ export async function readSecretValue(
     const item = externalReference(key, "bw://", "Bitwarden");
     const environment = selected.appDataDirectory
       ? {
-          BITWARDENCLI_APPDATA_DIR: expandHome(
-            selected.appDataDirectory,
-            home,
-          ),
+          BITWARDENCLI_APPDATA_DIR: expandHome(selected.appDataDirectory, home),
         }
       : undefined;
     const result = await runner(
@@ -268,9 +264,7 @@ export async function writeSecretValue(
   if (result.exitCode !== 0) throw commandError("secret-tool", result);
 }
 
-export function secretBackendExecutable(
-  config: IdealityConfig,
-): string | null {
+export function secretBackendExecutable(config: IdealityConfig): string | null {
   switch (backend(config).type) {
     case "age":
       return "age";

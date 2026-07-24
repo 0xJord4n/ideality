@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  resolveExecution,
-  summarizeExecution,
-} from "../src/core/execution.js";
+import { resolveExecution, summarizeExecution } from "../src/core/execution.js";
 import type { IdealityConfig, ResolvedIdentity } from "../src/domain/config.js";
 
 function fixture(): {

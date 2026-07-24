@@ -2,8 +2,8 @@ import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
 import { getConfigPath } from "../core/config-store.js";
-import { loadRuntime } from "../core/runtime.js";
 import { runDoctor } from "../core/doctor.js";
+import { loadRuntime } from "../core/runtime.js";
 import { runDashboard } from "../tui/app.js";
 
 const tuiCommand = defineCommand({
@@ -37,7 +37,9 @@ const tuiCommand = defineCommand({
         runtime.idealityHome,
       );
       for (const check of checks) {
-        console.log(`${check.status.toUpperCase()} ${check.subject}: ${check.message}`);
+        console.log(
+          `${check.status.toUpperCase()} ${check.subject}: ${check.message}`,
+        );
       }
     }
   },

@@ -340,8 +340,7 @@ export function createStarterConfig(options: {
   git: GitIdentity;
   tools?: string[];
 }): IdealityConfig {
-  const selectedTools =
-    options.tools ?? toolsInPacks(DEFAULT_TOOL_PACKS);
+  const selectedTools = options.tools ?? toolsInPacks(DEFAULT_TOOL_PACKS);
   return {
     version: 1,
     defaultIdentity: options.id,

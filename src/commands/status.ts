@@ -2,10 +2,7 @@ import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
 import { buildEnvironment } from "../core/environment.js";
-import {
-  resolveExecution,
-  summarizeExecution,
-} from "../core/execution.js";
+import { resolveExecution, summarizeExecution } from "../core/execution.js";
 import { loadActiveNetwork } from "../core/network.js";
 import { loadRuntime, resolveExecutable } from "../core/runtime.js";
 import { printJson } from "./shared.js";
@@ -105,7 +102,9 @@ const statusCommand = defineCommand({
     );
     console.log();
     for (const tool of tools) {
-      const marker = tool.installed ? colors.green("ready") : colors.yellow("missing");
+      const marker = tool.installed
+        ? colors.green("ready")
+        : colors.yellow("missing");
       console.log(
         `${tool.name.padEnd(10)} ${marker.padEnd(16)} ${tool.isolation.padEnd(8)} ${tool.execution.target.padEnd(5)} ${tool.executable ?? "-"}`,
       );

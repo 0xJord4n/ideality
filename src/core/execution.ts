@@ -52,7 +52,7 @@ export function resolveExecution(
       vmId: null,
       vm: null,
       networkId,
-      network: networkId ? config.networks?.[networkId] ?? null : null,
+      network: networkId ? (config.networks?.[networkId] ?? null) : null,
       source,
     };
   }
@@ -67,7 +67,7 @@ export function resolveExecution(
     vmId: execution.vm,
     vm,
     networkId,
-    network: networkId ? config.networks?.[networkId] ?? null : null,
+    network: networkId ? (config.networks?.[networkId] ?? null) : null,
     source,
   };
 }

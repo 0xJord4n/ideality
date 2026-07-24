@@ -1,16 +1,9 @@
-import {
-  chmod,
-  copyFile,
-  mkdir,
-  readdir,
-  rename,
-  rm,
-} from "node:fs/promises";
 import { randomUUID } from "node:crypto";
+import { chmod, copyFile, mkdir, readdir, rename, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
-import { parse, printParseErrorCode, type ParseError } from "jsonc-parser";
+import { type ParseError, parse, printParseErrorCode } from "jsonc-parser";
 import { z } from "zod";
 
 import type { IdealityConfig } from "../domain/config.js";
@@ -209,9 +202,7 @@ const vmSchema = z.discriminatedUnion("driver", [
     driver: z.literal("lima"),
     instance: z.string().min(1).optional(),
     vmType: z.enum(["auto", "vz", "qemu"]).optional(),
-    mountType: z
-      .enum(["auto", "virtiofs", "9p", "reverse-sshfs"])
-      .optional(),
+    mountType: z.enum(["auto", "virtiofs", "9p", "reverse-sshfs"]).optional(),
     rosetta: z.boolean().optional(),
     provision: z.array(z.string()).optional(),
   }),
@@ -252,9 +243,7 @@ const configSchema = z
         description: z.string().optional(),
         isolation: z.enum(["shell", "process"]).optional(),
         pack: z.string().min(1).optional(),
-        stateIsolation: z
-          .enum(["full", "partial", "credentials"])
-          .optional(),
+        stateIsolation: z.enum(["full", "partial", "credentials"]).optional(),
         shim: z.boolean().optional(),
         detect: z.array(z.string().min(1)).optional(),
         auth: z
@@ -445,7 +434,10 @@ export function parseConfig(source: string): IdealityConfig {
   });
   if (errors.length > 0) {
     const detail = errors
-      .map((error) => `${printParseErrorCode(error.error)} at offset ${error.offset}`)
+      .map(
+        (error) =>
+          `${printParseErrorCode(error.error)} at offset ${error.offset}`,
+      )
       .join(", ");
     throw new Error(`Invalid JSONC: ${detail}`);
   }
@@ -465,7 +457,9 @@ export async function loadConfig(
 ): Promise<IdealityConfig> {
   const file = Bun.file(configPath);
   if (!(await file.exists())) {
-    throw new Error(`No ideality config at '${configPath}'. Run 'ideality init'.`);
+    throw new Error(
+      `No ideality config at '${configPath}'. Run 'ideality init'.`,
+    );
   }
   return parseConfig(await file.text());
 }

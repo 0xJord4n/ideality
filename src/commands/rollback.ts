@@ -2,16 +2,15 @@ import os from "node:os";
 
 import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
-
 import {
   getConfigPath,
+  getIdealityHome,
   listConfigSnapshots,
   restoreConfigSnapshot,
 } from "../core/config-store.js";
-import { installShims } from "../integrations/shims.js";
-import { getIdealityHome } from "../core/config-store.js";
-import { installGitIntegration } from "../integrations/git.js";
 import { syncInstalledCompletions } from "../integrations/completion.js";
+import { installGitIntegration } from "../integrations/git.js";
+import { installShims } from "../integrations/shims.js";
 
 const rollbackCommand = defineCommand({
   name: "rollback",

@@ -3,18 +3,15 @@ import os from "node:os";
 import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
-import {
-  loadConfig,
-  saveConfig,
-} from "../core/config-store.js";
+import { loadConfig, saveConfig } from "../core/config-store.js";
 import { findIdentityDirectories } from "../core/file-search.js";
 import { deriveIdentityId } from "../core/identity-id.js";
 import { ensureNetwork } from "../core/network-manager.js";
 import { runProcess } from "../core/process.js";
 import { loadRuntime } from "../core/runtime.js";
 import {
-  guestWorkspacePath,
   ensureVmRunning,
+  guestWorkspacePath,
   networkDnsServers,
   runVmCommand,
   vmCapability,
@@ -22,16 +19,10 @@ import {
   writeVmConfig,
 } from "../core/vm.js";
 import type { VmProfile } from "../domain/config.js";
-import {
-  commandArguments,
-  printJson,
-  requirePositional,
-} from "./shared.js";
+import { commandArguments, printJson, requirePositional } from "./shared.js";
 
 type VmDriver = VmProfile["driver"];
-type DirectoryChoice =
-  | { kind: "directory"; path: string }
-  | { kind: "manual" };
+type DirectoryChoice = { kind: "directory"; path: string } | { kind: "manual" };
 
 function parseCommand(value: string | undefined, name: string): string[] {
   if (!value) throw new Error(`--${name} is required for a custom VM`);
@@ -74,17 +65,12 @@ async function prepareVm(
   const network = profile.network
     ? runtime.config.networks?.[profile.network]
     : undefined;
-  const configPath = await writeVmConfig(
-    vmId,
-    profile,
-    runtime.resolved,
-    {
-      home: runtime.home,
-      idealityHome: runtime.idealityHome,
-      networkDns: networkDnsServers(network?.dns),
-      networkRequired: Boolean(profile.network),
-    },
-  );
+  const configPath = await writeVmConfig(vmId, profile, runtime.resolved, {
+    home: runtime.home,
+    idealityHome: runtime.idealityHome,
+    networkDns: networkDnsServers(network?.dns),
+    networkRequired: Boolean(profile.network),
+  });
   return { runtime, profile, configPath };
 }
 
@@ -121,7 +107,9 @@ const vmCommandGroup = defineGroup({
           const capability = vmCapability(profile);
           console.log(
             `${id.padEnd(18)} ${profile.driver.padEnd(18)} ${
-              capability.available ? colors.green("ready") : colors.yellow("missing")
+              capability.available
+                ? colors.green("ready")
+                : colors.yellow("missing")
             }  ${capability.detail}`,
           );
         }
@@ -172,7 +160,8 @@ const vmCommandGroup = defineGroup({
           description: "Guest image URL or backend image reference",
         }),
         provision: option(z.string().optional(), {
-          description: "Lima system provisioning scripts as a JSON string array",
+          description:
+            "Lima system provisioning scripts as a JSON string array",
         }),
         instance: option(z.string().optional(), {
           description: "Backend instance name",
@@ -256,9 +245,21 @@ const vmCommandGroup = defineGroup({
             default: driver ?? "lima",
             options: [
               { label: "Lima", value: "lima", hint: "macOS VZ or Linux QEMU" },
-              { label: "Apple Virtualization", value: "apple-vz", hint: "helper required" },
-              { label: "Cloud Hypervisor", value: "cloud-hypervisor", hint: "helper required" },
-              { label: "Firecracker", value: "firecracker", hint: "Linux + /dev/kvm + helper" },
+              {
+                label: "Apple Virtualization",
+                value: "apple-vz",
+                hint: "helper required",
+              },
+              {
+                label: "Cloud Hypervisor",
+                value: "cloud-hypervisor",
+                hint: "helper required",
+              },
+              {
+                label: "Firecracker",
+                value: "firecracker",
+                hint: "Linux + /dev/kvm + helper",
+              },
               { label: "Custom adapter", value: "custom" },
             ],
           });
@@ -293,20 +294,29 @@ const vmCommandGroup = defineGroup({
             });
           }
           const directories = await findIdentityDirectories(os.homedir());
-          const selected = await prompt.filter<DirectoryChoice>("Workspace mount", {
-            options: [
-              { label: "Resolve the active project root at runtime", value: { kind: "directory", path: "{{root}}" } },
-              ...directories.map((directory) => ({
-                label: directory,
-                value: { kind: "directory", path: directory } as const,
-              })),
-              { label: "Enter another path", value: { kind: "manual" } as const },
-            ],
-            placeholder: "Type to fuzzy search directories",
-            fuzzy: true,
-            limit: 12,
-            height: 10,
-          });
+          const selected = await prompt.filter<DirectoryChoice>(
+            "Workspace mount",
+            {
+              options: [
+                {
+                  label: "Resolve the active project root at runtime",
+                  value: { kind: "directory", path: "{{root}}" },
+                },
+                ...directories.map((directory) => ({
+                  label: directory,
+                  value: { kind: "directory", path: directory } as const,
+                })),
+                {
+                  label: "Enter another path",
+                  value: { kind: "manual" } as const,
+                },
+              ],
+              placeholder: "Type to fuzzy search directories",
+              fuzzy: true,
+              limit: 12,
+              height: 10,
+            },
+          );
           const choice = Array.isArray(selected) ? selected[0] : selected;
           mount =
             choice?.kind === "directory"
@@ -321,11 +331,13 @@ const vmCommandGroup = defineGroup({
                 default: network,
                 options: [
                   { label: "No VPN requirement", value: undefined },
-                  ...Object.entries(config.networks ?? {}).map(([id, profile]) => ({
-                    label: profile.label ?? id,
-                    value: id,
-                    hint: `${profile.driver} / ${profile.killSwitch ?? "required"}`,
-                  })),
+                  ...Object.entries(config.networks ?? {}).map(
+                    ([id, profile]) => ({
+                      label: profile.label ?? id,
+                      value: id,
+                      hint: `${profile.driver} / ${profile.killSwitch ?? "required"}`,
+                    }),
+                  ),
                 ],
               },
             );
@@ -335,9 +347,12 @@ const vmCommandGroup = defineGroup({
           });
           if (
             driver === "lima" &&
-            await prompt.confirm("Add idempotent guest provisioning scripts?", {
-              default: Boolean(provision),
-            })
+            (await prompt.confirm(
+              "Add idempotent guest provisioning scripts?",
+              {
+                default: Boolean(provision),
+              },
+            ))
           ) {
             provision = await prompt.text("Provision scripts (JSON array)", {
               default: provision ?? '["#!/bin/sh\\nset -eu\\napt-get update"]',
@@ -377,7 +392,8 @@ const vmCommandGroup = defineGroup({
             });
           }
         }
-        if (!driver) throw new Error("--driver is required in non-interactive mode");
+        if (!driver)
+          throw new Error("--driver is required in non-interactive mode");
         const id =
           flags.id ?? deriveIdentityId(label, Object.keys(config.vms ?? {}));
         const common = {
@@ -427,13 +443,18 @@ const vmCommandGroup = defineGroup({
         } else {
           profile = { ...common, driver, helper };
         }
-        if (config.vms?.[id]) throw new Error(`VM profile '${id}' already exists`);
+        if (config.vms?.[id])
+          throw new Error(`VM profile '${id}' already exists`);
         if (interactive) {
           prompt.note(
             `${label} (${id})\nBackend: ${driver}\nWorkspace: ${common.mounts[0]!.source} -> ${common.workspaceTarget}\nVPN: ${network ?? "none"}`,
             "Review",
           );
-          if (!(await prompt.confirm("Create this VM profile?", { default: true }))) {
+          if (
+            !(await prompt.confirm("Create this VM profile?", {
+              default: true,
+            }))
+          ) {
             prompt.cancel("No files were changed.");
             return;
           }
@@ -449,7 +470,8 @@ const vmCommandGroup = defineGroup({
     }),
     defineCommand({
       name: "bind",
-      description: "Route an identity or one tool through a VM and optional VPN",
+      description:
+        "Route an identity or one tool through a VM and optional VPN",
       options: {
         tool: option(z.string().optional(), {
           description: "Apply only to this tool",
@@ -463,8 +485,10 @@ const vmCommandGroup = defineGroup({
         const vmId = requirePositional(positional, 1, "VM profile");
         const config = await loadConfig();
         const identity = config.identities[identityId];
-        if (!identity) throw new Error(`Identity '${identityId}' does not exist`);
-        if (!config.vms?.[vmId]) throw new Error(`VM profile '${vmId}' does not exist`);
+        if (!identity)
+          throw new Error(`Identity '${identityId}' does not exist`);
+        if (!config.vms?.[vmId])
+          throw new Error(`VM profile '${vmId}' does not exist`);
         if (flags.network && !config.networks?.[flags.network]) {
           throw new Error(`Network profile '${flags.network}' does not exist`);
         }
@@ -474,7 +498,8 @@ const vmCommandGroup = defineGroup({
           network: flags.network,
         };
         if (flags.tool) {
-          if (!config.tools[flags.tool]) throw new Error(`Tool '${flags.tool}' does not exist`);
+          if (!config.tools[flags.tool])
+            throw new Error(`Tool '${flags.tool}' does not exist`);
           (identity.tools[flags.tool] ??= {}).execution = execution;
         } else {
           identity.execution = execution;
@@ -502,12 +527,14 @@ const vmCommandGroup = defineGroup({
         const identityId = requirePositional(positional, 0, "identity ID");
         const config = await loadConfig();
         const identity = config.identities[identityId];
-        if (!identity) throw new Error(`Identity '${identityId}' does not exist`);
+        if (!identity)
+          throw new Error(`Identity '${identityId}' does not exist`);
         if (flags.network && !config.networks?.[flags.network]) {
           throw new Error(`Network profile '${flags.network}' does not exist`);
         }
         if (flags.tool) {
-          if (!config.tools[flags.tool]) throw new Error(`Tool '${flags.tool}' does not exist`);
+          if (!config.tools[flags.tool])
+            throw new Error(`Tool '${flags.tool}' does not exist`);
           (identity.tools[flags.tool] ??= {}).execution = {
             target: "host",
             network: flags.network,
@@ -581,12 +608,9 @@ const vmCommandGroup = defineGroup({
         const vmId = requirePositional(positional, 0, "VM profile");
         const prepared = await prepareVm(vmId, flags.path, flags.identity);
         const command = commandArguments(positional, 1);
-        if (command.length === 0) throw new Error("VM exec requires a command after --");
-        await ensureVmRunning(
-          vmId,
-          prepared.profile,
-          prepared.configPath,
-        );
+        if (command.length === 0)
+          throw new Error("VM exec requires a command after --");
+        await ensureVmRunning(vmId, prepared.profile, prepared.configPath);
         const workspace = prepared.profile.workspaceTarget ?? "/workspace";
         const env = {
           HOME: process.env.HOME ?? os.homedir(),
@@ -618,16 +642,19 @@ const vmCommandGroup = defineGroup({
         if (!flags.force) throw new Error("VM removal requires --force");
         const id = requirePositional(positional, 0, "VM profile");
         const config = await loadConfig();
-        if (!config.vms?.[id]) throw new Error(`VM profile '${id}' does not exist`);
+        if (!config.vms?.[id])
+          throw new Error(`VM profile '${id}' does not exist`);
         const referenced = Object.values(config.identities).some(
           (identity) =>
-            (identity.execution?.target === "vm" && identity.execution.vm === id) ||
+            (identity.execution?.target === "vm" &&
+              identity.execution.vm === id) ||
             Object.values(identity.tools).some(
               (tool) =>
                 tool.execution?.target === "vm" && tool.execution.vm === id,
             ),
         );
-        if (referenced) throw new Error(`VM profile '${id}' is still referenced`);
+        if (referenced)
+          throw new Error(`VM profile '${id}' is still referenced`);
         delete config.vms[id];
         await saveConfig(config);
         console.log(colors.green(`Removed VM profile '${id}'`));

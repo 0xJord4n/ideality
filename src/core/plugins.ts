@@ -1,7 +1,7 @@
 import { chmod, mkdir, readdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 
-import { parse, printParseErrorCode, type ParseError } from "jsonc-parser";
+import { type ParseError, parse, printParseErrorCode } from "jsonc-parser";
 import { z } from "zod";
 
 import type {

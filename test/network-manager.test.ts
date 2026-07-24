@@ -2,16 +2,12 @@ import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-
+import { loadActiveNetwork } from "../src/core/network.js";
 import {
   activateNetwork,
   deactivateNetwork,
 } from "../src/core/network-manager.js";
-import { loadActiveNetwork } from "../src/core/network.js";
-import type {
-  IdealityConfig,
-  ResolvedIdentity,
-} from "../src/domain/config.js";
+import type { IdealityConfig, ResolvedIdentity } from "../src/domain/config.js";
 
 let temporary: string | undefined;
 
@@ -153,9 +149,8 @@ describe("network lifecycle", () => {
         quiet: true,
         runner: async (command) => ({
           exitCode: 0,
-          stdout: command[1] === "status"
-            ? "Status update: Disconnected\n"
-            : "",
+          stdout:
+            command[1] === "status" ? "Status update: Disconnected\n" : "",
           stderr: "",
         }),
       }),
@@ -180,9 +175,7 @@ describe("network lifecycle", () => {
       quiet: true,
       runner: async (command) => ({
         exitCode: 0,
-        stdout: command[1] === "status"
-          ? "Status update: Connected\n"
-          : "",
+        stdout: command[1] === "status" ? "Status update: Connected\n" : "",
         stderr: "",
       }),
     });
@@ -213,9 +206,10 @@ describe("network lifecycle", () => {
         quiet: true,
         runner: async (command) => ({
           exitCode: 0,
-          stdout: command[1] === "status"
-            ? JSON.stringify({ BackendState: "Running" })
-            : "",
+          stdout:
+            command[1] === "status"
+              ? JSON.stringify({ BackendState: "Running" })
+              : "",
           stderr: "",
         }),
       }),
@@ -244,12 +238,13 @@ describe("network lifecycle", () => {
         quiet: true,
         runner: async (command) => ({
           exitCode: 0,
-          stdout: command[1] === "status"
-            ? JSON.stringify({
-                BackendState: "Running",
-                ExitNodeStatus: { ID: "node-id", Online: false },
-              })
-            : "",
+          stdout:
+            command[1] === "status"
+              ? JSON.stringify({
+                  BackendState: "Running",
+                  ExitNodeStatus: { ID: "node-id", Online: false },
+                })
+              : "",
           stderr: "",
         }),
       }),
@@ -277,12 +272,13 @@ describe("network lifecycle", () => {
       quiet: true,
       runner: async (command) => ({
         exitCode: 0,
-        stdout: command[1] === "status"
-          ? JSON.stringify({
-              BackendState: "Running",
-              ExitNodeStatus: { ID: "node-id", Online: true },
-            })
-          : "",
+        stdout:
+          command[1] === "status"
+            ? JSON.stringify({
+                BackendState: "Running",
+                ExitNodeStatus: { ID: "node-id", Online: true },
+              })
+            : "",
         stderr: "",
       }),
     });

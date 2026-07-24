@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
-
-import { buildDashboardModel } from "../src/tui/model.js";
 import type { IdealityConfig } from "../src/domain/config.js";
+import { buildDashboardModel } from "../src/tui/model.js";
 
 const config: IdealityConfig = {
   version: 1,

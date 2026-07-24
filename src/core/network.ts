@@ -38,9 +38,7 @@ export interface ActiveNetworkState {
   activatedAt: string;
 }
 
-export function networkCapability(
-  profile: NetworkProfile,
-): NetworkCapability {
+export function networkCapability(profile: NetworkProfile): NetworkCapability {
   switch (profile.driver) {
     case "mullvad":
       return {
@@ -52,19 +50,22 @@ export function networkCapability(
       return {
         executable: profile.executable ?? "tailscale",
         strictKillSwitch: false,
-        detail: "Tailscale exit-node routing requires provider or OS enforcement",
+        detail:
+          "Tailscale exit-node routing requires provider or OS enforcement",
       };
     case "warp":
       return {
         executable: profile.executable ?? "warp-cli",
         strictKillSwitch: false,
-        detail: "WARP requires managed Always On and Switch Locked for enforcement",
+        detail:
+          "WARP requires managed Always On and Switch Locked for enforcement",
       };
     case "wireguard":
       return {
         executable: profile.executable ?? "wg-quick",
         strictKillSwitch: false,
-        detail: "wg-quick does not provide independently verified host enforcement",
+        detail:
+          "wg-quick does not provide independently verified host enforcement",
       };
     case "openvpn":
       return {
@@ -152,10 +153,7 @@ export function buildNetworkPlan(
         ];
       }
       if (action === "down") {
-        const pidPath = requireRuntimePath(
-          options.pidPath,
-          "OpenVPN PID file",
-        );
+        const pidPath = requireRuntimePath(options.pidPath, "OpenVPN PID file");
         return [
           {
             description: `Stop OpenVPN profile ${profileId}`,
@@ -182,9 +180,7 @@ export function buildNetworkPlan(
         "--daemon",
         `ideality-${profileId}`,
         "--auth-nocache",
-        ...(options.authPath
-          ? ["--auth-user-pass", options.authPath]
-          : []),
+        ...(options.authPath ? ["--auth-user-pass", options.authPath] : []),
         ...(profile.extraArgs ?? []),
       ];
       return [
@@ -366,13 +362,7 @@ function mullvadPlan(
   } else if (typeof profile.dns === "object") {
     steps.push({
       description: "Set custom tunnel DNS",
-      command: [
-        executable,
-        "dns",
-        "set",
-        "custom",
-        ...profile.dns.servers,
-      ],
+      command: [executable, "dns", "set", "custom", ...profile.dns.servers],
     });
   }
   if (profile.location) {
@@ -442,9 +432,7 @@ export async function saveActiveNetwork(
   await rename(temporary, file);
 }
 
-export async function clearActiveNetwork(
-  idealityHome: string,
-): Promise<void> {
+export async function clearActiveNetwork(idealityHome: string): Promise<void> {
   await rm(getActiveNetworkPath(idealityHome), { force: true });
 }
 
@@ -455,14 +443,7 @@ function isActiveNetworkState(value: unknown): value is ActiveNetworkState {
     state.version === 1 &&
     typeof state.profile === "string" &&
     typeof state.identity === "string" &&
-    [
-      "wireguard",
-      "openvpn",
-      "mullvad",
-      "tailscale",
-      "warp",
-      "custom",
-    ].includes(
+    ["wireguard", "openvpn", "mullvad", "tailscale", "warp", "custom"].includes(
       state.driver ?? "",
     ) &&
     ["strict", "provider", "off", "unverified"].includes(
