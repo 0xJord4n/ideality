@@ -45,7 +45,7 @@ const statusCommand = defineCommand({
           return {
             name,
             enabled: profile.enabled !== false,
-            installed: executable ? Boolean(Bun.which(executable)) : false,
+            installed: Boolean(executable),
             executable,
             isolation:
               profile.isolation ??

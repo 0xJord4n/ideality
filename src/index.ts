@@ -1,13 +1,17 @@
 #!/usr/bin/env bun
 import { createCLI } from "@bunli/core";
 
+import authCommand from "./commands/auth.js";
 import configCommand from "./commands/config.js";
+import completionCommand from "./commands/completion.js";
 import doctorCommand from "./commands/doctor.js";
 import envCommand from "./commands/env.js";
+import explainCommand from "./commands/explain.js";
 import hookCommand from "./commands/hook.js";
 import identityCommand from "./commands/identity.js";
 import initCommand from "./commands/init.js";
 import installCommand from "./commands/install.js";
+import promptCommand from "./commands/prompt.js";
 import runCommand from "./commands/run.js";
 import secretCommand from "./commands/secret.js";
 import statusCommand from "./commands/status.js";
@@ -25,11 +29,15 @@ for (const command of [
   statusCommand,
   envCommand,
   runCommand,
+  explainCommand,
+  promptCommand,
+  authCommand,
   secretCommand,
   identityCommand,
   toolCommand,
   installCommand,
   hookCommand,
+  completionCommand,
   doctorCommand,
   configCommand,
   tuiCommand,

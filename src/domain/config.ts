@@ -32,7 +32,10 @@ export interface ToolDefinition {
   description?: string;
   isolation?: "shell" | "process";
   detect?: string[];
+  auth?: Partial<Record<AuthAction, string[]>>;
 }
+
+export type AuthAction = "login" | "status" | "logout";
 
 export interface IdealityConfig {
   version: 1;

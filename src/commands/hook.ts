@@ -1,6 +1,6 @@
 import { defineCommand } from "@bunli/core";
 
-import { loadConfig } from "../core/config-store.js";
+import { getIdealityHome, loadConfig } from "../core/config-store.js";
 import { renderShellHook, type SupportedShell } from "../integrations/shell.js";
 import { requirePositional } from "./shared.js";
 
@@ -12,7 +12,13 @@ const hookCommand = defineCommand({
     if (!["zsh", "bash", "fish"].includes(shell)) {
       throw new Error(`Unsupported shell '${shell}'`);
     }
-    process.stdout.write(renderShellHook(await loadConfig(), shell as SupportedShell));
+    process.stdout.write(
+      renderShellHook(
+        await loadConfig(),
+        shell as SupportedShell,
+        getIdealityHome(),
+      ),
+    );
   },
 });
 

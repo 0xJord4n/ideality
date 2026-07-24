@@ -1,4 +1,6 @@
+import { defaultMaxListeners, setMaxListeners } from "node:events";
 import os from "node:os";
+import path from "node:path";
 
 import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
@@ -8,6 +10,11 @@ import {
   loadConfig,
   saveConfig,
 } from "../core/config-store.js";
+import {
+  findIdentityDirectories,
+  findSshPrivateKeys,
+} from "../core/file-search.js";
+import { deriveIdentityId } from "../core/identity-id.js";
 import { expandHome } from "../core/resolution.js";
 import { createToolProfiles } from "../core/starter.js";
 import { installGitIntegration } from "../integrations/git.js";
@@ -22,6 +29,24 @@ import {
 async function saveAndSync(config: Awaited<ReturnType<typeof loadConfig>>): Promise<void> {
   await saveConfig(config);
   await installGitIntegration(config, os.homedir(), getIdealityHome());
+}
+
+type SshMode = "generate" | "existing" | "agent";
+type FileChoice =
+  | { kind: "file"; path: string }
+  | { kind: "manual" };
+
+async function wizardStep<T>(pending: Promise<T>): Promise<T> {
+  const value = await pending;
+  await Bun.sleep(0);
+  return value;
+}
+
+function displayHomePath(file: string, home: string): string {
+  const relative = path.relative(home, file);
+  return relative && !relative.startsWith("..") && !path.isAbsolute(relative)
+    ? `~/${relative}`
+    : file;
 }
 
 const identityCommand = defineGroup({
@@ -74,6 +99,9 @@ const identityCommand = defineGroup({
       name: "add",
       description: "Create an identity and optional SSH key",
       options: {
+        id: option(z.string().optional(), {
+          description: "Override the automatically derived identity ID",
+        }),
         label: option(z.string().optional(), {
           description: "Display label",
         }),
@@ -96,44 +124,248 @@ const identityCommand = defineGroup({
           description: "Generate a new Ed25519 key",
           argumentKind: "flag",
         }),
+        interactive: option(z.boolean().default(false), {
+          description: "Force the identity wizard",
+          argumentKind: "flag",
+        }),
+        "non-interactive": option(z.boolean().default(false), {
+          description: "Never prompt; require an identity ID",
+          argumentKind: "flag",
+        }),
       },
-      handler: async ({ positional, flags, colors }) => {
-        const id = requirePositional(positional, 0, "identity ID");
-        assertIdentityId(id);
+      handler: async ({
+        positional,
+        flags,
+        colors,
+        prompt,
+        spinner,
+        terminal,
+      }) => {
+        if (flags.interactive && flags["non-interactive"]) {
+          throw new Error(
+            "Use either --interactive or --non-interactive, not both",
+          );
+        }
         if (flags["ssh-key"] && flags["generate-ssh"]) {
           throw new Error("Use either --ssh-key or --generate-ssh, not both");
         }
+        const interactive =
+          flags.interactive ||
+          (terminal.isInteractive && !flags["non-interactive"]);
         const config = await loadConfig();
+        const home = os.homedir();
+        const idealityHome = getIdealityHome();
+        let id = flags.id ?? positional[0] ?? "";
+        let label =
+          flags.label ??
+          (id ? id[0]!.toUpperCase() + id.slice(1) : "New identity");
+        let root = flags.root;
+        let git = discoverGitIdentity(
+          flags["git-name"],
+          flags["git-email"],
+        );
+        let sshMode: SshMode = flags["ssh-key"]
+          ? "existing"
+          : flags["generate-ssh"]
+            ? "generate"
+            : "agent";
+        let sshKey = flags["ssh-key"];
+
+        if (interactive) {
+          setMaxListeners(Math.max(defaultMaxListeners, 64));
+          prompt.intro("IDEALITY  /  NEW IDENTITY");
+          label = await wizardStep(
+            prompt.text("Display label", {
+              default: label,
+              validate: (value) =>
+                value.length > 0 || "Display label is required",
+            }),
+          );
+          if (!id) {
+            id = deriveIdentityId(label, Object.keys(config.identities));
+          }
+          assertIdentityId(id);
+          if (config.identities[id]) {
+            throw new Error(`Identity '${id}' already exists`);
+          }
+          prompt.note(id, "Automatic ID");
+
+          const directories = await findIdentityDirectories(home);
+          const selectedRoot = await wizardStep(
+            prompt.filter<FileChoice>("Folder root", {
+              options: [
+                ...directories.map((directory) => ({
+                  label: displayHomePath(directory, home),
+                  value: { kind: "file", path: directory } as const,
+                })),
+                {
+                  label: "Enter another path",
+                  value: { kind: "manual" } as const,
+                },
+              ],
+              placeholder: "Type to fuzzy search directories",
+              fuzzy: true,
+              limit: 12,
+              height: 10,
+            }),
+          );
+          const rootChoice = Array.isArray(selectedRoot)
+            ? selectedRoot[0]
+            : selectedRoot;
+          root =
+            rootChoice?.kind === "file"
+              ? rootChoice.path
+              : await wizardStep(
+                  prompt.text("Folder root path", {
+                    default: root ?? `~/code/${id}`,
+                    validate: (value) =>
+                      value.length > 0 || "Folder root is required",
+                  }),
+                );
+
+          git.name = await wizardStep(
+            prompt.text("Git author name", {
+              default: git.name,
+              validate: (value) =>
+                value.length > 0 || "Git author name is required",
+            }),
+          );
+          git.email = await wizardStep(
+            prompt.text("Git author email", {
+              default: git.email,
+              validate: (value) =>
+                z.string().email().safeParse(value).success ||
+                "Enter a valid email",
+            }),
+          );
+          sshMode = await wizardStep(
+            prompt.select<SshMode>("SSH authentication", {
+              default: sshMode,
+              options: [
+                {
+                  label: "Generate a new Ed25519 key",
+                  value: "generate",
+                },
+                {
+                  label: "Use an existing private key",
+                  value: "existing",
+                },
+                {
+                  label: "Use the default SSH agent",
+                  value: "agent",
+                },
+              ],
+            }),
+          );
+          if (sshMode === "existing") {
+            const keys = await findSshPrivateKeys({
+              home,
+              idealityHome,
+              preferred: sshKey ? expandHome(sshKey, home) : undefined,
+            });
+            const selectedKey = await wizardStep(
+              prompt.filter<FileChoice>("SSH private key", {
+                options: [
+                  ...keys.map((file) => ({
+                    label: displayHomePath(file, home),
+                    value: { kind: "file", path: file } as const,
+                  })),
+                  {
+                    label: "Enter another path",
+                    value: { kind: "manual" } as const,
+                  },
+                ],
+                placeholder: "Type to fuzzy search files",
+                fuzzy: true,
+                limit: 12,
+                height: 10,
+              }),
+            );
+            const keyChoice = Array.isArray(selectedKey)
+              ? selectedKey[0]
+              : selectedKey;
+            sshKey =
+              keyChoice?.kind === "file"
+                ? keyChoice.path
+                : await wizardStep(
+                    prompt.text("SSH private key path", {
+                      default: sshKey ?? "~/.ssh/id_ed25519",
+                    }),
+                  );
+          }
+
+          prompt.note(
+            [
+              `${label} (${id})`,
+              `Root: ${root}`,
+              `Git:  ${git.name} <${git.email}>`,
+              `SSH:  ${sshMode}`,
+            ].join("\n"),
+            "Review",
+          );
+          if (
+            !(await wizardStep(
+              prompt.confirm("Create this identity?", {
+                default: true,
+                fallbackValue: false,
+              }),
+            ))
+          ) {
+            prompt.cancel("No files were changed.");
+            return;
+          }
+        } else if (!id) {
+          throw new Error(
+            "Non-interactive identity creation requires --id or a positional identity ID",
+          );
+        }
+
+        assertIdentityId(id);
         if (config.identities[id]) {
           throw new Error(`Identity '${id}' already exists`);
         }
-        const git = discoverGitIdentity(flags["git-name"], flags["git-email"]);
-        if (flags["ssh-key"]) {
-          const sshKey = expandHome(flags["ssh-key"], os.homedir());
-          if (!(await Bun.file(sshKey).exists())) {
-            throw new Error(`SSH key '${flags["ssh-key"]}' does not exist`);
+        root ??= `~/code/${id}`;
+        if (sshMode === "existing") {
+          const expandedKey = expandHome(sshKey!, home);
+          if (!(await Bun.file(expandedKey).exists())) {
+            throw new Error(`SSH key '${sshKey}' does not exist`);
           }
-          git.sshKey = sshKey;
-        } else if (flags["generate-ssh"]) {
+          git.sshKey = expandedKey;
+        } else if (sshMode === "generate") {
           git.sshKey = (
             await generateSshKey({
               identity: id,
               email: git.email,
-              idealityHome: getIdealityHome(),
+              idealityHome,
             })
           ).privateKey;
         }
         config.identities[id] = {
-          label: flags.label ?? id[0]!.toUpperCase() + id.slice(1),
-          roots: [flags.root ?? `~/code/${id}`],
+          label,
+          roots: [root],
           color: flags.color,
           git,
           tools: createToolProfiles(id),
         };
-        await saveAndSync(config);
-        console.log(colors.green(`Created identity '${id}'`));
+        const spin = interactive
+          ? spinner({ text: "Creating identity", showTimer: true })
+          : null;
+        spin?.start();
+        try {
+          await saveAndSync(config);
+          spin?.succeed("Identity created");
+        } catch (error) {
+          spin?.fail("Identity creation failed");
+          throw error;
+        }
+        if (!interactive) {
+          console.log(colors.green(`Created identity '${id}'`));
+        }
         if (git.sshKey) {
           console.log(`SSH public key: ${git.sshKey}.pub`);
+        }
+        if (interactive) {
+          prompt.outro(`Ready. Active under ${root}`);
         }
       },
     }),

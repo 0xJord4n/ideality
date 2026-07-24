@@ -37,5 +37,10 @@ describe("starter tool profiles", () => {
     expect(profiles.vercel?.env?.XDG_CONFIG_HOME).toContain("/sample/vercel/");
     expect(profiles.chrome?.args?.[0]).toContain("/sample/browsers/chrome");
     expect(profiles.firefox?.args?.[1]).toContain("/sample/browsers/firefox");
+    expect(
+      Object.values(BUILTIN_TOOLS).every(
+        (definition) => definition.isolation === "process",
+      ),
+    ).toBe(true);
   });
 });

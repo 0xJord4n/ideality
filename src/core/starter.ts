@@ -10,11 +10,11 @@ export function createToolProfiles(identity: string): Record<string, ToolProfile
   const secret = `{{idealityHome}}/secrets/${identity}`;
   return {
     gh: {
-      isolation: "shell",
+      isolation: "process",
       env: { GH_CONFIG_DIR: `${profile}/gh` },
     },
     railway: {
-      isolation: "shell",
+      isolation: "process",
       env: {
         RAILWAY_API_TOKEN: {
           from: "file",
@@ -24,7 +24,7 @@ export function createToolProfiles(identity: string): Record<string, ToolProfile
       },
     },
     cf: {
-      isolation: "shell",
+      isolation: "process",
       env: {
         CLOUDFLARE_API_TOKEN: {
           from: "file",
@@ -44,7 +44,7 @@ export function createToolProfiles(identity: string): Record<string, ToolProfile
       },
     },
     codex: {
-      isolation: "shell",
+      isolation: "process",
       env: { CODEX_HOME: `${profile}/codex` },
     },
     claude: {

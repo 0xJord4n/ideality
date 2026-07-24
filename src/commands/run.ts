@@ -36,7 +36,7 @@ const runCommand = defineCommand({
       tool,
       profile?.executable,
     );
-    if (!executable || !Bun.which(executable)) {
+    if (!executable) {
       throw new Error(`Executable for tool '${tool}' is not installed`);
     }
     const childEnv = buildChildEnvironment(runtime.config, environment);

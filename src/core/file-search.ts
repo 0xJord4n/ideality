@@ -10,6 +10,16 @@ const PRIVATE_KEY_HEADERS = [
   "-----BEGIN DSA PRIVATE KEY-----",
   "PuTTY-User-Key-File-",
 ];
+const SKIPPED_DIRECTORIES = new Set([
+  ".git",
+  ".idea",
+  ".next",
+  ".turbo",
+  ".venv",
+  "dist",
+  "node_modules",
+  "target",
+]);
 
 async function isPrivateKeyFile(file: string): Promise<boolean> {
   let handle;
@@ -78,4 +88,46 @@ export async function findSshPrivateKeys(options: {
   return checks
     .filter(({ privateKey }) => privateKey)
     .map(({ file }) => file);
+}
+
+async function collectDirectories(
+  directory: string,
+  maxDepth: number,
+  depth = 0,
+): Promise<string[]> {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch {
+    return [];
+  }
+  const directories: string[] = [];
+  for (const entry of entries.sort((left, right) =>
+    left.name.localeCompare(right.name),
+  )) {
+    if (
+      !entry.isDirectory() ||
+      SKIPPED_DIRECTORIES.has(entry.name) ||
+      entry.name.startsWith(".")
+    ) {
+      continue;
+    }
+    const candidate = path.join(directory, entry.name);
+    directories.push(candidate);
+    if (depth < maxDepth) {
+      directories.push(
+        ...(await collectDirectories(candidate, maxDepth, depth + 1)),
+      );
+    }
+  }
+  return directories;
+}
+
+export async function findIdentityDirectories(home: string): Promise<string[]> {
+  const roots = ["code", "projects", "workspace"]
+    .map((name) => path.join(home, name))
+    .filter((directory, index, all) => all.indexOf(directory) === index);
+  return (
+    await Promise.all(roots.map((directory) => collectDirectories(directory, 3)))
+  ).flat();
 }

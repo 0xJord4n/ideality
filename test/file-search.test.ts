@@ -4,7 +4,10 @@ import path from "node:path";
 
 import { afterEach, describe, expect, test } from "bun:test";
 
-import { findSshPrivateKeys } from "../src/core/file-search.js";
+import {
+  findIdentityDirectories,
+  findSshPrivateKeys,
+} from "../src/core/file-search.js";
 
 const temporaryDirectories: string[] = [];
 
@@ -66,5 +69,30 @@ describe("findSshPrivateKeys", () => {
     await symlink(source, linked);
 
     expect(await findSshPrivateKeys({ home, idealityHome })).toEqual([linked]);
+  });
+});
+
+describe("findIdentityDirectories", () => {
+  test("discovers project directories without descending into metadata", async () => {
+    const home = await mkdtemp(path.join(os.tmpdir(), "ideality-file-search-"));
+    temporaryDirectories.push(home);
+    const code = path.join(home, "code");
+    const project = path.join(code, "sample-project");
+    await mkdir(path.join(project, "src"), { recursive: true });
+    await mkdir(path.join(project, "node_modules", "dependency"), {
+      recursive: true,
+    });
+    await mkdir(path.join(project, ".git", "objects"), { recursive: true });
+
+    const directories = await findIdentityDirectories(home);
+
+    expect(directories).toContain(project);
+    expect(directories).toContain(path.join(project, "src"));
+    expect(
+      directories.some((directory) => directory.includes("node_modules")),
+    ).toBe(false);
+    expect(directories.some((directory) => directory.includes("/.git/"))).toBe(
+      false,
+    );
   });
 });

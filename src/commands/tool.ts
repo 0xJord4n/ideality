@@ -1,8 +1,14 @@
 import { defineCommand, defineGroup, option } from "@bunli/core";
 import { z } from "zod";
 
-import { loadConfig, saveConfig } from "../core/config-store.js";
+import {
+  getIdealityHome,
+  loadConfig,
+  saveConfig,
+} from "../core/config-store.js";
+import { resolveExecutable } from "../core/runtime.js";
 import type { ValueSource } from "../domain/config.js";
+import { installShims } from "../integrations/shims.js";
 import { commandArguments, requirePositional } from "./shared.js";
 
 function parseSource(value: string, optional: boolean): ValueSource | null {
@@ -28,9 +34,7 @@ const toolCommand = defineGroup({
       handler: async ({ colors }) => {
         const config = await loadConfig();
         for (const [name, tool] of Object.entries(config.tools)) {
-          const installed = [tool.executable, ...(tool.detect ?? [])].some(
-            (candidate) => Boolean(Bun.which(candidate)),
-          );
+          const installed = Boolean(resolveExecutable(config, name));
           console.log(
             `${name.padEnd(12)} ${(tool.isolation ?? "shell").padEnd(8)} ${
               installed ? colors.green("ready") : colors.yellow("missing")
@@ -66,6 +70,7 @@ const toolCommand = defineGroup({
           description: flags.description,
         };
         await saveConfig(config);
+        await installShims(config, getIdealityHome());
         console.log(colors.green(`Registered custom tool '${name}'`));
       },
     }),
@@ -93,6 +98,7 @@ const toolCommand = defineGroup({
           delete identity.tools[name];
         }
         await saveConfig(config);
+        await installShims(config, getIdealityHome());
         console.log(colors.green(`Removed tool '${name}'`));
       },
     }),

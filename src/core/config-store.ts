@@ -56,6 +56,13 @@ const configSchema = z
         description: z.string().optional(),
         isolation: z.enum(["shell", "process"]).optional(),
         detect: z.array(z.string().min(1)).optional(),
+        auth: z
+          .object({
+            login: z.array(z.string()).optional(),
+            status: z.array(z.string()).optional(),
+            logout: z.array(z.string()).optional(),
+          })
+          .optional(),
       }),
     ),
   })

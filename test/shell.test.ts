@@ -3,6 +3,7 @@ import { describe, expect, test } from "bun:test";
 import {
   collectManagedVariables,
   renderShellAssignments,
+  renderShellHook,
 } from "../src/integrations/shell.js";
 import type { IdealityConfig } from "../src/domain/config.js";
 
@@ -46,5 +47,33 @@ describe("renderShellAssignments", () => {
       "GH_CONFIG_DIR",
       "IDEALITY_IDENTITY",
     ]);
+  });
+
+  test("adds the dynamic shim directory without static tool functions", () => {
+    const config: IdealityConfig = {
+      version: 1,
+      defaultIdentity: "default",
+      identities: {
+        default: {
+          label: "Default",
+          roots: ["~/code"],
+          tools: { sample: {} },
+        },
+      },
+      tools: {
+        sample: {
+          executable: "sample",
+          isolation: "process",
+        },
+      },
+    };
+
+    const hook = renderShellHook(config, "zsh", "/home/dev/.ideality");
+
+    expect(hook).toContain(
+      "export PATH='/home/dev/.ideality/bin':\"$PATH\"",
+    );
+    expect(hook).not.toContain("sample()");
+    expect(hook).toContain("ideality env --shell zsh");
   });
 });

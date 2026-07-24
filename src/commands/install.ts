@@ -10,6 +10,7 @@ import {
   installShellIntegration,
   type SupportedShell,
 } from "../integrations/shell.js";
+import { installShims } from "../integrations/shims.js";
 
 function defaultRc(shell: SupportedShell, home: string): string {
   if (shell === "fish") {
@@ -41,6 +42,10 @@ const installCommand = defineCommand({
     const config = await loadConfig();
     const home = os.homedir();
     const idealityHome = getIdealityHome();
+    const shims = await installShims(config, idealityHome);
+    console.log(
+      colors.green(`Tool shims: ${shims.directory} (${shims.tools.length})`),
+    );
     if (!flags["no-shell"]) {
       const installed = await installShellIntegration(
         config,

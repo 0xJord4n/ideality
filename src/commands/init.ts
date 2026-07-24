@@ -18,6 +18,7 @@ import {
   installShellIntegration,
   type SupportedShell,
 } from "../integrations/shell.js";
+import { installShims } from "../integrations/shims.js";
 import { generateSshKey } from "../integrations/ssh.js";
 import { assertIdentityId, discoverGitIdentity } from "./shared.js";
 
@@ -349,6 +350,7 @@ const initCommand = defineCommand({
     try {
       await saveConfig(config);
       if (integrations.includes("shell")) {
+        await installShims(config, idealityHome);
         await installShellIntegration(
           config,
           shell,

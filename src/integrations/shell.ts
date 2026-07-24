@@ -61,38 +61,23 @@ export function collectManagedVariables(config: IdealityConfig): string[] {
   return [...names].sort();
 }
 
-function processTools(config: IdealityConfig): string[] {
-  return Object.entries(config.tools)
-    .filter(([name, definition]) => {
-      if (definition.isolation === "process") {
-        return true;
-      }
-      return Object.values(config.identities).some(
-        (identity) => identity.tools[name]?.isolation === "process",
-      );
-    })
-    .map(([name]) => name)
-    .sort();
-}
-
 export function renderShellHook(
-  config: IdealityConfig,
+  _config: IdealityConfig,
   shell: SupportedShell,
+  idealityHome: string,
 ): string {
-  const wrappers = processTools(config);
+  const shimDirectory = path.join(idealityHome, "bin");
   if (shell === "fish") {
     return [
+      `if not contains -- ${fishQuote(shimDirectory)} $PATH`,
+      `  set -gx PATH ${fishQuote(shimDirectory)} $PATH`,
+      "end",
       "function __ideality_apply --on-variable PWD",
       "  command ideality env --shell fish --path \"$PWD\" | source",
       "end",
       "function ideality-refresh",
       "  __ideality_apply",
       "end",
-      ...wrappers.flatMap((tool) => [
-        `function ${tool}`,
-        `  command ideality run ${tool} -- $argv`,
-        "end",
-      ]),
       "__ideality_apply",
       "",
     ].join("\n");
@@ -113,14 +98,15 @@ export function renderShellHook(
         ];
 
   return [
+    `case ":$PATH:" in`,
+    `  *":${shimDirectory}:"*) ;;`,
+    `  *) export PATH=${singleQuote(shimDirectory)}:"$PATH" ;;`,
+    "esac",
     "_ideality_apply() {",
     `  eval "$(command ideality env --shell ${shell} --path "$PWD")"`,
     "}",
     "ideality-refresh() { _ideality_apply; }",
     ...hook,
-    ...wrappers.map(
-      (tool) => `${tool}() { command ideality run ${tool} -- "$@"; }`,
-    ),
     "_ideality_apply",
     "",
   ].join("\n");
@@ -136,7 +122,7 @@ export async function installShellIntegration(
   const extension = shell === "fish" ? "fish" : shell;
   const hookPath = path.join(directory, `ideality.${extension}`);
   await mkdir(directory, { recursive: true, mode: 0o700 });
-  await Bun.write(hookPath, renderShellHook(config, shell));
+  await Bun.write(hookPath, renderShellHook(config, shell, idealityHome));
   await chmod(hookPath, 0o600);
 
   const rcFile = Bun.file(rcPath);

@@ -122,11 +122,11 @@ export async function runDoctor(
   for (const [tool, definition] of Object.entries(config.tools)) {
     const executable = resolveExecutable(config, tool);
     checks.push({
-      status: executable && Bun.which(executable) ? "pass" : "warn",
+      status: executable ? "pass" : "warn",
       subject: tool,
       message:
-        executable && Bun.which(executable)
-          ? `executable ${Bun.which(executable)}`
+        executable
+          ? `executable ${executable}`
           : `executable '${definition.executable}' is not installed`,
     });
   }
