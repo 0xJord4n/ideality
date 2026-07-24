@@ -16,9 +16,7 @@
     "args": [
       {
         "fromIdentity": "sshKey",
-        "prefix": [
-          "-i"
-        ]
+        "prefix": ["-i"]
       }
     ]
   }

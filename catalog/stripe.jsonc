@@ -13,13 +13,8 @@
     "state": "credentials"
   },
   "auth": {
-    "login": [
-      "login"
-    ],
-    "status": [
-      "config",
-      "--list"
-    ]
+    "login": ["login"],
+    "status": ["config", "--list"]
   },
   "profile": {
     "env": {

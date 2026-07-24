@@ -124,7 +124,9 @@ export function renderManifestTemplate(options: ScaffoldOptions): string {
   const rendered = lines.join("\n");
   const manifest = parseToolAdapterManifest(rendered);
   if (manifest.id !== options.id) {
-    throw new Error(`Rendered manifest ID '${manifest.id}' does not match '${options.id}'`);
+    throw new Error(
+      `Rendered manifest ID '${manifest.id}' does not match '${options.id}'`,
+    );
   }
   return rendered;
 }
@@ -137,8 +139,13 @@ const MANIFEST_SOURCES_ANCHOR = "const MANIFEST_SOURCES: readonly string[] = [";
 export function registerManifestImport(source: string, id: string): string {
   const importPath = `../../catalog/${id}.jsonc`;
   const variable = manifestVariableName(id);
-  if (source.includes(`"${importPath}"`) || new RegExp(`\\b${variable}\\b`).test(source)) {
-    throw new Error(`Tool adapter '${id}' is already registered in builtins.ts`);
+  if (
+    source.includes(`"${importPath}"`) ||
+    new RegExp(`\\b${variable}\\b`).test(source)
+  ) {
+    throw new Error(
+      `Tool adapter '${id}' is already registered in builtins.ts`,
+    );
   }
   const imports = [...source.matchAll(MANIFEST_IMPORT_PATTERN)];
   const lastImport = imports.at(-1);
@@ -155,10 +162,14 @@ export function registerManifestImport(source: string, id: string): string {
   }
   const closeIndex = updated.indexOf("\n];", anchorIndex);
   if (closeIndex === -1) {
-    throw new Error("Could not find the end of MANIFEST_SOURCES in builtins.ts");
+    throw new Error(
+      "Could not find the end of MANIFEST_SOURCES in builtins.ts",
+    );
   }
   updated =
-    updated.slice(0, closeIndex) + `\n  ${variable},` + updated.slice(closeIndex);
+    updated.slice(0, closeIndex) +
+    `\n  ${variable},` +
+    updated.slice(closeIndex);
   return updated;
 }
 
@@ -171,7 +182,10 @@ export async function loadCatalog(
   for (const file of byteSort(await readdir(directory))) {
     if (!file.endsWith(".jsonc")) {
       issues.push(
-        issue(file, `${file}: unexpected file in catalog/ (only .jsonc manifests are allowed)`),
+        issue(
+          file,
+          `${file}: unexpected file in catalog/ (only .jsonc manifests are allowed)`,
+        ),
       );
       continue;
     }
@@ -207,7 +221,10 @@ export function checkCatalogEntries(
     const idOwner = idOwners.get(entry.id);
     if (idOwner) {
       issues.push(
-        issue(entry.file, `${entry.file}: duplicate tool ID '${entry.id}' (also in ${idOwner})`),
+        issue(
+          entry.file,
+          `${entry.file}: duplicate tool ID '${entry.id}' (also in ${idOwner})`,
+        ),
       );
     } else {
       idOwners.set(entry.id, entry.file);
@@ -317,13 +334,17 @@ function extractRegex(source: string, name: string): string | undefined {
 }
 
 function extractEnum(source: string, field: string): string[] | undefined {
-  const match = new RegExp(`${field}: z\\.enum\\(\\[([^\\]]*)\\]\\)`).exec(source);
+  const match = new RegExp(`${field}: z\\.enum\\(\\[([^\\]]*)\\]\\)`).exec(
+    source,
+  );
   if (!match?.[1]) return undefined;
   return match[1].split(",").map((part) => part.trim().replace(/^"|"$/g, ""));
 }
 
 function sameList(a: unknown, b: string[]): boolean {
-  return Array.isArray(a) && a.length === b.length && a.every((v, i) => v === b[i]);
+  return (
+    Array.isArray(a) && a.length === b.length && a.every((v, i) => v === b[i])
+  );
 }
 
 /** Verify the editor JSON schema has not drifted from the runtime zod parser. */
@@ -353,11 +374,22 @@ export async function checkSchemaSync(): Promise<CatalogIssue[]> {
   const patterns: Array<[string, string, Array<string | number>]> = [
     ["SAFE_ID", "id pattern", ["properties", "id", "pattern"]],
     ["SAFE_ID", "pack pattern", ["properties", "pack", "pattern"]],
-    ["SAFE_EXECUTABLE", "executable pattern", ["$defs", "executableName", "pattern"]],
+    [
+      "SAFE_EXECUTABLE",
+      "executable pattern",
+      ["$defs", "executableName", "pattern"],
+    ],
     [
       "SAFE_VARIABLE",
       "profile env name pattern",
-      ["properties", "profile", "properties", "env", "propertyNames", "pattern"],
+      [
+        "properties",
+        "profile",
+        "properties",
+        "env",
+        "propertyNames",
+        "pattern",
+      ],
     ],
   ];
   for (const [constant, what, schemaPath] of patterns) {
@@ -370,7 +402,9 @@ export async function checkSchemaSync(): Promise<CatalogIssue[]> {
     if (actual !== expected) drift(what, expected, actual);
   }
 
-  const envSource = (get(schema, "$defs", "valueSource", "oneOf") as unknown[] | undefined)?.find(
+  const envSource = (
+    get(schema, "$defs", "valueSource", "oneOf") as unknown[] | undefined
+  )?.find(
     (candidate) => get(candidate, "properties", "from", "const") === "env",
   );
   const variablePattern = extractRegex(runtime, "SAFE_VARIABLE");
@@ -387,9 +421,21 @@ export async function checkSchemaSync(): Promise<CatalogIssue[]> {
   }
 
   const enums: Array<[string, string, Array<string | number>]> = [
-    ["scope", "isolation scope enum", ["properties", "isolation", "properties", "scope", "enum"]],
-    ["state", "isolation state enum", ["properties", "isolation", "properties", "state", "enum"]],
-    ["fromIdentity", "identity argument enum", ["$defs", "identityArg", "properties", "fromIdentity", "enum"]],
+    [
+      "scope",
+      "isolation scope enum",
+      ["properties", "isolation", "properties", "scope", "enum"],
+    ],
+    [
+      "state",
+      "isolation state enum",
+      ["properties", "isolation", "properties", "state", "enum"],
+    ],
+    [
+      "fromIdentity",
+      "identity argument enum",
+      ["$defs", "identityArg", "properties", "fromIdentity", "enum"],
+    ],
   ];
   for (const [field, what, schemaPath] of enums) {
     const expected = extractEnum(runtime, field);
@@ -402,7 +448,9 @@ export async function checkSchemaSync(): Promise<CatalogIssue[]> {
   }
 
   const authKeys = Object.keys(
-    (get(schema, "properties", "auth", "properties") as Record<string, unknown> | undefined) ?? {},
+    (get(schema, "properties", "auth", "properties") as
+      | Record<string, unknown>
+      | undefined) ?? {},
   );
   if (!sameList(authKeys, ["login", "status", "logout"])) {
     drift("auth actions", ["login", "status", "logout"], authKeys);

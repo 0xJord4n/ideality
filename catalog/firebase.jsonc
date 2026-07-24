@@ -13,15 +13,9 @@
     "state": "full"
   },
   "auth": {
-    "login": [
-      "login"
-    ],
-    "status": [
-      "login:list"
-    ],
-    "logout": [
-      "logout"
-    ]
+    "login": ["login"],
+    "status": ["login:list"],
+    "logout": ["logout"]
   },
   "profile": {
     "env": {

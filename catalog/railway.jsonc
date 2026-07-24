@@ -13,15 +13,9 @@
     "state": "credentials"
   },
   "auth": {
-    "login": [
-      "login"
-    ],
-    "status": [
-      "whoami"
-    ],
-    "logout": [
-      "logout"
-    ]
+    "login": ["login"],
+    "status": ["whoami"],
+    "logout": ["logout"]
   },
   "profile": {
     "env": {

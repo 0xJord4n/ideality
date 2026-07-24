@@ -126,7 +126,10 @@ export function parsePolicyDocument(source: string): PolicyParseResult {
   });
   if (errors.length > 0) {
     const detail = errors
-      .map((error) => `${printParseErrorCode(error.error)} at offset ${error.offset}`)
+      .map(
+        (error) =>
+          `${printParseErrorCode(error.error)} at offset ${error.offset}`,
+      )
       .join(", ");
     return {
       ok: false,
@@ -181,14 +184,18 @@ export function parsePolicyDocument(source: string): PolicyParseResult {
   return { ok: true, policy: result.data };
 }
 
-function sortedEntries<T>(record: Record<string, T> | undefined): Array<[string, T]> {
+function sortedEntries<T>(
+  record: Record<string, T> | undefined,
+): Array<[string, T]> {
   return Object.entries(record ?? {}).sort(([a], [b]) =>
     a < b ? -1 : a > b ? 1 : 0,
   );
 }
 
 function hasAuthCommands(auth: ToolDefinition["auth"]): boolean {
-  return Object.values(auth ?? {}).some((command) => (command?.length ?? 0) > 0);
+  return Object.values(auth ?? {}).some(
+    (command) => (command?.length ?? 0) > 0,
+  );
 }
 
 function effectiveNetwork(
@@ -197,7 +204,8 @@ function effectiveNetwork(
 ): string | null {
   if (!execution) return null;
   if (execution.network) return execution.network;
-  if (execution.target === "vm") return config.vms?.[execution.vm]?.network ?? null;
+  if (execution.target === "vm")
+    return config.vms?.[execution.vm]?.network ?? null;
   return null;
 }
 
@@ -327,7 +335,11 @@ export function evaluatePolicy(
     });
   }
   const permittedBackends = policy.secrets?.permittedBackends;
-  if (permittedBackends && backend && !permittedBackends.includes(backend.type)) {
+  if (
+    permittedBackends &&
+    backend &&
+    !permittedBackends.includes(backend.type)
+  ) {
     findings.push({
       code: "secret-backend-not-permitted",
       subject: "secretBackend",
@@ -390,7 +402,10 @@ export async function checkProjectPolicy(
     projectRoot,
     policyPath,
     policy: policy
-      ? { version: policy.version, ...(policy.label ? { label: policy.label } : {}) }
+      ? {
+          version: policy.version,
+          ...(policy.label ? { label: policy.label } : {}),
+        }
       : null,
     findings,
   };

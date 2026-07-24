@@ -27,8 +27,12 @@ const pluginCommand = defineGroup({
       handler: async ({ colors }) => {
         const idealityHome = getIdealityHome();
         const config = await loadConfig();
-        for (const { file, manifest } of await listPluginManifests(idealityHome)) {
-          const state = config.tools[manifest.id] ? colors.green("active") : colors.yellow("detached");
+        for (const { file, manifest } of await listPluginManifests(
+          idealityHome,
+        )) {
+          const state = config.tools[manifest.id]
+            ? colors.green("active")
+            : colors.yellow("detached");
           console.log(
             `${manifest.id.padEnd(16)} ${state.padEnd(8)} ${manifest.executable.primary}  ${file}`,
           );

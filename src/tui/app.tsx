@@ -123,9 +123,7 @@ function TuiApp({ context, onExit }: TuiAppProps) {
 
   const runPreviewSnapshot = (snapshot: string) => {
     previewRollbackSnapshot(snapshot, context.configPath)
-      .then((preview) =>
-        dispatch({ type: "rollback-previewed", ...preview }),
-      )
+      .then((preview) => dispatch({ type: "rollback-previewed", ...preview }))
       .catch((error: unknown) =>
         dispatch({ type: "rollback-failed", error: errorText(error) }),
       );
@@ -164,7 +162,9 @@ function TuiApp({ context, onExit }: TuiAppProps) {
   };
 
   const requireCleanDraft = (action: DashboardAction): void => {
-    if (diffConfigs(stateRef.current.saved, stateRef.current.draft).length > 0) {
+    if (
+      diffConfigs(stateRef.current.saved, stateRef.current.draft).length > 0
+    ) {
       dispatch({
         type: "status",
         status: {
@@ -326,7 +326,11 @@ function TuiApp({ context, onExit }: TuiAppProps) {
       {state.screen === "auth" && <AuthScreen state={state} />}
       {state.screen === "policy" && <PolicyScreen state={state} />}
 
-      <Footer state={state} stagedCount={stagedDiff.length} dispatch={dispatch} />
+      <Footer
+        state={state}
+        stagedCount={stagedDiff.length}
+        dispatch={dispatch}
+      />
     </box>
   );
 }
@@ -366,7 +370,9 @@ function DashboardScreen({ state, model }: DashboardScreenProps) {
                   }
                 >
                   {`${selected ? "> " : "  "}${identity.name}`}
-                  <span fg={COLORS.faint}>{`  ${identity.description ?? ""}`}</span>
+                  <span
+                    fg={COLORS.faint}
+                  >{`  ${identity.description ?? ""}`}</span>
                 </text>
               );
             })}
@@ -392,7 +398,9 @@ function DashboardScreen({ state, model }: DashboardScreenProps) {
               }
             >
               {`${
-                state.pane === "roots" && index === state.rootCursor ? "> " : "  "
+                state.pane === "roots" && index === state.rootCursor
+                  ? "> "
+                  : "  "
               }${root}`}
             </text>
           ))}
@@ -431,16 +439,19 @@ function DashboardScreen({ state, model }: DashboardScreenProps) {
             ? ` / VPN ${model.selected.execution.network}`
             : ""}
         </text>
-        <text
-          fg={state.pane === "tools" ? COLORS.accent : COLORS.yellow}
-        >
+        <text fg={state.pane === "tools" ? COLORS.accent : COLORS.yellow}>
           TOOLS
         </text>
         <scrollbox focused={false} style={{ flexGrow: 1 }}>
           {model.selected.tools.map((tool, index) => {
-            const active = isToolActive(state.draft, model.selected.id, tool.name);
+            const active = isToolActive(
+              state.draft,
+              model.selected.id,
+              tool.name,
+            );
             const staged =
-              active !== isToolActive(state.saved, model.selected.id, tool.name);
+              active !==
+              isToolActive(state.saved, model.selected.id, tool.name);
             const cursor =
               state.pane === "tools" &&
               index === state.toolCursor &&
@@ -642,9 +653,9 @@ function PolicyScreen({ state }: { state: TuiState }) {
             <text fg={COLORS.green}>All policy checks passed.</text>
           ) : (
             <scrollbox focused={false} style={{ flexGrow: 1 }}>
-              {result.findings.map((finding, index) => (
+              {result.findings.map((finding) => (
                 <text
-                  key={`${finding.code}:${finding.subject}:${index}`}
+                  key={`${finding.code}:${finding.subject}:${finding.message}`}
                   fg={COLORS.amber}
                 >
                   {`${finding.code.padEnd(28)} ${finding.subject}: ${finding.message}`}

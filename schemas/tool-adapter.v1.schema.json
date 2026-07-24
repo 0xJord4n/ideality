@@ -4,7 +4,14 @@
   "description": "Declarative catalog entry for one tool adapter. Auth commands and profile arguments are argv arrays only; the manifest cannot express shell hooks or command strings, and unknown fields are rejected.",
   "type": "object",
   "additionalProperties": false,
-  "required": ["schemaVersion", "kind", "id", "displayName", "pack", "executable"],
+  "required": [
+    "schemaVersion",
+    "kind",
+    "id",
+    "displayName",
+    "pack",
+    "executable"
+  ],
   "properties": {
     "schemaVersion": {
       "const": 1,

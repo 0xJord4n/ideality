@@ -15,11 +15,7 @@ import {
 } from "../core/environment.js";
 import { loadRuntime, resolveExecutable } from "../core/runtime.js";
 import type { AuthAction } from "../domain/config.js";
-import {
-  commandArguments,
-  printJson,
-  requirePositional,
-} from "./shared.js";
+import { commandArguments, printJson, requirePositional } from "./shared.js";
 
 const ACTIONS = new Set<AuthAction>(["login", "status", "logout"]);
 

@@ -134,7 +134,9 @@ const manifestSchema = z
     profile: z
       .object({
         env: z.record(valueSourceSchema.nullable()).optional(),
-        args: z.array(z.union([z.string().min(1), identityArgSchema])).optional(),
+        args: z
+          .array(z.union([z.string().min(1), identityArgSchema]))
+          .optional(),
       })
       .strict()
       .optional(),
@@ -232,7 +234,9 @@ export function compileToolProfile(
     profile.env = structuredClone(env);
   }
   const args = (manifest.profile?.args ?? []).flatMap((entry) =>
-    typeof entry === "string" ? [entry] : resolveIdentityArg(entry, identity.git),
+    typeof entry === "string"
+      ? [entry]
+      : resolveIdentityArg(entry, identity.git),
   );
   if (args.length > 0) {
     profile.args = args;

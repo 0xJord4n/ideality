@@ -7,9 +7,7 @@
   "pack": "registries",
   "executable": {
     "primary": "pip",
-    "alternatives": [
-      "pip3"
-    ]
+    "alternatives": ["pip3"]
   },
   "isolation": {
     "scope": "process",

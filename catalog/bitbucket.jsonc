@@ -7,9 +7,7 @@
   "pack": "source-control",
   "executable": {
     "primary": "bitbucket",
-    "alternatives": [
-      "bb"
-    ]
+    "alternatives": ["bb"]
   },
   "isolation": {
     "scope": "process",

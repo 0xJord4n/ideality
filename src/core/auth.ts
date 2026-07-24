@@ -14,7 +14,7 @@ import {
   isSensitiveVariable,
   type ResolvedEnvironment,
 } from "./environment.js";
-import { runProcess, type ProcessRunner } from "./process.js";
+import { type ProcessRunner, runProcess } from "./process.js";
 import { expandHome } from "./resolution.js";
 import { resolveExecutable } from "./runtime.js";
 
@@ -50,12 +50,17 @@ export interface AuthHealthOptions {
   idealityHome?: string;
   timeoutMs?: number;
   runner?: ProcessRunner;
-  resolveExecutable?: (tool: string, profileExecutable?: string) => string | null;
+  resolveExecutable?: (
+    tool: string,
+    profileExecutable?: string,
+  ) => string | null;
 }
 
 export const DEFAULT_AUTH_STATUS_TIMEOUT_MS = 10_000;
 
 const DETAIL_LIMIT = 160;
+// biome-ignore lint/complexity/useRegexLiterals: a literal would embed an ANSI control character in source.
+const ANSI_SGR_PATTERN = new RegExp("\\u001B\\[[0-9;]*m", "g");
 
 const TOKEN_PATTERNS = [
   /\b(?:gh[pousr]|github_pat)_[A-Za-z0-9_]{16,}\b/g,
@@ -250,7 +255,7 @@ function summarizeOutput(
   const firstLine =
     [stdout, stderr]
       .flatMap((chunk) => chunk.split("\n"))
-      .map((line) => line.replace(/\u001B\[[0-9;]*m/g, "").trim())
+      .map((line) => line.replace(ANSI_SGR_PATTERN, "").trim())
       .find((line) => line.length > 0) ?? "";
   return truncateDetail(redactAuthOutput(firstLine, secretValues));
 }

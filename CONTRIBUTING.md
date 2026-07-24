@@ -4,6 +4,30 @@ Thanks for improving Ideality. The most common contribution is a new built-in
 tool adapter, and that workflow is fully tooled: you author **one file**, the
 scripts handle everything else.
 
+## Development setup
+
+Install Bun 1.3.14 or a compatible 1.3.x release, then install the locked
+dependencies:
+
+```bash
+bun install --frozen-lockfile
+```
+
+Run the CLI from source with `bun run dev`. Keep changes focused, add tests for
+observable behavior, and avoid committing generated output from `dist/`,
+`.codegraph/`, or `.omc/`.
+
+Before opening a pull request, run:
+
+```bash
+bun run check
+bun run audit
+```
+
+Run `bun run perf:check` when changing startup, bundling, imports, or command
+registration. It enforces the budgets in `performance-budgets.json`. Use
+`bun run format` to apply the repository formatter.
+
 ## Add a built-in tool adapter
 
 ### 1. Scaffold
@@ -94,9 +118,37 @@ mechanical changes from step 1 — nothing else. CI runs the same
 
 ```bash
 bun run dev -- --help    # run the CLI from source
+bun run format           # apply Biome formatting
+bun run lint             # run Biome lint rules
 bun run typecheck        # tsc --noEmit
 bun run catalog:check    # catalog validation (add --write via catalog:docs)
 bun run catalog:docs     # regenerate generated doc blocks
 bun test                 # full test suite
 bun run check            # all of the above gates
+bun run audit            # fail on high-severity dependency advisories
+bun run perf:check       # build and enforce startup/binary-size budgets
 ```
+
+## Dependencies and releases
+
+Dependabot proposes weekly updates for Bun packages and GitHub Actions. Resolve
+high- or critical-severity advisories before merge, or document why a fix is
+not currently available.
+
+Use Conventional Commit subjects because Release Please derives versions and
+changelog entries from them:
+
+```text
+feat: add a new command
+fix: handle an unavailable adapter
+docs: clarify VM setup
+```
+
+Breaking changes use `!` in the type or a `BREAKING CHANGE:` footer. Merging a
+Release Please pull request updates `CHANGELOG.md`, bumps the package version,
+tags the release, and creates the GitHub release.
+
+For every pull request, explain the user-visible outcome, include behavioral
+tests where appropriate, update affected documentation, and confirm the
+relevant formatting, linting, type, test, audit, catalog, and performance
+checks pass.

@@ -8,7 +8,8 @@
       "!node_modules",
       "!.codegraph",
       "!.omc",
-      "!.omx"
+      "!.omx",
+      "!test/fixtures/policy/policy-malformed.jsonc"
     ]
   },
   "formatter": {

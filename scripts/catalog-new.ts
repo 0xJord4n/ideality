@@ -92,7 +92,11 @@ function parseArguments(argv: string[]): ScaffoldOptions & { dryRun: boolean } {
       }
       case "--state": {
         const value = takeValue(argument, index);
-        if (value !== "full" && value !== "partial" && value !== "credentials") {
+        if (
+          value !== "full" &&
+          value !== "partial" &&
+          value !== "credentials"
+        ) {
           fail(`--state must be full, partial, or credentials, got '${value}'`);
         }
         options.isolationState = value;
@@ -175,7 +179,9 @@ const updatedBuiltins = registerManifestImport(builtinsSource, scaffold.id);
 if (dryRun) {
   console.log(`would create catalog/${scaffold.id}.jsonc:\n`);
   console.log(rendered);
-  console.log("would update src/adapters/builtins.ts, docs/tool-packs.md, README.md");
+  console.log(
+    "would update src/adapters/builtins.ts, docs/tool-packs.md, README.md",
+  );
   process.exit(0);
 }
 

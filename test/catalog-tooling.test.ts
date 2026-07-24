@@ -29,7 +29,8 @@ function withTempCatalog(
   for (const [name, content] of Object.entries(files)) {
     writeFileSync(path.join(directory, name), content);
   }
-  const cleanup = (): void => rmSync(directory, { recursive: true, force: true });
+  const cleanup = (): void =>
+    rmSync(directory, { recursive: true, force: true });
   try {
     const result = run(directory);
     if (result instanceof Promise) {
@@ -45,7 +46,11 @@ function withTempCatalog(
 
 function manifestSource(
   id: string,
-  overrides: Partial<{ pack: string; primary: string; alternatives: string[] }> = {},
+  overrides: Partial<{
+    pack: string;
+    primary: string;
+    alternatives: string[];
+  }> = {},
 ): string {
   return JSON.stringify({
     schemaVersion: 1,
@@ -55,7 +60,9 @@ function manifestSource(
     pack: overrides.pack ?? "essentials",
     executable: {
       primary: overrides.primary ?? id,
-      ...(overrides.alternatives ? { alternatives: overrides.alternatives } : {}),
+      ...(overrides.alternatives
+        ? { alternatives: overrides.alternatives }
+        : {}),
     },
   });
 }
@@ -89,7 +96,11 @@ describe("manifest scaffolding", () => {
 }
 `);
     expect(
-      renderManifestTemplate({ id: "acme", displayName: "Acme CLI", pack: "deployment" }),
+      renderManifestTemplate({
+        id: "acme",
+        displayName: "Acme CLI",
+        pack: "deployment",
+      }),
     ).toBe(rendered);
   });
 
@@ -113,7 +124,10 @@ describe("manifest scaffolding", () => {
       alternatives: ["kiro2-cli"],
       shim: false,
     });
-    expect(manifest.isolation).toEqual({ scope: "process", state: "credentials" });
+    expect(manifest.isolation).toEqual({
+      scope: "process",
+      state: "credentials",
+    });
   });
 
   test("derives registry variable names from adapter IDs", () => {
@@ -192,9 +206,9 @@ describe("catalog checks", () => {
     if (!registry) throw new Error("registry failed to load");
     const { entries, issues } = await loadCatalog();
     expect(issues).toEqual([]);
-    expect(
-      checkCatalogEntries(entries, Object.keys(registry.packs)),
-    ).toEqual([]);
+    expect(checkCatalogEntries(entries, Object.keys(registry.packs))).toEqual(
+      [],
+    );
     expect(checkRegistryCompleteness(entries, registry.manifests)).toEqual([]);
     expect(await checkSchemaSync()).toEqual([]);
   });
@@ -202,7 +216,10 @@ describe("catalog checks", () => {
 
 describe("docs generation", () => {
   const packs = {
-    essentials: { label: "Developer essentials", description: "Everyday tools" },
+    essentials: {
+      label: "Developer essentials",
+      description: "Everyday tools",
+    },
   };
 
   test("renders the tool-pack matrix deterministically from catalog data", () => {
@@ -220,7 +237,9 @@ describe("docs generation", () => {
     ];
     const matrix = renderToolPackMatrix(entries, packs);
     expect(matrix).toContain("| Pack | Adapters (isolation grade) |");
-    expect(matrix).toContain("| Developer essentials | `alpha` (partial), `beta` (partial) |");
+    expect(matrix).toContain(
+      "| Developer essentials | `alpha` (partial), `beta` (partial) |",
+    );
     const summary = renderCatalogSummary(entries, packs);
     expect(summary).toContain("2 adapters across 1 selectable pack");
     expect(summary).toContain("- **Developer essentials**: `alpha`, `beta`");
@@ -235,7 +254,9 @@ describe("docs generation", () => {
       "after",
     ].join("\n");
     const updated = replaceGeneratedBlock(content, "sample", "new body");
-    expect(updated).toContain("before\n<!-- generated:sample:begin -->\nnew body\n<!-- generated:sample:end -->\nafter");
+    expect(updated).toContain(
+      "before\n<!-- generated:sample:begin -->\nnew body\n<!-- generated:sample:end -->\nafter",
+    );
     expect(updated).not.toContain("old body");
     expect(() => replaceGeneratedBlock("no markers", "sample", "x")).toThrow(
       /generated:sample/,

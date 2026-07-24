@@ -7,14 +7,14 @@
     "private": {
       "driver": "wireguard",
       "config": { "from": "secret", "key": "bw://wireguard/private" },
-      "killSwitch": "required",
-    },
+      "killSwitch": "required"
+    }
   },
   "vms": {
     "workspace": {
       "driver": "lima",
-      "network": "private",
-    },
+      "network": "private"
+    }
   },
   "identities": {
     "sample": {
@@ -25,13 +25,13 @@
         "gh": { "enabled": true },
         "custom": {
           "enabled": true,
-          "env": { "CUSTOM_TOKEN": { "from": "secret", "key": "bw://custom" } },
-        },
-      },
-    },
+          "env": { "CUSTOM_TOKEN": { "from": "secret", "key": "bw://custom" } }
+        }
+      }
+    }
   },
   "tools": {
     "gh": { "executable": "gh", "isolation": "process" },
-    "custom": { "executable": "custom-cli", "isolation": "process" },
-  },
+    "custom": { "executable": "custom-cli", "isolation": "process" }
+  }
 }

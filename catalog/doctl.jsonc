@@ -13,14 +13,8 @@
     "state": "full"
   },
   "auth": {
-    "login": [
-      "auth",
-      "init"
-    ],
-    "status": [
-      "account",
-      "get"
-    ]
+    "login": ["auth", "init"],
+    "status": ["account", "get"]
   },
   "profile": {
     "args": [

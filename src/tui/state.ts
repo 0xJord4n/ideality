@@ -312,7 +312,8 @@ function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) return true;
   if (Array.isArray(a) && Array.isArray(b)) {
     return (
-      a.length === b.length && a.every((item, index) => deepEqual(item, b[index]))
+      a.length === b.length &&
+      a.every((item, index) => deepEqual(item, b[index]))
     );
   }
   if (isPlainObject(a) && isPlainObject(b)) {
@@ -385,9 +386,7 @@ function selectedIdentityId(state: TuiState): string {
     : state.draft.defaultIdentity;
 }
 
-function identityExecution(
-  state: TuiState,
-): ExecutionTarget | undefined {
+function identityExecution(state: TuiState): ExecutionTarget | undefined {
   return state.draft.identities[selectedIdentityId(state)]?.execution;
 }
 
@@ -572,7 +571,12 @@ export function tuiReducer(state: TuiState, action: TuiAction): TuiState {
     case "open-screen": {
       const next: TuiState = { ...state, screen: action.screen, status: null };
       if (action.screen === "rollback") {
-        next.rollback = { loaded: false, snapshots: [], cursor: 0, preview: null };
+        next.rollback = {
+          loaded: false,
+          snapshots: [],
+          cursor: 0,
+          preview: null,
+        };
       }
       return next;
     }
@@ -646,7 +650,11 @@ export function tuiReducer(state: TuiState, action: TuiAction): TuiState {
     case "rollback-failed":
       return { ...state, status: { kind: "error", text: action.error } };
     case "auth-loading":
-      return { ...state, auth: { ...state.auth, phase: "loading" }, status: null };
+      return {
+        ...state,
+        auth: { ...state.auth, phase: "loading" },
+        status: null,
+      };
     case "auth-loaded":
       return { ...state, auth: { phase: "ready", results: action.results } };
     case "auth-failed":

@@ -3,6 +3,10 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+import {
+  type ConfigMigrationStep,
+  migrateConfigFile,
+} from "../src/core/config-migrate.js";
 import { loadConfig } from "../src/core/config-store.js";
 import type { IdealityConfig } from "../src/domain/config.js";
 import {
@@ -32,6 +36,15 @@ function sample(): IdealityConfig {
     tools: { gh: { executable: "gh" } },
   };
 }
+
+const legacyRegistry: readonly ConfigMigrationStep[] = [
+  {
+    from: 0,
+    to: 1,
+    description: "add defaultIdentity",
+    migrate: (config) => ({ ...config, defaultIdentity: "personal" }),
+  },
+];
 
 describe("tui staged save and rollback round trip", () => {
   test("stages, saves atomically with history, previews and restores", async () => {
@@ -81,5 +94,21 @@ describe("tui staged save and rollback round trip", () => {
     await expect(saveDraftConfig(broken, configPath)).rejects.toThrow(
       "does not exist",
     );
+  });
+
+  test("rejects historical-schema snapshots without changing the active registry", async () => {
+    const directory = await mkdtemp(path.join(os.tmpdir(), "ideality-tui-"));
+    const configPath = path.join(directory, "config.jsonc");
+    const legacy = { ...sample(), version: 0, defaultIdentity: undefined };
+    await Bun.write(configPath, `${JSON.stringify(legacy, null, 2)}\n`);
+    await migrateConfigFile(configPath, { registry: legacyRegistry });
+
+    await expect(previewRollbackSnapshot("latest", configPath)).rejects.toThrow(
+      "ideality rollback",
+    );
+    await expect(applyRollbackSnapshot("latest", configPath)).rejects.toThrow(
+      "ideality rollback",
+    );
+    expect((await loadConfig(configPath)).version).toBe(1);
   });
 });

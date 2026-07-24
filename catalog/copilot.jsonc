@@ -13,9 +13,7 @@
     "state": "full"
   },
   "auth": {
-    "login": [
-      "login"
-    ]
+    "login": ["login"]
   },
   "profile": {
     "env": {

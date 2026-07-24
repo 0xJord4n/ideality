@@ -27,7 +27,9 @@ function resolutionCandidates(definition: ToolDefinition): string[] {
   return [...new Set([definition.executable, ...(definition.detect ?? [])])];
 }
 
-function withoutDetect(definition: ToolDefinition): Omit<ToolDefinition, "detect"> {
+function withoutDetect(
+  definition: ToolDefinition,
+): Omit<ToolDefinition, "detect"> {
   const { detect: _detect, ...rest } = definition;
   return rest;
 }

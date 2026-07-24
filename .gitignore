@@ -12,5 +12,3 @@ coverage/
 !.env.example
 
 .ideality/
-.codegraph/
-.omc/

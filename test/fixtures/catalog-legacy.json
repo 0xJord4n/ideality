@@ -7,18 +7,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "auth",
-          "login"
-        ],
-        "status": [
-          "auth",
-          "status"
-        ],
-        "logout": [
-          "auth",
-          "logout"
-        ]
+        "login": ["auth", "login"],
+        "status": ["auth", "status"],
+        "logout": ["auth", "logout"]
       }
     },
     "railway": {
@@ -28,15 +19,9 @@
       "isolation": "process",
       "stateIsolation": "credentials",
       "auth": {
-        "login": [
-          "login"
-        ],
-        "status": [
-          "whoami"
-        ],
-        "logout": [
-          "logout"
-        ]
+        "login": ["login"],
+        "status": ["whoami"],
+        "logout": ["logout"]
       }
     },
     "cf": {
@@ -46,18 +31,9 @@
       "isolation": "process",
       "stateIsolation": "credentials",
       "auth": {
-        "login": [
-          "auth",
-          "login"
-        ],
-        "status": [
-          "auth",
-          "whoami"
-        ],
-        "logout": [
-          "auth",
-          "logout"
-        ]
+        "login": ["auth", "login"],
+        "status": ["auth", "whoami"],
+        "logout": ["auth", "logout"]
       }
     },
     "vercel": {
@@ -67,15 +43,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "login"
-        ],
-        "status": [
-          "whoami"
-        ],
-        "logout": [
-          "logout"
-        ]
+        "login": ["login"],
+        "status": ["whoami"],
+        "logout": ["logout"]
       }
     },
     "codex": {
@@ -85,16 +55,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "login"
-        ],
-        "status": [
-          "login",
-          "status"
-        ],
-        "logout": [
-          "logout"
-        ]
+        "login": ["login"],
+        "status": ["login", "status"],
+        "logout": ["logout"]
       }
     },
     "claude": {
@@ -104,18 +67,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "auth",
-          "login"
-        ],
-        "status": [
-          "auth",
-          "status"
-        ],
-        "logout": [
-          "auth",
-          "logout"
-        ]
+        "login": ["auth", "login"],
+        "status": ["auth", "status"],
+        "logout": ["auth", "logout"]
       }
     },
     "opencode": {
@@ -125,18 +79,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "auth",
-          "login"
-        ],
-        "status": [
-          "auth",
-          "list"
-        ],
-        "logout": [
-          "auth",
-          "logout"
-        ]
+        "login": ["auth", "login"],
+        "status": ["auth", "list"],
+        "logout": ["auth", "logout"]
       }
     },
     "chrome": {
@@ -166,18 +111,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "sso",
-          "login"
-        ],
-        "status": [
-          "sts",
-          "get-caller-identity"
-        ],
-        "logout": [
-          "sso",
-          "logout"
-        ]
+        "login": ["sso", "login"],
+        "status": ["sts", "get-caller-identity"],
+        "logout": ["sso", "logout"]
       }
     },
     "gcloud": {
@@ -187,19 +123,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "auth",
-          "login"
-        ],
-        "status": [
-          "auth",
-          "list"
-        ],
-        "logout": [
-          "auth",
-          "revoke",
-          "--all"
-        ]
+        "login": ["auth", "login"],
+        "status": ["auth", "list"],
+        "logout": ["auth", "revoke", "--all"]
       }
     },
     "az": {
@@ -209,16 +135,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "login"
-        ],
-        "status": [
-          "account",
-          "show"
-        ],
-        "logout": [
-          "logout"
-        ]
+        "login": ["login"],
+        "status": ["account", "show"],
+        "logout": ["logout"]
       }
     },
     "doctl": {
@@ -228,14 +147,8 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "auth",
-          "init"
-        ],
-        "status": [
-          "account",
-          "get"
-        ]
+        "login": ["auth", "init"],
+        "status": ["account", "get"]
       }
     },
     "glab": {
@@ -245,18 +158,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "auth",
-          "login"
-        ],
-        "status": [
-          "auth",
-          "status"
-        ],
-        "logout": [
-          "auth",
-          "logout"
-        ]
+        "login": ["auth", "login"],
+        "status": ["auth", "status"],
+        "logout": ["auth", "logout"]
       }
     },
     "tea": {
@@ -266,10 +170,7 @@
       "isolation": "process",
       "stateIsolation": "partial",
       "auth": {
-        "status": [
-          "login",
-          "list"
-        ]
+        "status": ["login", "list"]
       }
     },
     "bitbucket": {
@@ -278,9 +179,7 @@
       "pack": "source-control",
       "isolation": "process",
       "stateIsolation": "credentials",
-      "detect": [
-        "bb"
-      ]
+      "detect": ["bb"]
     },
     "gerrit": {
       "executable": "ssh",
@@ -295,9 +194,7 @@
       "pack": "editors",
       "isolation": "process",
       "stateIsolation": "full",
-      "detect": [
-        "code-insiders"
-      ]
+      "detect": ["code-insiders"]
     },
     "cursor": {
       "executable": "cursor",
@@ -376,15 +273,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "login"
-        ],
-        "status": [
-          "whoami"
-        ],
-        "logout": [
-          "logout"
-        ]
+        "login": ["login"],
+        "status": ["whoami"],
+        "logout": ["logout"]
       }
     },
     "pnpm": {
@@ -394,15 +285,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "login"
-        ],
-        "status": [
-          "whoami"
-        ],
-        "logout": [
-          "logout"
-        ]
+        "login": ["login"],
+        "status": ["whoami"],
+        "logout": ["logout"]
       }
     },
     "yarn": {
@@ -412,14 +297,8 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "npm",
-          "login"
-        ],
-        "status": [
-          "npm",
-          "whoami"
-        ]
+        "login": ["npm", "login"],
+        "status": ["npm", "whoami"]
       }
     },
     "bun": {
@@ -437,12 +316,8 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "login"
-        ],
-        "logout": [
-          "logout"
-        ]
+        "login": ["login"],
+        "logout": ["logout"]
       }
     },
     "uv": {
@@ -458,9 +333,7 @@
       "pack": "registries",
       "isolation": "process",
       "stateIsolation": "full",
-      "detect": [
-        "pip3"
-      ]
+      "detect": ["pip3"]
     },
     "gem": {
       "executable": "gem",
@@ -489,9 +362,7 @@
       "pack": "registries",
       "isolation": "process",
       "stateIsolation": "full",
-      "detect": [
-        "gradlew"
-      ]
+      "detect": ["gradlew"]
     },
     "nuget": {
       "executable": "nuget",
@@ -506,22 +377,11 @@
       "pack": "deployment",
       "isolation": "process",
       "stateIsolation": "credentials",
-      "detect": [
-        "flyctl"
-      ],
+      "detect": ["flyctl"],
       "auth": {
-        "login": [
-          "auth",
-          "login"
-        ],
-        "status": [
-          "auth",
-          "whoami"
-        ],
-        "logout": [
-          "auth",
-          "logout"
-        ]
+        "login": ["auth", "login"],
+        "status": ["auth", "whoami"],
+        "logout": ["auth", "logout"]
       }
     },
     "netlify": {
@@ -531,15 +391,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "login"
-        ],
-        "status": [
-          "status"
-        ],
-        "logout": [
-          "logout"
-        ]
+        "login": ["login"],
+        "status": ["status"],
+        "logout": ["logout"]
       }
     },
     "supabase": {
@@ -549,9 +403,7 @@
       "isolation": "process",
       "stateIsolation": "credentials",
       "auth": {
-        "login": [
-          "login"
-        ]
+        "login": ["login"]
       }
     },
     "firebase": {
@@ -561,15 +413,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "login"
-        ],
-        "status": [
-          "login:list"
-        ],
-        "logout": [
-          "logout"
-        ]
+        "login": ["login"],
+        "status": ["login:list"],
+        "logout": ["logout"]
       }
     },
     "heroku": {
@@ -579,15 +425,9 @@
       "isolation": "process",
       "stateIsolation": "credentials",
       "auth": {
-        "login": [
-          "login"
-        ],
-        "status": [
-          "auth:whoami"
-        ],
-        "logout": [
-          "logout"
-        ]
+        "login": ["login"],
+        "status": ["auth:whoami"],
+        "logout": ["logout"]
       }
     },
     "render": {
@@ -611,15 +451,9 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "login"
-        ],
-        "status": [
-          "whoami"
-        ],
-        "logout": [
-          "logout"
-        ]
+        "login": ["login"],
+        "status": ["whoami"],
+        "logout": ["logout"]
       }
     },
     "shopify": {
@@ -629,10 +463,7 @@
       "isolation": "process",
       "stateIsolation": "credentials",
       "auth": {
-        "logout": [
-          "auth",
-          "logout"
-        ]
+        "logout": ["auth", "logout"]
       }
     },
     "stripe": {
@@ -642,13 +473,8 @@
       "isolation": "process",
       "stateIsolation": "credentials",
       "auth": {
-        "login": [
-          "login"
-        ],
-        "status": [
-          "config",
-          "--list"
-        ]
+        "login": ["login"],
+        "status": ["config", "--list"]
       }
     },
     "gemini": {
@@ -665,9 +491,7 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "login"
-        ]
+        "login": ["login"]
       }
     },
     "aider": {
@@ -698,9 +522,7 @@
       "isolation": "process",
       "stateIsolation": "credentials",
       "auth": {
-        "login": [
-          "login"
-        ]
+        "login": ["login"]
       }
     },
     "kiro-cli": {
@@ -717,9 +539,7 @@
       "isolation": "process",
       "stateIsolation": "full",
       "auth": {
-        "login": [
-          "auth"
-        ]
+        "login": ["auth"]
       }
     }
   },
@@ -742,22 +562,12 @@
     "cloud": {
       "label": "Cloud accounts",
       "description": "AWS, Google Cloud, Azure, and DigitalOcean",
-      "tools": [
-        "aws",
-        "gcloud",
-        "az",
-        "doctl"
-      ]
+      "tools": ["aws", "gcloud", "az", "doctl"]
     },
     "source-control": {
       "label": "Source control",
       "description": "GitLab, Gitea/Forgejo, Bitbucket, and Gerrit",
-      "tools": [
-        "glab",
-        "tea",
-        "bitbucket",
-        "gerrit"
-      ]
+      "tools": ["glab", "tea", "bitbucket", "gerrit"]
     },
     "editors": {
       "label": "Editors and desktop",
@@ -825,9 +635,7 @@
       ]
     }
   },
-  "defaultToolPacks": [
-    "essentials"
-  ],
+  "defaultToolPacks": ["essentials"],
   "profilesWithSshKey": {
     "gh": {
       "isolation": "process",
@@ -904,10 +712,7 @@
     },
     "firefox": {
       "isolation": "process",
-      "args": [
-        "-profile",
-        "{{idealityHome}}/profiles/sample/browsers/firefox"
-      ]
+      "args": ["-profile", "{{idealityHome}}/profiles/sample/browsers/firefox"]
     },
     "aws": {
       "isolation": "process",
@@ -971,10 +776,7 @@
     },
     "gerrit": {
       "isolation": "process",
-      "args": [
-        "-i",
-        "/home/sample/.ssh/id_ed25519"
-      ]
+      "args": ["-i", "/home/sample/.ssh/id_ed25519"]
     },
     "code": {
       "isolation": "process",
@@ -1059,9 +861,7 @@
     },
     "slack": {
       "isolation": "process",
-      "args": [
-        "--user-data-dir={{idealityHome}}/profiles/sample/desktop/slack"
-      ]
+      "args": ["--user-data-dir={{idealityHome}}/profiles/sample/desktop/slack"]
     },
     "discord": {
       "isolation": "process",
@@ -1467,10 +1267,7 @@
     },
     "firefox": {
       "isolation": "process",
-      "args": [
-        "-profile",
-        "{{idealityHome}}/profiles/sample/browsers/firefox"
-      ]
+      "args": ["-profile", "{{idealityHome}}/profiles/sample/browsers/firefox"]
     },
     "aws": {
       "isolation": "process",
@@ -1618,9 +1415,7 @@
     },
     "slack": {
       "isolation": "process",
-      "args": [
-        "--user-data-dir={{idealityHome}}/profiles/sample/desktop/slack"
-      ]
+      "args": ["--user-data-dir={{idealityHome}}/profiles/sample/desktop/slack"]
     },
     "discord": {
       "isolation": "process",

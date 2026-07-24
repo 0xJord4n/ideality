@@ -13,14 +13,8 @@
     "state": "full"
   },
   "auth": {
-    "login": [
-      "npm",
-      "login"
-    ],
-    "status": [
-      "npm",
-      "whoami"
-    ]
+    "login": ["npm", "login"],
+    "status": ["npm", "whoami"]
   },
   "profile": {
     "env": {

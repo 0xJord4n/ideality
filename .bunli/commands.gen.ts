@@ -63,8 +63,8 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
       options: {
         'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
         'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-        'all': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Report auth status for every identity/tool pairing', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1072,"end":1077,"loc":{"start":{"line":38,"column":36,"index":1072},"end":{"line":38,"column":41,"index":1077}},"value":false}}]}, validator: '(val) => true' },
-        'json': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Emit JSON (with --all)', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1228,"end":1233,"loc":{"start":{"line":42,"column":37,"index":1228},"end":{"line":42,"column":42,"index":1233}},"value":false}}]}, validator: '(val) => true' }
+        'all': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Report auth status for every identity/tool pairing', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1065,"end":1070,"loc":{"start":{"line":34,"column":36,"index":1065},"end":{"line":34,"column":41,"index":1070}},"value":false}}]}, validator: '(val) => true' },
+        'json': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Emit JSON (with --all)', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1221,"end":1226,"loc":{"start":{"line":38,"column":37,"index":1221},"end":{"line":38,"column":42,"index":1226}},"value":false}}]}, validator: '(val) => true' }
       },
       path: './src/commands/auth'
     },
@@ -376,8 +376,8 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
           name: 'install',
           description: 'Install or update a plugin manifest',
           options: {
-            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Replace an existing tool definition', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1775,"end":1780,"loc":{"start":{"line":51,"column":42,"index":1775},"end":{"line":51,"column":47,"index":1780}},"value":false}}]}, validator: '(val) => true' },
-            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Validate and show the plugin without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1959,"end":1964,"loc":{"start":{"line":56,"column":46,"index":1959},"end":{"line":56,"column":51,"index":1964}},"value":false}}]}, validator: '(val) => true' }
+            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Replace an existing tool definition', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1820,"end":1825,"loc":{"start":{"line":55,"column":42,"index":1820},"end":{"line":55,"column":47,"index":1825}},"value":false}}]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Validate and show the plugin without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":2004,"end":2009,"loc":{"start":{"line":60,"column":46,"index":2004},"end":{"line":60,"column":51,"index":2009}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/plugin'
         },
@@ -385,8 +385,8 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
           name: 'remove',
           description: 'Remove a plugin and its identity profiles',
           options: {
-            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Confirm removal', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3233,"end":3238,"loc":{"start":{"line":87,"column":42,"index":3233},"end":{"line":87,"column":47,"index":3238}},"value":false}}]}, validator: '(val) => true' },
-            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the removal without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3397,"end":3402,"loc":{"start":{"line":92,"column":46,"index":3397},"end":{"line":92,"column":51,"index":3402}},"value":false}}]}, validator: '(val) => true' }
+            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Confirm removal', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3309,"end":3314,"loc":{"start":{"line":94,"column":42,"index":3309},"end":{"line":94,"column":47,"index":3314}},"value":false}}]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the removal without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3473,"end":3478,"loc":{"start":{"line":99,"column":46,"index":3473},"end":{"line":99,"column":51,"index":3478}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/plugin'
         }

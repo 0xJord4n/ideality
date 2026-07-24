@@ -21,9 +21,9 @@ const temporaryDirectories: string[] = [];
 
 afterEach(async () => {
   await Promise.all(
-    temporaryDirectories.splice(0).map((directory) =>
-      rm(directory, { recursive: true, force: true }),
-    ),
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
   );
 });
 
@@ -206,16 +206,19 @@ describe("evaluatePolicy", () => {
       "network-driver-not-permitted",
       "custom-network-commands-denied",
     ]);
-    expect(findings.every((finding) => finding.subject === "networks/adhoc")).toBe(
-      true,
-    );
+    expect(
+      findings.every((finding) => finding.subject === "networks/adhoc"),
+    ).toBe(true);
   });
 
   test("requires a network route for enabled tools", () => {
     const bundle = config();
     bundle.identities.sample!.execution = { target: "host" };
     bundle.identities.sample!.tools = { custom: { enabled: true } };
-    const findings = evaluatePolicy(policy({ network: { required: true } }), bundle);
+    const findings = evaluatePolicy(
+      policy({ network: { required: true } }),
+      bundle,
+    );
     expect(findings).toEqual([
       {
         code: "network-required",
@@ -228,7 +231,10 @@ describe("evaluatePolicy", () => {
 
   test("requires VM execution for enabled tools", () => {
     const bundle = config();
-    bundle.identities.sample!.execution = { target: "host", network: "private" };
+    bundle.identities.sample!.execution = {
+      target: "host",
+      network: "private",
+    };
     bundle.identities.sample!.tools = { custom: { enabled: true } };
     const findings = evaluatePolicy(policy({ vm: { required: true } }), bundle);
     expect(findings.map((finding) => finding.code)).toEqual(["vm-required"]);
@@ -267,9 +273,7 @@ describe("evaluatePolicy", () => {
       }),
       bundle,
     );
-    expect(
-      findings.map((finding) => [finding.code, finding.subject]),
-    ).toEqual([
+    expect(findings.map((finding) => [finding.code, finding.subject])).toEqual([
       ["vm-driver-not-permitted", "vms/legacy"],
       ["custom-vm-commands-denied", "vms/legacy"],
       ["vm-provisioning-denied", "vms/workspace"],
@@ -280,9 +284,10 @@ describe("evaluatePolicy", () => {
     const missing = config();
     delete missing.secretBackend;
     expect(
-      evaluatePolicy(policy({ secrets: { requireBackend: true } }), missing).map(
-        (finding) => finding.code,
-      ),
+      evaluatePolicy(
+        policy({ secrets: { requireBackend: true } }),
+        missing,
+      ).map((finding) => finding.code),
     ).toEqual(["secret-backend-required"]);
 
     const mismatched = config();

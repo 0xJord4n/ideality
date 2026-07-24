@@ -11,7 +11,9 @@ import cfManifest from "../../catalog/cf.jsonc" with { type: "text" };
 import vercelManifest from "../../catalog/vercel.jsonc" with { type: "text" };
 import codexManifest from "../../catalog/codex.jsonc" with { type: "text" };
 import claudeManifest from "../../catalog/claude.jsonc" with { type: "text" };
-import opencodeManifest from "../../catalog/opencode.jsonc" with { type: "text" };
+import opencodeManifest from "../../catalog/opencode.jsonc" with {
+  type: "text",
+};
 import chromeManifest from "../../catalog/chrome.jsonc" with { type: "text" };
 import firefoxManifest from "../../catalog/firefox.jsonc" with { type: "text" };
 import awsManifest from "../../catalog/aws.jsonc" with { type: "text" };
@@ -20,17 +22,25 @@ import azManifest from "../../catalog/az.jsonc" with { type: "text" };
 import doctlManifest from "../../catalog/doctl.jsonc" with { type: "text" };
 import glabManifest from "../../catalog/glab.jsonc" with { type: "text" };
 import teaManifest from "../../catalog/tea.jsonc" with { type: "text" };
-import bitbucketManifest from "../../catalog/bitbucket.jsonc" with { type: "text" };
+import bitbucketManifest from "../../catalog/bitbucket.jsonc" with {
+  type: "text",
+};
 import gerritManifest from "../../catalog/gerrit.jsonc" with { type: "text" };
 import codeManifest from "../../catalog/code.jsonc" with { type: "text" };
 import cursorManifest from "../../catalog/cursor.jsonc" with { type: "text" };
-import windsurfManifest from "../../catalog/windsurf.jsonc" with { type: "text" };
+import windsurfManifest from "../../catalog/windsurf.jsonc" with {
+  type: "text",
+};
 import zedManifest from "../../catalog/zed.jsonc" with { type: "text" };
 import ideaManifest from "../../catalog/idea.jsonc" with { type: "text" };
 import pycharmManifest from "../../catalog/pycharm.jsonc" with { type: "text" };
-import webstormManifest from "../../catalog/webstorm.jsonc" with { type: "text" };
+import webstormManifest from "../../catalog/webstorm.jsonc" with {
+  type: "text",
+};
 import golandManifest from "../../catalog/goland.jsonc" with { type: "text" };
-import rustroverManifest from "../../catalog/rustrover.jsonc" with { type: "text" };
+import rustroverManifest from "../../catalog/rustrover.jsonc" with {
+  type: "text",
+};
 import slackManifest from "../../catalog/slack.jsonc" with { type: "text" };
 import discordManifest from "../../catalog/discord.jsonc" with { type: "text" };
 import npmManifest from "../../catalog/npm.jsonc" with { type: "text" };
@@ -41,14 +51,20 @@ import cargoManifest from "../../catalog/cargo.jsonc" with { type: "text" };
 import uvManifest from "../../catalog/uv.jsonc" with { type: "text" };
 import pipManifest from "../../catalog/pip.jsonc" with { type: "text" };
 import gemManifest from "../../catalog/gem.jsonc" with { type: "text" };
-import composerManifest from "../../catalog/composer.jsonc" with { type: "text" };
+import composerManifest from "../../catalog/composer.jsonc" with {
+  type: "text",
+};
 import mvnManifest from "../../catalog/mvn.jsonc" with { type: "text" };
 import gradleManifest from "../../catalog/gradle.jsonc" with { type: "text" };
 import nugetManifest from "../../catalog/nuget.jsonc" with { type: "text" };
 import flyManifest from "../../catalog/fly.jsonc" with { type: "text" };
 import netlifyManifest from "../../catalog/netlify.jsonc" with { type: "text" };
-import supabaseManifest from "../../catalog/supabase.jsonc" with { type: "text" };
-import firebaseManifest from "../../catalog/firebase.jsonc" with { type: "text" };
+import supabaseManifest from "../../catalog/supabase.jsonc" with {
+  type: "text",
+};
+import firebaseManifest from "../../catalog/firebase.jsonc" with {
+  type: "text",
+};
 import herokuManifest from "../../catalog/heroku.jsonc" with { type: "text" };
 import renderManifest from "../../catalog/render.jsonc" with { type: "text" };
 import sstManifest from "../../catalog/sst.jsonc" with { type: "text" };
@@ -61,7 +77,9 @@ import aiderManifest from "../../catalog/aider.jsonc" with { type: "text" };
 import ampManifest from "../../catalog/amp.jsonc" with { type: "text" };
 import gooseManifest from "../../catalog/goose.jsonc" with { type: "text" };
 import cnManifest from "../../catalog/cn.jsonc" with { type: "text" };
-import kiroCliManifest from "../../catalog/kiro-cli.jsonc" with { type: "text" };
+import kiroCliManifest from "../../catalog/kiro-cli.jsonc" with {
+  type: "text",
+};
 import qwenManifest from "../../catalog/qwen.jsonc" with { type: "text" };
 
 export interface ToolPack {

@@ -13,18 +13,9 @@
     "state": "full"
   },
   "auth": {
-    "login": [
-      "sso",
-      "login"
-    ],
-    "status": [
-      "sts",
-      "get-caller-identity"
-    ],
-    "logout": [
-      "sso",
-      "logout"
-    ]
+    "login": ["sso", "login"],
+    "status": ["sts", "get-caller-identity"],
+    "logout": ["sso", "logout"]
   },
   "profile": {
     "env": {

@@ -7,9 +7,7 @@
   "pack": "registries",
   "executable": {
     "primary": "gradle",
-    "alternatives": [
-      "gradlew"
-    ]
+    "alternatives": ["gradlew"]
   },
   "isolation": {
     "scope": "process",

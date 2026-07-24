@@ -7,11 +7,7 @@
   "pack": "essentials",
   "executable": {
     "primary": "google-chrome",
-    "alternatives": [
-      "google-chrome-stable",
-      "chromium",
-      "chromium-browser"
-    ]
+    "alternatives": ["google-chrome-stable", "chromium", "chromium-browser"]
   },
   "isolation": {
     "scope": "process",

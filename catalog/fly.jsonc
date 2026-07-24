@@ -7,27 +7,16 @@
   "pack": "deployment",
   "executable": {
     "primary": "fly",
-    "alternatives": [
-      "flyctl"
-    ]
+    "alternatives": ["flyctl"]
   },
   "isolation": {
     "scope": "process",
     "state": "credentials"
   },
   "auth": {
-    "login": [
-      "auth",
-      "login"
-    ],
-    "status": [
-      "auth",
-      "whoami"
-    ],
-    "logout": [
-      "auth",
-      "logout"
-    ]
+    "login": ["auth", "login"],
+    "status": ["auth", "whoami"],
+    "logout": ["auth", "logout"]
   },
   "profile": {
     "env": {

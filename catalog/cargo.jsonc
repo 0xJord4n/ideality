@@ -13,12 +13,8 @@
     "state": "full"
   },
   "auth": {
-    "login": [
-      "login"
-    ],
-    "logout": [
-      "logout"
-    ]
+    "login": ["login"],
+    "logout": ["logout"]
   },
   "profile": {
     "env": {

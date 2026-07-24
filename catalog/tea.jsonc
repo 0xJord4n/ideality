@@ -13,10 +13,7 @@
     "state": "partial"
   },
   "auth": {
-    "status": [
-      "login",
-      "list"
-    ]
+    "status": ["login", "list"]
   },
   "profile": {
     "env": {

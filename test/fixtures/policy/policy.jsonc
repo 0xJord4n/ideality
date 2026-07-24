@@ -4,24 +4,24 @@
   "label": "Platform team baseline",
   "tools": {
     // Only these tools may appear in the handover bundle.
-    "permitted": ["custom", "gh"],
+    "permitted": ["custom", "gh"]
   },
   "network": {
     "required": true,
-    "permittedDrivers": ["wireguard"],
+    "permittedDrivers": ["wireguard"]
   },
   "vm": {
     "required": true,
-    "permittedDrivers": ["lima"],
+    "permittedDrivers": ["lima"]
   },
   "secrets": {
     "requireBackend": true,
-    "permittedBackends": ["bitwarden"],
+    "permittedBackends": ["bitwarden"]
   },
   "custom": {
     "toolCommands": false,
     "networkCommands": false,
     "vmCommands": false,
-    "vmProvisioning": false,
-  },
+    "vmProvisioning": false
+  }
 }

@@ -100,7 +100,9 @@ export async function migrateConfigFile(
 ): Promise<ConfigMigrationResult> {
   const file = Bun.file(configPath);
   if (!(await file.exists())) {
-    throw new Error(`No ideality config at '${configPath}'. Run 'ideality init'.`);
+    throw new Error(
+      `No ideality config at '${configPath}'. Run 'ideality init'.`,
+    );
   }
   const raw = parseJsonc(await file.text());
   const plan = planConfigMigration(raw, options.registry);

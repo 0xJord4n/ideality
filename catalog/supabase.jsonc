@@ -13,9 +13,7 @@
     "state": "credentials"
   },
   "auth": {
-    "login": [
-      "login"
-    ]
+    "login": ["login"]
   },
   "profile": {
     "env": {

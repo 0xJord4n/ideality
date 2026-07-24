@@ -48,7 +48,10 @@ function sample(): IdealityConfig {
   };
 }
 
-function reduce(state: TuiState, ...actions: Parameters<typeof tuiReducer>[1][]): TuiState {
+function reduce(
+  state: TuiState,
+  ...actions: Parameters<typeof tuiReducer>[1][]
+): TuiState {
   return actions.reduce(tuiReducer, state);
 }
 

@@ -13,10 +13,7 @@
     "state": "credentials"
   },
   "auth": {
-    "logout": [
-      "auth",
-      "logout"
-    ]
+    "logout": ["auth", "logout"]
   },
   "profile": {
     "env": {
