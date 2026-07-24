@@ -48,6 +48,54 @@ profiles/     secrets/  shell/    ssh/
 Set `IDEALITY_HOME` to relocate the state directory or `IDEALITY_CONFIG` to
 select a registry.
 
+## Project Setup
+
+Run the project wizard anywhere inside a repository:
+
+```bash
+ideality setup
+```
+
+The normal arrow-key flow has four decisions:
+
+1. Store a complete handover in `.ideality/project.jsonc`, or activate locally.
+2. Fuzzy-select an existing identity, import the project identity, or create one.
+3. Select project tools with Up/Down, Space, and Enter.
+4. Review the exact identity, tools, files, and integrations before applying.
+
+Only relevant branches appear. Creating an identity asks for Git details.
+`--advanced` also exposes SSH key selection, full versus requirements-only
+handover, and integration controls. Existing handovers preselect their tools
+and can import their identity on a new machine.
+
+The project file uses the complete Ideality configuration schema. It may carry
+Git and SSH settings, built-in or custom tool definitions, isolated profiles,
+arguments, environment sources, secret backend settings, and literal values.
+Credential-like literals require an explicit interactive confirmation. The
+file never executes commands merely because a repository was opened; a
+teammate reviews and applies it with `ideality setup`.
+
+Automation uses the same operation without prompts:
+
+```bash
+ideality setup --non-interactive \
+  --identity sample \
+  --tools gh,cf,vercel,codex \
+  --project \
+  --yes
+
+ideality setup --non-interactive \
+  --identity sample \
+  --tools gh,codex \
+  --project \
+  --requirements-only \
+  --dry-run
+```
+
+The user registry under `~/.ideality` remains intact. Applying a project adds
+the project root and selected profiles to its local identity without deleting
+unrelated identities or tools.
+
 ## Automatic Dispatch
 
 `ideality install` adds `~/.ideality/bin` to `PATH`. Managed shims in that
@@ -199,6 +247,7 @@ ideality prompt --format '{label}:{identity}'
 
 ```text
 ideality init
+ideality setup
 ideality status|whoami|current
 ideality env
 ideality run|x
