@@ -102,6 +102,10 @@ The user registry under `~/.ideality` remains intact. Applying a project adds
 the project root and selected profiles to its local identity without deleting
 unrelated identities or tools.
 
+Teams can pin what a handover may contain with a policy contract in
+`.ideality/policy.jsonc` and validate it with `ideality policy check` (also
+suitable as a CI gate). See [team policy contracts](docs/policy.md).
+
 ## Tool Packs
 
 `ideality init` and `ideality identity add` first select packs with arrow keys
@@ -151,8 +155,15 @@ ideality explain vercel
 ideality explain cf --path ~/code/work/project --json
 ideality auth gh status
 ideality auth railway login --identity work
+ideality auth status --all
 ideality tui
 ```
+
+The dashboard (`ideality tui`) manages the registry directly: it stages
+identity, folder-binding, tool-enablement, network, and VM edits in memory,
+previews a readable diff, and only writes on an explicit save through the
+transactional history. It also previews and applies rollback snapshots, and
+surfaces redacted auth health (`a`) and the team policy summary (`p`).
 
 ## VPN And VM Isolation
 
@@ -319,11 +330,13 @@ ideality run|x
 ideality explain
 ideality prompt
 ideality auth <tool> login|status|logout
+ideality auth status --all
 ideality identity list|show|add|remove|bind|unbind|default|ssh-public
 ideality tool list|packs|enable-pack|disable-pack|add|remove|env|args|enable|disable
 ideality network list|show|add|bind|up|down|status|remove
 ideality vm list|show|add|bind|unbind|start|stop|status|exec|remove
 ideality plugin list|validate|install|remove
+ideality policy check
 ideality secret set|list|backend
 ideality install
 ideality hook
