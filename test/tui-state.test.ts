@@ -4,6 +4,8 @@ import type { IdealityConfig } from "../src/domain/config.js";
 import {
   ConfigMutationError,
   bindFolder,
+  canRunPluginSideEffect,
+  canRunSecretSideEffect,
   canApplyRollback,
   createTuiState,
   diffConfigs,
@@ -11,7 +13,9 @@ import {
   isDirty,
   isToolActive,
   nextProfileChoice,
+  parseSecretBackendInput,
   setIdentityNetwork,
+  setSecretBackend,
   setToolEnabled,
   tuiReducer,
   unbindFolder,
@@ -45,6 +49,7 @@ function sample(): IdealityConfig {
     vms: {
       sandbox: { driver: "lima" },
     },
+    secretBackend: { type: "file" },
   };
 }
 
@@ -226,6 +231,187 @@ describe("mutation helper validation", () => {
     expect(nextProfileChoice(["wg", "vpn"], "vpn")).toBe("wg");
     expect(nextProfileChoice(["wg", "vpn"], "wg")).toBeNull();
     expect(nextProfileChoice([], null)).toBeNull();
+  });
+
+  test("secret backend input parses supported backend settings", () => {
+    expect(parseSecretBackendInput("file ~/.secrets")).toEqual({
+      type: "file",
+      directory: "~/.secrets",
+    });
+    expect(
+      parseSecretBackendInput("age age1example ~/.age/key.txt ~/.age-db"),
+    ).toEqual({
+      type: "age",
+      recipient: "age1example",
+      identityFile: "~/.age/key.txt",
+      directory: "~/.age-db",
+    });
+    expect(parseSecretBackendInput("bitwarden ~/.config/bw-work")).toEqual({
+      type: "bitwarden",
+      appDataDirectory: "~/.config/bw-work",
+    });
+    expect(() => parseSecretBackendInput("age only-recipient")).toThrow(
+      "age backend requires",
+    );
+    expect(() => parseSecretBackendInput("unknown")).toThrow(
+      "Unknown secret backend",
+    );
+  });
+
+  test("stages secret backend settings through the reducer", () => {
+    let state = createTuiState(sample(), "personal");
+    state = reduce(
+      state,
+      { type: "open-screen", screen: "secrets" },
+      { type: "open-admin-input", input: { kind: "secret-backend" } },
+      { type: "submit-admin-input", value: "pass developer/ideality" },
+    );
+    expect(state.draft.secretBackend).toEqual({
+      type: "pass",
+      prefix: "developer/ideality",
+    });
+    expect(state.adminInput).toBeNull();
+    expect(state.status).toEqual({
+      kind: "info",
+      text: "Staged: secret backend pass",
+    });
+
+    expect(
+      setSecretBackend(sample(), { type: "onepassword" }).secretBackend,
+    ).toEqual({
+      type: "onepassword",
+    });
+  });
+});
+
+describe("plugin and secret admin state", () => {
+  test("blocks plugin side effects while preserving unrelated staged edits", () => {
+    let state = createTuiState(sample(), "personal");
+    state = reduce(state, { type: "focus-next-pane" }, { type: "toggle-tool" });
+
+    const stagedDraft = state.draft;
+    const guard = canRunPluginSideEffect(state);
+    expect(guard).toEqual({
+      ok: false,
+      reason:
+        "Save or discard staged changes before installing or removing plugins",
+    });
+
+    if (!guard.ok) {
+      state = reduce(state, {
+        type: "status",
+        status: { kind: "error", text: guard.reason },
+      });
+    }
+    expect(state.draft).toBe(stagedDraft);
+    expect(isToolActive(state.draft, "personal", "gh")).toBe(false);
+    expect(state.saved.identities.personal?.tools.gh?.enabled).toBeUndefined();
+    expect(state.status).toEqual({
+      kind: "error",
+      text: "Save or discard staged changes before installing or removing plugins",
+    });
+  });
+
+  test("loads plugins, inspects metadata, and requires explicit removal confirmation", () => {
+    let state = createTuiState(sample(), "personal");
+    state = reduce(
+      state,
+      { type: "open-screen", screen: "plugins" },
+      {
+        type: "plugins-loaded",
+        plugins: [
+          {
+            id: "acme",
+            displayName: "Acme",
+            description: "Deploy CLI",
+            executable: "acme",
+            file: "/home/dev/.ideality/plugins/acme.jsonc",
+            active: true,
+            profileCount: 2,
+            env: ["ACME_TOKEN=<secret:reference>"],
+            args: 1,
+          },
+        ],
+      },
+      { type: "plugin-move", direction: 1 },
+    );
+    expect(state.plugins.phase).toBe("ready");
+    expect(state.plugins.cursor).toBe(0);
+    expect(JSON.stringify(state.plugins.entries)).not.toContain("private");
+
+    state = reduce(state, { type: "plugin-remove-requested" });
+    expect(state.plugins.pendingRemove).toBe("acme");
+    state = reduce(state, { type: "plugin-remove-cancelled" });
+    expect(state.plugins.pendingRemove).toBeNull();
+  });
+
+  test("stores only secret references and confirmation keys in TUI state", () => {
+    let state = createTuiState(sample(), "personal");
+    state = reduce(
+      state,
+      { type: "open-screen", screen: "secrets" },
+      {
+        type: "secrets-loaded",
+        secrets: {
+          backend: "file",
+          supported: true,
+          writable: true,
+          references: ["personal/acme"],
+        },
+      },
+      { type: "secret-move", direction: 1 },
+      { type: "secret-delete-requested" },
+    );
+    expect(state.secrets.cursor).toBe(0);
+    expect(state.secrets.pendingDelete).toBe("personal/acme");
+    expect(JSON.stringify(state)).not.toContain("secret-value");
+
+    state = reduce(state, {
+      type: "open-admin-input",
+      input: { kind: "secret-key" },
+    });
+    state = reduce(state, {
+      type: "submit-admin-input",
+      value: "work/service-token",
+    });
+    expect(state.adminInput).toEqual({
+      kind: "secret-value",
+      key: "work/service-token",
+    });
+    expect(JSON.stringify(state)).not.toContain("private-value");
+  });
+
+  test("blocks secret side effects when the backend change is still staged", () => {
+    let state = createTuiState(sample(), "personal");
+    state = reduce(
+      state,
+      { type: "open-screen", screen: "secrets" },
+      { type: "open-admin-input", input: { kind: "secret-backend" } },
+      { type: "submit-admin-input", value: "pass developer/ideality" },
+    );
+
+    const guard = canRunSecretSideEffect(state);
+    expect(guard).toEqual({
+      ok: false,
+      reason:
+        "Save or discard staged secret backend changes before listing or editing secrets",
+    });
+
+    if (!guard.ok) {
+      state = reduce(state, {
+        type: "status",
+        status: { kind: "error", text: guard.reason },
+      });
+    }
+    expect(state.saved.secretBackend).toEqual({ type: "file" });
+    expect(state.draft.secretBackend).toEqual({
+      type: "pass",
+      prefix: "developer/ideality",
+    });
+    expect(state.status).toEqual({
+      kind: "error",
+      text: "Save or discard staged secret backend changes before listing or editing secrets",
+    });
   });
 });
 

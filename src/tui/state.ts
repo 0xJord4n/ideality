@@ -1,12 +1,25 @@
 import type { AuthHealthResult } from "../core/auth.js";
-import { redactConfig } from "../core/environment.js";
 import type { PolicyCheckResult } from "../core/policy.js";
-import type { ExecutionTarget, IdealityConfig } from "../domain/config.js";
+import type {
+  ExecutionTarget,
+  IdealityConfig,
+  SecretBackendConfig,
+} from "../domain/config.js";
+import { deepEqual, diffConfigs, type ConfigDiffLine } from "./diff.js";
+
+export { diffConfigs, formatDiffLine, type ConfigDiffLine } from "./diff.js";
 
 /** Raised by staged-mutation helpers when a change would be invalid. */
 export class ConfigMutationError extends Error {}
 
-export type TuiScreen = "dashboard" | "diff" | "rollback" | "auth" | "policy";
+export type TuiScreen =
+  | "dashboard"
+  | "diff"
+  | "rollback"
+  | "auth"
+  | "policy"
+  | "plugins"
+  | "secrets";
 export type DashboardPane = "identities" | "tools" | "roots";
 
 export interface TuiStatus {
@@ -14,18 +27,36 @@ export interface TuiStatus {
   text: string;
 }
 
-export interface ConfigDiffLine {
-  op: "add" | "remove" | "change";
-  path: string;
-  before: string | null;
-  after: string | null;
-}
-
 export interface RollbackPreview {
   snapshot: string;
   config: IdealityConfig;
   diff: ConfigDiffLine[];
 }
+
+export interface PluginAdminEntry {
+  id: string;
+  displayName: string;
+  description: string | null;
+  executable: string;
+  file: string;
+  active: boolean;
+  profileCount: number;
+  env: string[];
+  args: number;
+}
+
+export interface SecretAdminSummary {
+  backend: SecretBackendConfig["type"];
+  supported: boolean;
+  writable: boolean;
+  references: string[];
+}
+
+export type AdminInput =
+  | { kind: "plugin-path" }
+  | { kind: "secret-backend" }
+  | { kind: "secret-key" }
+  | { kind: "secret-value"; key: string };
 
 export interface TuiState {
   saved: IdealityConfig;
@@ -52,6 +83,19 @@ export interface TuiState {
     phase: "idle" | "loading" | "ready";
     result: PolicyCheckResult | null;
   };
+  plugins: {
+    phase: "idle" | "loading" | "ready";
+    entries: PluginAdminEntry[];
+    cursor: number;
+    pendingRemove: string | null;
+  };
+  secrets: {
+    phase: "idle" | "loading" | "ready";
+    summary: SecretAdminSummary | null;
+    cursor: number;
+    pendingDelete: string | null;
+  };
+  adminInput: AdminInput | null;
 }
 
 export type TuiAction =
@@ -82,6 +126,25 @@ export type TuiAction =
   | { type: "policy-loading" }
   | { type: "policy-loaded"; result: PolicyCheckResult }
   | { type: "policy-failed"; error: string }
+  | { type: "plugins-loading" }
+  | { type: "plugins-loaded"; plugins: PluginAdminEntry[] }
+  | { type: "plugins-failed"; error: string }
+  | { type: "plugin-move"; direction: 1 | -1 }
+  | { type: "plugin-remove-requested" }
+  | { type: "plugin-remove-cancelled" }
+  | { type: "plugin-removed"; id: string; config: IdealityConfig }
+  | { type: "plugin-installed"; config: IdealityConfig }
+  | { type: "secrets-loading" }
+  | { type: "secrets-loaded"; secrets: SecretAdminSummary }
+  | { type: "secrets-failed"; error: string }
+  | { type: "secret-move"; direction: 1 | -1 }
+  | { type: "secret-delete-requested" }
+  | { type: "secret-delete-cancelled" }
+  | { type: "secret-deleted"; key: string }
+  | { type: "secret-written"; key: string }
+  | { type: "open-admin-input"; input: AdminInput }
+  | { type: "close-admin-input" }
+  | { type: "submit-admin-input"; value: string }
   | { type: "request-quit" }
   | { type: "cancel-quit" }
   | { type: "status"; status: TuiStatus };
@@ -107,6 +170,19 @@ export function createTuiState(
     rollback: { loaded: false, snapshots: [], cursor: 0, preview: null },
     auth: { phase: "idle", results: [] },
     policy: { phase: "idle", result: null },
+    plugins: {
+      phase: "idle",
+      entries: [],
+      cursor: 0,
+      pendingRemove: null,
+    },
+    secrets: {
+      phase: "idle",
+      summary: null,
+      cursor: 0,
+      pendingDelete: null,
+    },
+    adminInput: null,
   };
 }
 
@@ -130,10 +206,45 @@ export function isDirty(state: TuiState): boolean {
   return !deepEqual(state.saved, state.draft);
 }
 
+type SideEffectGuard = { ok: true } | { ok: false; reason: string };
+
+const DEFAULT_SECRET_BACKEND: SecretBackendConfig = { type: "file" };
+
+function activeSecretBackend(config: IdealityConfig): SecretBackendConfig {
+  return config.secretBackend ?? DEFAULT_SECRET_BACKEND;
+}
+
+/** Guard for plugin install/remove effects, which persist config immediately. */
+export function canRunPluginSideEffect(state: TuiState): SideEffectGuard {
+  if (isDirty(state)) {
+    return {
+      ok: false,
+      reason:
+        "Save or discard staged changes before installing or removing plugins",
+    };
+  }
+  return { ok: true };
+}
+
+/** Guard for secret effects that would otherwise use the saved backend. */
+export function canRunSecretSideEffect(state: TuiState): SideEffectGuard {
+  if (
+    !deepEqual(
+      activeSecretBackend(state.saved),
+      activeSecretBackend(state.draft),
+    )
+  ) {
+    return {
+      ok: false,
+      reason:
+        "Save or discard staged secret backend changes before listing or editing secrets",
+    };
+  }
+  return { ok: true };
+}
+
 /** Guard for applying a rollback snapshot. */
-export function canApplyRollback(
-  state: TuiState,
-): { ok: true } | { ok: false; reason: string } {
+export function canApplyRollback(state: TuiState): SideEffectGuard {
   if (isDirty(state)) {
     return {
       ok: false,
@@ -282,6 +393,51 @@ export function setIdentityVm(
   return next;
 }
 
+/** Stage the selected secret backend settings. */
+export function setSecretBackend(
+  config: IdealityConfig,
+  backend: SecretBackendConfig,
+): IdealityConfig {
+  const next = structuredClone(config);
+  next.secretBackend = backend;
+  return next;
+}
+
+/** Parse the compact TUI backend editor input into a backend config. */
+export function parseSecretBackendInput(input: string): SecretBackendConfig {
+  const [type, ...parts] = input.trim().split(/\s+/).filter(Boolean);
+  if (!type) throw new ConfigMutationError("Secret backend type is required");
+  if (type === "file") {
+    return { type, ...(parts[0] ? { directory: parts[0] } : {}) };
+  }
+  if (type === "age") {
+    const [recipient, identityFile, directory] = parts;
+    if (!recipient || !identityFile) {
+      throw new ConfigMutationError(
+        "age backend requires recipient and identity file",
+      );
+    }
+    return {
+      type,
+      recipient,
+      identityFile,
+      ...(directory ? { directory } : {}),
+    };
+  }
+  if (type === "keychain") {
+    return { type, ...(parts[0] ? { service: parts[0] } : {}) };
+  }
+  if (type === "pass") {
+    return { type, ...(parts[0] ? { prefix: parts[0] } : {}) };
+  }
+  if (type === "onepassword") return { type };
+  if (type === "bitwarden") {
+    return { type, ...(parts[0] ? { appDataDirectory: parts[0] } : {}) };
+  }
+  if (type === "dashlane") return { type };
+  throw new ConfigMutationError(`Unknown secret backend '${type}'`);
+}
+
 /** Next choice when cycling through sorted profile IDs (ends on null). */
 export function nextProfileChoice(
   ids: string[],
@@ -293,91 +449,6 @@ export function nextProfileChoice(
   const index = sorted.indexOf(current);
   if (index === -1 || index === sorted.length - 1) return null;
   return sorted[index + 1]!;
-}
-
-const VALUE_LIMIT = 64;
-
-function renderValue(value: unknown): string {
-  const text = JSON.stringify(value) ?? "undefined";
-  return text.length > VALUE_LIMIT
-    ? `${text.slice(0, VALUE_LIMIT - 3)}...`
-    : text;
-}
-
-function isPlainObject(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null && !Array.isArray(value);
-}
-
-function deepEqual(a: unknown, b: unknown): boolean {
-  if (a === b) return true;
-  if (Array.isArray(a) && Array.isArray(b)) {
-    return (
-      a.length === b.length &&
-      a.every((item, index) => deepEqual(item, b[index]))
-    );
-  }
-  if (isPlainObject(a) && isPlainObject(b)) {
-    const keys = Object.keys(a);
-    return (
-      keys.length === Object.keys(b).length &&
-      keys.every((key) => deepEqual(a[key], b[key]))
-    );
-  }
-  return false;
-}
-
-function walkDiff(
-  before: unknown,
-  after: unknown,
-  path: string,
-  out: ConfigDiffLine[],
-): void {
-  if (deepEqual(before, after)) return;
-  if (isPlainObject(before) && isPlainObject(after)) {
-    const keys = [
-      ...new Set([...Object.keys(before), ...Object.keys(after)]),
-    ].sort();
-    for (const key of keys) {
-      walkDiff(before[key], after[key], path ? `${path}.${key}` : key, out);
-    }
-    return;
-  }
-  if (Array.isArray(before) && Array.isArray(after)) {
-    const length = Math.max(before.length, after.length);
-    for (let index = 0; index < length; index += 1) {
-      walkDiff(before[index], after[index], `${path}[${index}]`, out);
-    }
-    return;
-  }
-  if (before === undefined) {
-    out.push({ op: "add", path, before: null, after: renderValue(after) });
-  } else if (after === undefined) {
-    out.push({ op: "remove", path, before: renderValue(before), after: null });
-  } else {
-    out.push({
-      op: "change",
-      path,
-      before: renderValue(before),
-      after: renderValue(after),
-    });
-  }
-}
-
-/** Readable, redacted diff between two configs (secret literals masked). */
-export function diffConfigs(
-  before: IdealityConfig,
-  after: IdealityConfig,
-): ConfigDiffLine[] {
-  const lines: ConfigDiffLine[] = [];
-  walkDiff(redactConfig(before), redactConfig(after), "", lines);
-  return lines;
-}
-
-/** One-line human-readable rendering of a diff entry. */
-export function formatDiffLine(line: ConfigDiffLine): string {
-  if (line.op === "add") return `+ ${line.path} = ${line.after}`;
-  if (line.op === "remove") return `- ${line.path} (was ${line.before})`;
-  return `~ ${line.path}: ${line.before} -> ${line.after}`;
 }
 
 function selectedIdentityId(state: TuiState): string {
@@ -519,7 +590,7 @@ export function tuiReducer(state: TuiState, action: TuiAction): TuiState {
       );
     }
     case "open-bind-input":
-      return { ...state, bindingFolder: true, status: null };
+      return { ...state, bindingFolder: true, adminInput: null, status: null };
     case "close-bind-input":
       return { ...state, bindingFolder: false };
     case "bind-folder": {
@@ -569,13 +640,34 @@ export function tuiReducer(state: TuiState, action: TuiAction): TuiState {
         status: { kind: "info", text: "Discarded staged changes" },
       };
     case "open-screen": {
-      const next: TuiState = { ...state, screen: action.screen, status: null };
+      const next: TuiState = {
+        ...state,
+        screen: action.screen,
+        status: null,
+        adminInput: null,
+      };
       if (action.screen === "rollback") {
         next.rollback = {
           loaded: false,
           snapshots: [],
           cursor: 0,
           preview: null,
+        };
+      }
+      if (action.screen === "plugins") {
+        next.plugins = {
+          phase: "idle",
+          entries: [],
+          cursor: 0,
+          pendingRemove: null,
+        };
+      }
+      if (action.screen === "secrets") {
+        next.secrets = {
+          phase: "idle",
+          summary: null,
+          cursor: 0,
+          pendingDelete: null,
         };
       }
       return next;
@@ -683,6 +775,225 @@ export function tuiReducer(state: TuiState, action: TuiAction): TuiState {
         },
         status: { kind: "error", text: action.error },
       };
+    case "plugins-loading":
+      return {
+        ...state,
+        plugins: { ...state.plugins, phase: "loading", pendingRemove: null },
+        status: null,
+      };
+    case "plugins-loaded":
+      return {
+        ...state,
+        plugins: {
+          phase: "ready",
+          entries: action.plugins,
+          cursor: clamp(state.plugins.cursor, action.plugins.length - 1),
+          pendingRemove: null,
+        },
+      };
+    case "plugins-failed":
+      return {
+        ...state,
+        plugins: {
+          ...state.plugins,
+          phase: state.plugins.entries.length > 0 ? "ready" : "idle",
+        },
+        status: { kind: "error", text: action.error },
+      };
+    case "plugin-move":
+      return {
+        ...state,
+        plugins: {
+          ...state.plugins,
+          cursor: clamp(
+            state.plugins.cursor + action.direction,
+            state.plugins.entries.length - 1,
+          ),
+          pendingRemove: null,
+        },
+      };
+    case "plugin-remove-requested": {
+      const plugin = state.plugins.entries[state.plugins.cursor];
+      if (!plugin) {
+        return {
+          ...state,
+          status: { kind: "error", text: "No plugin selected" },
+        };
+      }
+      return {
+        ...state,
+        plugins: { ...state.plugins, pendingRemove: plugin.id },
+        status: null,
+      };
+    }
+    case "plugin-remove-cancelled":
+      return {
+        ...state,
+        plugins: { ...state.plugins, pendingRemove: null },
+      };
+    case "plugin-removed":
+      return {
+        ...state,
+        saved: action.config,
+        draft: action.config,
+        plugins: {
+          ...state.plugins,
+          entries: state.plugins.entries.filter(
+            (entry) => entry.id !== action.id,
+          ),
+          cursor: clamp(state.plugins.cursor, state.plugins.entries.length - 2),
+          pendingRemove: null,
+        },
+        status: { kind: "info", text: `Removed plugin '${action.id}'` },
+      };
+    case "plugin-installed":
+      return {
+        ...state,
+        saved: action.config,
+        draft: action.config,
+        adminInput: null,
+        status: { kind: "info", text: "Plugin installed" },
+      };
+    case "secrets-loading":
+      return {
+        ...state,
+        secrets: { ...state.secrets, phase: "loading", pendingDelete: null },
+        status: null,
+      };
+    case "secrets-loaded":
+      return {
+        ...state,
+        secrets: {
+          phase: "ready",
+          summary: action.secrets,
+          cursor: clamp(
+            state.secrets.cursor,
+            action.secrets.references.length - 1,
+          ),
+          pendingDelete: null,
+        },
+      };
+    case "secrets-failed":
+      return {
+        ...state,
+        secrets: {
+          ...state.secrets,
+          phase: state.secrets.summary ? "ready" : "idle",
+        },
+        status: { kind: "error", text: action.error },
+      };
+    case "secret-move": {
+      const count = state.secrets.summary?.references.length ?? 0;
+      return {
+        ...state,
+        secrets: {
+          ...state.secrets,
+          cursor: clamp(state.secrets.cursor + action.direction, count - 1),
+          pendingDelete: null,
+        },
+      };
+    }
+    case "secret-delete-requested": {
+      if (!state.secrets.summary?.writable) {
+        return {
+          ...state,
+          status: {
+            kind: "error",
+            text: "Selected secret backend is read-only",
+          },
+        };
+      }
+      const key = state.secrets.summary.references[state.secrets.cursor];
+      if (!key) {
+        return {
+          ...state,
+          status: { kind: "error", text: "No secret reference selected" },
+        };
+      }
+      return {
+        ...state,
+        secrets: { ...state.secrets, pendingDelete: key },
+        status: null,
+      };
+    }
+    case "secret-delete-cancelled":
+      return {
+        ...state,
+        secrets: { ...state.secrets, pendingDelete: null },
+      };
+    case "secret-deleted": {
+      const summary = state.secrets.summary
+        ? {
+            ...state.secrets.summary,
+            references: state.secrets.summary.references.filter(
+              (key) => key !== action.key,
+            ),
+          }
+        : null;
+      return {
+        ...state,
+        secrets: {
+          ...state.secrets,
+          summary,
+          cursor: clamp(
+            state.secrets.cursor,
+            (summary?.references.length ?? 0) - 1,
+          ),
+          pendingDelete: null,
+        },
+        status: { kind: "info", text: `Deleted secret '${action.key}'` },
+      };
+    }
+    case "secret-written":
+      return {
+        ...state,
+        adminInput: null,
+        status: { kind: "info", text: `Stored secret '${action.key}'` },
+      };
+    case "open-admin-input":
+      return {
+        ...state,
+        bindingFolder: false,
+        adminInput: action.input,
+        status: null,
+      };
+    case "close-admin-input":
+      return { ...state, adminInput: null };
+    case "submit-admin-input": {
+      const input = state.adminInput;
+      if (!input) return state;
+      if (input.kind === "secret-backend") {
+        return withStagedDraft(
+          { ...state, adminInput: null },
+          () =>
+            setSecretBackend(
+              state.draft,
+              parseSecretBackendInput(action.value),
+            ),
+          `Staged: secret backend ${action.value.trim().split(/\s+/)[0] ?? ""}`,
+        );
+      }
+      if (input.kind === "secret-key") {
+        const key = action.value.trim();
+        if (!key) {
+          return {
+            ...state,
+            status: { kind: "error", text: "Secret key cannot be empty" },
+          };
+        }
+        return { ...state, adminInput: { kind: "secret-value", key } };
+      }
+      if (input.kind === "plugin-path") {
+        return { ...state, adminInput: null };
+      }
+      return {
+        ...state,
+        status: {
+          kind: "error",
+          text: "Secret values are handled outside reducer state",
+        },
+      };
+    }
     case "request-quit":
       return { ...state, confirmingQuit: true };
     case "cancel-quit":

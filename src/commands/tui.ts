@@ -8,7 +8,7 @@ import { runDashboard } from "../tui/app.js";
 
 const tuiCommand = defineCommand({
   name: "tui",
-  description: "Open the interactive identity dashboard",
+  description: "Open the interactive identity, plugin, and secret dashboard",
   options: {
     path: option(z.string().default(process.cwd()), {
       short: "C",

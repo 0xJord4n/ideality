@@ -4,6 +4,8 @@ import os from "node:os";
 import path from "node:path";
 
 import {
+  deleteSecretValue,
+  listSecretReferences,
   readSecretValue,
   type SecretCommandRunner,
   writeSecretValue,
@@ -46,6 +48,43 @@ describe("secret backends", () => {
     ).toBe(0o600);
   });
 
+  test("lists and deletes file-backed logical keys without reading values", async () => {
+    const home = await mkdtemp(path.join(os.tmpdir(), "ideality-secret-"));
+    const selected = config({ type: "file" });
+    await writeSecretValue(
+      selected,
+      "sample/token",
+      "private-value",
+      home,
+      path.join(home, ".ideality"),
+    );
+
+    const listed = await listSecretReferences(
+      selected,
+      home,
+      path.join(home, ".ideality"),
+    );
+    expect(listed).toEqual({
+      backend: "file",
+      supported: true,
+      writable: true,
+      references: ["sample/token"],
+    });
+    expect(JSON.stringify(listed)).not.toContain("private-value");
+
+    await deleteSecretValue(
+      selected,
+      "sample/token",
+      home,
+      path.join(home, ".ideality"),
+    );
+    expect(
+      await Bun.file(
+        path.join(home, ".ideality/secrets/sample/token"),
+      ).exists(),
+    ).toBe(false);
+  });
+
   test("passes values over stdin to age without exposing them in arguments", async () => {
     const calls: Array<{ command: string[]; input?: string }> = [];
     const runner: SecretCommandRunner = async (command, input) => {
@@ -77,6 +116,43 @@ describe("secret backends", () => {
     ]);
     expect(calls[0]?.command.join(" ")).not.toContain("private-value");
     expect(calls[0]?.input).toBe("private-value\n");
+  });
+
+  test("lists age ciphertext references without decrypting them", async () => {
+    const calls: Array<{ command: string[]; input?: string }> = [];
+    const runner: SecretCommandRunner = async (command, input) => {
+      calls.push({ command, input });
+      return {
+        exitCode: 0,
+        stdout: new TextEncoder().encode("encrypted"),
+        stderr: "",
+      };
+    };
+    const home = await mkdtemp(path.join(os.tmpdir(), "ideality-age-"));
+    const selected = config({
+      type: "age",
+      recipient: "age1example",
+      identityFile: "~/.config/age/key.txt",
+    });
+    await writeSecretValue(
+      selected,
+      "sample/token",
+      "private-value",
+      home,
+      path.join(home, ".ideality"),
+      runner,
+    );
+
+    expect(
+      await listSecretReferences(selected, home, path.join(home, ".ideality")),
+    ).toEqual({
+      backend: "age",
+      supported: true,
+      writable: true,
+      references: ["sample/token"],
+    });
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.command[1]).toBe("--encrypt");
   });
 
   test("reads 1Password references without accepting arbitrary keys", async () => {
@@ -158,6 +234,27 @@ describe("secret backends", () => {
         config({ type: "dashlane" }),
         "dl://secret-id/value",
         "value",
+        "/home/dev",
+        "/home/dev/.ideality",
+        runner,
+      ),
+    ).rejects.toThrow("read-only");
+    expect(
+      await listSecretReferences(
+        config({ type: "dashlane" }),
+        "/home/dev",
+        "/home/dev/.ideality",
+      ),
+    ).toEqual({
+      backend: "dashlane",
+      supported: false,
+      writable: false,
+      references: [],
+    });
+    await expect(
+      deleteSecretValue(
+        config({ type: "dashlane" }),
+        "dl://secret-id/value",
         "/home/dev",
         "/home/dev/.ideality",
         runner,
