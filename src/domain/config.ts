@@ -1,7 +1,20 @@
 export type ValueSource =
   | string
   | { from: "file"; path: string; optional?: boolean }
-  | { from: "env"; name: string; optional?: boolean };
+  | { from: "env"; name: string; optional?: boolean }
+  | { from: "secret"; key: string; optional?: boolean };
+
+export type SecretBackendConfig =
+  | { type: "file"; directory?: string }
+  | {
+      type: "age";
+      directory?: string;
+      recipient: string;
+      identityFile: string;
+    }
+  | { type: "keychain"; service?: string }
+  | { type: "pass"; prefix?: string }
+  | { type: "onepassword" };
 
 export interface ToolProfile {
   enabled?: boolean;
@@ -40,6 +53,7 @@ export type AuthAction = "login" | "status" | "logout";
 export interface IdealityConfig {
   version: 1;
   defaultIdentity: string;
+  secretBackend?: SecretBackendConfig;
   identities: Record<string, IdentityConfig>;
   tools: Record<string, ToolDefinition>;
 }

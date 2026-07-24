@@ -1,3 +1,8 @@
+import { chmod, mkdir, rename } from "node:fs/promises";
+import path from "node:path";
+
+import type { IdealityConfig } from "../domain/config.js";
+
 export type CompletionShell = "zsh" | "bash" | "fish";
 
 const COMMANDS = [
@@ -58,4 +63,43 @@ export function renderCompletion(
     `complete -c ideality -f -a '${identities} ${tools}'`,
     "",
   ].join("\n");
+}
+
+export async function installCompletion(
+  shell: CompletionShell,
+  content: string,
+  idealityHome: string,
+): Promise<string> {
+  const directory = path.join(idealityHome, "completions");
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const file = path.join(directory, `ideality.${shell}`);
+  const temporary = `${file}.${process.pid}.tmp`;
+  await Bun.write(temporary, content);
+  await chmod(temporary, 0o600);
+  await rename(temporary, file);
+  return file;
+}
+
+export async function syncInstalledCompletions(
+  config: IdealityConfig,
+  idealityHome: string,
+): Promise<string[]> {
+  const values = {
+    identities: Object.keys(config.identities).sort(),
+    tools: Object.keys(config.tools).sort(),
+  };
+  const installed: string[] = [];
+  for (const shell of ["zsh", "bash", "fish"] as const) {
+    const file = path.join(idealityHome, "completions", `ideality.${shell}`);
+    if (await Bun.file(file).exists()) {
+      installed.push(
+        await installCompletion(
+          shell,
+          renderCompletion(shell, values),
+          idealityHome,
+        ),
+      );
+    }
+  }
+  return installed;
 }

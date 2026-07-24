@@ -10,14 +10,14 @@ describe("starter tool profiles", () => {
     expect(Object.keys(profiles).sort()).toEqual(Object.keys(BUILTIN_TOOLS).sort());
     expect(profiles.gh?.env?.GH_CONFIG_DIR).toContain("/sample/gh");
     expect(profiles.railway?.env?.RAILWAY_API_TOKEN).toEqual({
-      from: "file",
-      path: "{{idealityHome}}/secrets/sample/railway-token",
+      from: "secret",
+      key: "{{identity}}/railway-token",
       optional: true,
     });
     expect(profiles.cf?.env).toMatchObject({
       CLOUDFLARE_API_TOKEN: {
-        from: "file",
-        path: "{{idealityHome}}/secrets/sample/cloudflare-token",
+        from: "secret",
+        key: "{{identity}}/cloudflare-token",
         optional: true,
       },
       CLOUDFLARE_ACCOUNT_ID: {

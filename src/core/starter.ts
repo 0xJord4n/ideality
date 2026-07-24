@@ -7,7 +7,6 @@ import type {
 
 export function createToolProfiles(identity: string): Record<string, ToolProfile> {
   const profile = `{{idealityHome}}/profiles/${identity}`;
-  const secret = `{{idealityHome}}/secrets/${identity}`;
   return {
     gh: {
       isolation: "process",
@@ -17,8 +16,8 @@ export function createToolProfiles(identity: string): Record<string, ToolProfile
       isolation: "process",
       env: {
         RAILWAY_API_TOKEN: {
-          from: "file",
-          path: `${secret}/railway-token`,
+          from: "secret",
+          key: "{{identity}}/railway-token",
           optional: true,
         },
       },
@@ -27,8 +26,8 @@ export function createToolProfiles(identity: string): Record<string, ToolProfile
       isolation: "process",
       env: {
         CLOUDFLARE_API_TOKEN: {
-          from: "file",
-          path: `${secret}/cloudflare-token`,
+          from: "secret",
+          key: "{{identity}}/cloudflare-token",
           optional: true,
         },
         CLOUDFLARE_ACCOUNT_ID: {
@@ -91,6 +90,7 @@ export function createStarterConfig(options: {
   return {
     version: 1,
     defaultIdentity: options.id,
+    secretBackend: { type: "file" },
     identities: {
       [options.id]: {
         label: options.label,

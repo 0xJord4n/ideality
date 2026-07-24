@@ -8,6 +8,7 @@ import type {
   ValueSource,
 } from "../domain/config.js";
 import { expandHome } from "./resolution.js";
+import { readSecretValue } from "./secret-backends.js";
 
 export interface EnvironmentOptions {
   home: string;
@@ -15,6 +16,7 @@ export interface EnvironmentOptions {
   tool?: string;
   baseEnv?: Record<string, string | undefined>;
   readFile?: (path: string) => Promise<string>;
+  readSecret?: typeof readSecretValue;
 }
 
 export interface ResolvedEnvironment {
@@ -43,10 +45,11 @@ export function renderTemplate(
 }
 
 async function resolveSource(
+  config: IdealityConfig,
   source: ValueSource,
   resolved: ResolvedIdentity,
   options: Required<Pick<EnvironmentOptions, "home" | "idealityHome" | "readFile">> &
-    Pick<EnvironmentOptions, "baseEnv">,
+    Pick<EnvironmentOptions, "baseEnv" | "readSecret">,
 ): Promise<{ value: string | null; display: string }> {
   if (typeof source === "string") {
     const value = renderTemplate(
@@ -67,6 +70,37 @@ async function resolveSource(
       throw new Error(`Required environment variable '${source.name}' is not set`);
     }
     return { value, display: "<secret:env>" };
+  }
+
+  if (source.from === "secret") {
+    try {
+      const key = renderTemplate(
+        source.key,
+        resolved,
+        options.home,
+        options.idealityHome,
+      );
+      const value = await (options.readSecret ?? readSecretValue)(
+        config,
+        key,
+        options.home,
+        options.idealityHome,
+      );
+      if (!value && !source.optional) {
+        throw new Error(`Secret '${key}' is empty`);
+      }
+      return {
+        value: value || null,
+        display: value
+          ? `<secret:${config.secretBackend?.type ?? "file"}>`
+          : "<unset:secret>",
+      };
+    } catch (error) {
+      if (source.optional) {
+        return { value: null, display: "<unset:secret>" };
+      }
+      throw error;
+    }
   }
 
   const file = renderTemplate(
@@ -134,11 +168,12 @@ export async function buildEnvironment(
         continue;
       }
 
-      const result = await resolveSource(source, resolved, {
+      const result = await resolveSource(config, source, resolved, {
         home: options.home,
         idealityHome,
         baseEnv: options.baseEnv,
         readFile,
+        readSecret: options.readSecret,
       });
       if (result.value === null) {
         unset.add(name);

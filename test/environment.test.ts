@@ -125,4 +125,24 @@ describe("buildEnvironment", () => {
       "/secure/ideality/personal:/home/dev:/home/dev/code/personal",
     );
   });
+
+  test("resolves logical secrets only through the selected environment", async () => {
+    const secretConfig = structuredClone(config);
+    secretConfig.secretBackend = { type: "age", recipient: "age1x", identityFile: "/key" };
+    secretConfig.identities.personal!.tools.railway!.env!.RAILWAY_API_TOKEN = {
+      from: "secret",
+      key: "{{identity}}/railway",
+    };
+    const environment = await buildEnvironment(secretConfig, {
+      ...resolved,
+      identity: secretConfig.identities.personal!,
+    }, {
+      home: "/home/dev",
+      tool: "railway",
+      readSecret: async (_config, key) =>
+        key === "personal/railway" ? "resolved-secret" : "",
+    });
+    expect(environment.values.RAILWAY_API_TOKEN).toBe("resolved-secret");
+    expect(environment.redacted.RAILWAY_API_TOKEN).toBe("<secret:age>");
+  });
 });

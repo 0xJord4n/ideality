@@ -1,10 +1,14 @@
-import { stat } from "node:fs/promises";
+import { readdir, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 
 import type { IdealityConfig } from "../domain/config.js";
 import { renderTemplate } from "./environment.js";
 import { expandHome } from "./resolution.js";
-import { resolveExecutable } from "./runtime.js";
+import { findExecutable, resolveExecutable } from "./runtime.js";
+import { secretBackendExecutable } from "./secret-backends.js";
+import { listConfigSnapshots } from "./config-store.js";
+import { listPluginManifests } from "./plugins.js";
+import { renderShim } from "../integrations/shims.js";
 
 export type CheckStatus = "pass" | "warn" | "fail";
 
@@ -21,6 +25,7 @@ export async function runDoctor(
 ): Promise<DoctorCheck[]> {
   const checks: DoctorCheck[] = [];
   const rootOwners = new Map<string, string>();
+  const canonicalRoots: Array<{ id: string; root: string }> = [];
 
   for (const [id, identity] of Object.entries(config.identities)) {
     const primaryRoot = expandHome(identity.roots[0]!, home);
@@ -44,6 +49,9 @@ export async function runDoctor(
         rootOwners.set(expanded, id);
         try {
           const info = await stat(expanded);
+          if (info.isDirectory()) {
+            canonicalRoots.push({ id, root: await realpath(expanded) });
+          }
           checks.push({
             status: info.isDirectory() ? "pass" : "fail",
             subject: expanded,
@@ -119,6 +127,23 @@ export async function runDoctor(
     }
   }
 
+  for (let index = 0; index < canonicalRoots.length; index += 1) {
+    const current = canonicalRoots[index]!;
+    for (const other of canonicalRoots.slice(index + 1)) {
+      if (
+        current.root === other.root ||
+        current.root.startsWith(`${other.root}${path.sep}`) ||
+        other.root.startsWith(`${current.root}${path.sep}`)
+      ) {
+        checks.push({
+          status: current.id === other.id ? "warn" : "fail",
+          subject: `${current.id}/${other.id}:roots`,
+          message: `canonical roots overlap: ${current.root} and ${other.root}`,
+        });
+      }
+    }
+  }
+
   for (const [tool, definition] of Object.entries(config.tools)) {
     const executable = resolveExecutable(config, tool);
     checks.push({
@@ -129,6 +154,120 @@ export async function runDoctor(
           ? `executable ${executable}`
           : `executable '${definition.executable}' is not installed`,
     });
+    if (definition.auth) {
+      checks.push({
+        status: executable ? "pass" : "warn",
+        subject: `auth:${tool}`,
+        message: `native workflows: ${Object.keys(definition.auth).sort().join(", ")}`,
+      });
+    }
   }
+
+  const shimDirectory = path.join(idealityHome, "bin");
+  const pathEntries = (process.env.PATH ?? "")
+    .split(path.delimiter)
+    .map((entry) => path.resolve(entry));
+  const shimPathActive = pathEntries.includes(path.resolve(shimDirectory));
+  checks.push({
+    status: shimPathActive ? "pass" : "warn",
+    subject: "shim-path",
+    message: shimPathActive
+      ? `${shimDirectory} is active in PATH`
+      : `${shimDirectory} is not active in PATH; reload the shell integration`,
+  });
+  for (const tool of Object.keys(config.tools)) {
+    const file = path.join(shimDirectory, tool);
+    try {
+      const info = await stat(file);
+      const current =
+        info.isFile() &&
+        Boolean(info.mode & 0o111) &&
+        (await Bun.file(file).text()) === renderShim(tool);
+      checks.push({
+        status: current ? "pass" : "fail",
+        subject: `shim:${tool}`,
+        message: current
+          ? "managed shim is current"
+          : "shim is stale or not executable; run 'ideality install'",
+      });
+    } catch {
+      checks.push({
+        status: "fail",
+        subject: `shim:${tool}`,
+        message: "managed shim is missing; run 'ideality install'",
+      });
+    }
+  }
+
+  const backendExecutable = secretBackendExecutable(config);
+  if (backendExecutable) {
+    const executable = findExecutable(backendExecutable);
+    checks.push({
+      status: executable ? "pass" : "fail",
+      subject: `secrets:${config.secretBackend?.type}`,
+      message: executable
+        ? `backend executable ${executable}`
+        : `required executable '${backendExecutable}' is missing`,
+    });
+  } else {
+    checks.push({
+      status: "pass",
+      subject: "secrets:file",
+      message: "locked local file backend",
+    });
+  }
+  if (config.secretBackend?.type === "age") {
+    const identity = expandHome(config.secretBackend.identityFile, home);
+    const exists = await Bun.file(identity).exists();
+    checks.push({
+      status: exists ? "pass" : "fail",
+      subject: "secrets:age-identity",
+      message: exists
+        ? `identity file present: ${identity}`
+        : `identity file is missing: ${identity}`,
+    });
+  }
+
+  try {
+    const plugins = await listPluginManifests(idealityHome);
+    checks.push({
+      status: "pass",
+      subject: "plugins",
+      message: `${plugins.length} valid manifest${plugins.length === 1 ? "" : "s"}`,
+    });
+  } catch (error) {
+    checks.push({
+      status: "fail",
+      subject: "plugins",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  const shellDirectory = path.join(idealityHome, "shell");
+  let hooks: string[] = [];
+  try {
+    hooks = (await readdir(shellDirectory)).filter((file) =>
+      /^ideality\.(zsh|bash|fish)$/.test(file),
+    );
+  } catch {
+    // Missing shell integration is reported below.
+  }
+  checks.push({
+    status: hooks.length > 0 ? "pass" : "warn",
+    subject: "shell-hook",
+    message:
+      hooks.length > 0
+        ? `installed: ${hooks.join(", ")}`
+        : "not installed; run 'ideality install'",
+  });
+
+  const snapshots = await listConfigSnapshots(
+    path.join(idealityHome, "config.jsonc"),
+  );
+  checks.push({
+    status: "pass",
+    subject: "history",
+    message: `${snapshots.length} rollback snapshot${snapshots.length === 1 ? "" : "s"}`,
+  });
   return checks;
 }

@@ -9,6 +9,7 @@ import {
 import { resolveExecutable } from "../core/runtime.js";
 import type { ValueSource } from "../domain/config.js";
 import { installShims } from "../integrations/shims.js";
+import { syncInstalledCompletions } from "../integrations/completion.js";
 import { commandArguments, requirePositional } from "./shared.js";
 
 function parseSource(value: string, optional: boolean): ValueSource | null {
@@ -20,6 +21,9 @@ function parseSource(value: string, optional: boolean): ValueSource | null {
   }
   if (value.startsWith("env:")) {
     return { from: "env", name: value.slice(4), optional };
+  }
+  if (value.startsWith("secret:")) {
+    return { from: "secret", key: value.slice(7), optional };
   }
   return value.startsWith("value:") ? value.slice(6) : value;
 }
@@ -57,6 +61,10 @@ const toolCommand = defineGroup({
         description: option(z.string().optional(), {
           description: "Human-readable description",
         }),
+        "dry-run": option(z.boolean().default(false), {
+          description: "Show the change without saving it",
+          argumentKind: "flag",
+        }),
       },
       handler: async ({ positional, flags, colors }) => {
         const name = requirePositional(positional, 0, "tool name");
@@ -69,9 +77,16 @@ const toolCommand = defineGroup({
           isolation: flags.isolation,
           description: flags.description,
         };
-        await saveConfig(config);
-        await installShims(config, getIdealityHome());
-        console.log(colors.green(`Registered custom tool '${name}'`));
+        if (!flags["dry-run"]) {
+          await saveConfig(config);
+          await installShims(config, getIdealityHome());
+          await syncInstalledCompletions(config, getIdealityHome());
+        }
+        console.log(
+          flags["dry-run"]
+            ? `Would register custom tool '${name}'`
+            : colors.green(`Registered custom tool '${name}'`),
+        );
       },
     }),
     defineCommand({
@@ -81,6 +96,10 @@ const toolCommand = defineGroup({
         force: option(z.boolean().default(false), {
           short: "f",
           description: "Confirm removal",
+          argumentKind: "flag",
+        }),
+        "dry-run": option(z.boolean().default(false), {
+          description: "Show the change without saving it",
           argumentKind: "flag",
         }),
       },
@@ -97,17 +116,28 @@ const toolCommand = defineGroup({
         for (const identity of Object.values(config.identities)) {
           delete identity.tools[name];
         }
-        await saveConfig(config);
-        await installShims(config, getIdealityHome());
-        console.log(colors.green(`Removed tool '${name}'`));
+        if (!flags["dry-run"]) {
+          await saveConfig(config);
+          await installShims(config, getIdealityHome());
+          await syncInstalledCompletions(config, getIdealityHome());
+        }
+        console.log(
+          flags["dry-run"]
+            ? `Would remove tool '${name}'`
+            : colors.green(`Removed tool '${name}'`),
+        );
       },
     }),
     defineCommand({
       name: "env",
-      description: "Set a profile variable: file:path, env:NAME, value:text, or unset",
+      description: "Set a variable: secret:key, file:path, env:NAME, value:text, or unset",
       options: {
         optional: option(z.boolean().default(false), {
           description: "Allow a missing file or source variable",
+          argumentKind: "flag",
+        }),
+        "dry-run": option(z.boolean().default(false), {
+          description: "Show the change without saving it",
           argumentKind: "flag",
         }),
       },
@@ -130,14 +160,20 @@ const toolCommand = defineGroup({
         const profile = (identity.tools[toolName] ??= {});
         profile.env ??= {};
         profile.env[variable] = parseSource(value, flags.optional);
-        await saveConfig(config);
+        if (!flags["dry-run"]) await saveConfig(config);
         console.log(colors.green(`Updated ${identityId}/${toolName}:${variable}`));
       },
     }),
     defineCommand({
       name: "args",
       description: "Replace identity-specific tool arguments",
-      handler: async ({ positional, colors }) => {
+      options: {
+        "dry-run": option(z.boolean().default(false), {
+          description: "Show the change without saving it",
+          argumentKind: "flag",
+        }),
+      },
+      handler: async ({ positional, flags, colors }) => {
         const identityId = requirePositional(positional, 0, "identity ID");
         const toolName = requirePositional(positional, 1, "tool name");
         const config = await loadConfig();
@@ -146,7 +182,7 @@ const toolCommand = defineGroup({
           throw new Error(`Unknown identity or tool`);
         }
         (identity.tools[toolName] ??= {}).args = commandArguments(positional, 2);
-        await saveConfig(config);
+        if (!flags["dry-run"]) await saveConfig(config);
         console.log(colors.green(`Updated arguments for ${identityId}/${toolName}`));
       },
     }),
@@ -154,7 +190,13 @@ const toolCommand = defineGroup({
       defineCommand({
         name: action,
         description: `${action === "enable" ? "Enable" : "Disable"} a tool for one identity`,
-        handler: async ({ positional, colors }) => {
+        options: {
+          "dry-run": option(z.boolean().default(false), {
+            description: "Show the change without saving it",
+            argumentKind: "flag",
+          }),
+        },
+        handler: async ({ positional, flags, colors }) => {
           const identityId = requirePositional(positional, 0, "identity ID");
           const toolName = requirePositional(positional, 1, "tool name");
           const config = await loadConfig();
@@ -163,7 +205,7 @@ const toolCommand = defineGroup({
             throw new Error("Unknown identity or tool");
           }
           (identity.tools[toolName] ??= {}).enabled = action === "enable";
-          await saveConfig(config);
+          if (!flags["dry-run"]) await saveConfig(config);
           console.log(colors.green(`${action}d ${identityId}/${toolName}`));
         },
       }),

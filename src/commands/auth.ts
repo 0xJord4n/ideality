@@ -73,6 +73,7 @@ const authCommand = defineCommand({
     const child = Bun.spawn(
       [
         executable,
+        ...environment.args,
         ...authArguments(definition, action),
         ...extra,
       ],

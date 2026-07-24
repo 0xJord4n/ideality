@@ -67,11 +67,17 @@ export function renderShellHook(
   idealityHome: string,
 ): string {
   const shimDirectory = path.join(idealityHome, "bin");
+  const completion = path.join(
+    idealityHome,
+    "completions",
+    `ideality.${shell}`,
+  );
   if (shell === "fish") {
     return [
       `if not contains -- ${fishQuote(shimDirectory)} $PATH`,
       `  set -gx PATH ${fishQuote(shimDirectory)} $PATH`,
       "end",
+      `test -r ${fishQuote(completion)}; and source ${fishQuote(completion)}`,
       "function __ideality_apply --on-variable PWD",
       "  command ideality env --shell fish --path \"$PWD\" | source",
       "end",
@@ -102,6 +108,7 @@ export function renderShellHook(
     `  *":${shimDirectory}:"*) ;;`,
     `  *) export PATH=${singleQuote(shimDirectory)}:"$PATH" ;;`,
     "esac",
+    `[[ -r ${singleQuote(completion)} ]] && source ${singleQuote(completion)}`,
     "_ideality_apply() {",
     `  eval "$(command ideality env --shell ${shell} --path "$PWD")"`,
     "}",

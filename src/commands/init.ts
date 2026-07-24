@@ -11,6 +11,7 @@ import {
   saveConfig,
 } from "../core/config-store.js";
 import { findSshPrivateKeys } from "../core/file-search.js";
+import { deriveIdentityId } from "../core/identity-id.js";
 import { expandHome } from "../core/resolution.js";
 import { createStarterConfig } from "../core/starter.js";
 import { installGitIntegration } from "../integrations/git.js";
@@ -19,6 +20,10 @@ import {
   type SupportedShell,
 } from "../integrations/shell.js";
 import { installShims } from "../integrations/shims.js";
+import {
+  installCompletion,
+  renderCompletion,
+} from "../integrations/completion.js";
 import { generateSshKey } from "../integrations/ssh.js";
 import { assertIdentityId, discoverGitIdentity } from "./shared.js";
 
@@ -59,7 +64,7 @@ const initCommand = defineCommand({
   name: "init",
   description: "Create the identity registry",
   options: {
-    id: option(z.string().default("default"), {
+    id: option(z.string().optional(), {
       description: "Override the automatic identity ID",
     }),
     label: option(z.string().default("Default"), {
@@ -109,6 +114,10 @@ const initCommand = defineCommand({
       description: "Overwrite an existing registry",
       argumentKind: "flag",
     }),
+    "dry-run": option(z.boolean().default(false), {
+      description: "Show the registry and integrations without writing files",
+      argumentKind: "flag",
+    }),
   },
   handler: async ({ flags, prompt, spinner, terminal, colors }) => {
     if (flags.interactive && flags["non-interactive"]) {
@@ -147,8 +156,8 @@ const initCommand = defineCommand({
       flags["git-name"],
       flags["git-email"],
     );
-    const id = flags.id;
-    assertIdentityId(id);
+    let id = flags.id ?? "";
+    if (id) assertIdentityId(id);
     let label = flags.label;
     let root = flags.root;
     let gitName = discoveredGit.name;
@@ -182,9 +191,12 @@ const initCommand = defineCommand({
       label = await wizardStep(
         prompt.text("Display label", {
           default:
-            label === "Default" ? id[0]!.toUpperCase() + id.slice(1) : label,
+            label,
         }),
       );
+      if (!id) id = deriveIdentityId(label, []);
+      assertIdentityId(id);
+      prompt.note(id, "Automatic ID");
       root = await wizardStep(
         prompt.text("Folder root", {
           default: root,
@@ -324,6 +336,8 @@ const initCommand = defineCommand({
       }
     }
 
+    if (!id) id = deriveIdentityId(label, []);
+    assertIdentityId(id);
     const git = { name: gitName, email: gitEmail };
     if (sshMode === "existing") {
       const expanded = expandHome(sshKey!, home);
@@ -332,6 +346,9 @@ const initCommand = defineCommand({
       }
       Object.assign(git, { sshKey: expanded });
     } else if (sshMode === "generate") {
+      if (flags["dry-run"]) {
+        Object.assign(git, { sshKey: path.join(idealityHome, "ssh", id) });
+      } else {
       Object.assign(
         git,
         await generateSshKey({
@@ -340,9 +357,25 @@ const initCommand = defineCommand({
           idealityHome,
         }).then(({ privateKey }) => ({ sshKey: privateKey })),
       );
+      }
     }
 
     const config = createStarterConfig({ id, label, root, git });
+    if (flags["dry-run"]) {
+      console.log(
+        JSON.stringify(
+          {
+            configPath,
+            config,
+            integrations,
+            shell: integrations.includes("shell") ? shell : null,
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
     const spin = interactive
       ? spinner({ text: "Writing identity registry", showTimer: true })
       : null;
@@ -350,6 +383,14 @@ const initCommand = defineCommand({
     try {
       await saveConfig(config);
       if (integrations.includes("shell")) {
+        await installCompletion(
+          shell,
+          renderCompletion(shell, {
+            identities: Object.keys(config.identities).sort(),
+            tools: Object.keys(config.tools).sort(),
+          }),
+          idealityHome,
+        );
         await installShims(config, idealityHome);
         await installShellIntegration(
           config,

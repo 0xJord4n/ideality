@@ -11,6 +11,10 @@ import {
   type SupportedShell,
 } from "../integrations/shell.js";
 import { installShims } from "../integrations/shims.js";
+import {
+  installCompletion,
+  renderCompletion,
+} from "../integrations/completion.js";
 
 function defaultRc(shell: SupportedShell, home: string): string {
   if (shell === "fish") {
@@ -37,16 +41,51 @@ const installCommand = defineCommand({
       description: "Skip Git includeIf integration",
       argumentKind: "flag",
     }),
+    "dry-run": option(z.boolean().default(false), {
+      description: "Show installation targets without writing files",
+      argumentKind: "flag",
+    }),
   },
   handler: async ({ flags, colors }) => {
     const config = await loadConfig();
     const home = os.homedir();
     const idealityHome = getIdealityHome();
+    if (flags["dry-run"]) {
+      console.log(
+        JSON.stringify(
+          {
+            shims: path.join(idealityHome, "bin"),
+            shell: flags["no-shell"]
+              ? null
+              : {
+                  type: flags.shell,
+                  rc: flags.rc ?? defaultRc(flags.shell, home),
+                },
+            git: flags["no-git"]
+              ? null
+              : path.join(idealityHome, "git", "config"),
+            tools: Object.keys(config.tools).sort(),
+          },
+          null,
+          2,
+        ),
+      );
+      return;
+    }
     const shims = await installShims(config, idealityHome);
     console.log(
       colors.green(`Tool shims: ${shims.directory} (${shims.tools.length})`),
     );
     if (!flags["no-shell"]) {
+      const completion = await installCompletion(
+        flags.shell,
+        renderCompletion(flags.shell, {
+          identities: Object.keys(config.identities).sort(),
+          tools: Object.keys(config.tools).sort(),
+        }),
+        idealityHome,
+      );
+      console.log(colors.green(`Completion: ${completion}`));
       const installed = await installShellIntegration(
         config,
         flags.shell,

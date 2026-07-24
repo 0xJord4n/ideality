@@ -1,24 +1,13 @@
 # ideality
 
-Folder-based identity orchestration for developer tools.
-
-Ideality resolves an identity from the current directory, applies only that
-identity's environment, and keeps tools with broad variables such as `HOME` or
-`XDG_CONFIG_HOME` isolated to a child process. The CLI is built with
-[Bunli](https://bunli.dev/docs), and its dashboard uses
+Folder-based identity orchestration for developer tools, built with
+[Bunli](https://bunli.dev/docs) and
 [OpenTUI](https://opentui.com/docs/getting-started/).
 
-## Features
-
-- Deterministic longest-root matching with a configured fallback identity
-- Git author, signing, and per-directory SSH private key selection
-- GitHub CLI, Railway, Cloudflare, Vercel, Codex, Claude Code, and OpenCode
-- Isolated Chrome and Firefox profiles
-- Custom executables, environment variables, arguments, and secret sources
-- Zsh, Bash, and Fish hooks with process-scoped wrappers
-- Secure Ed25519 key generation and file-backed credential storage
-- JSON output for automation and an interactive OpenTUI dashboard
-- Local diagnostics for paths, permissions, executables, and unsafe literals
+Ideality selects an identity from the current directory and starts each tool
+with only that identity's process environment. It supports Git, GitHub CLI,
+Railway, Cloudflare, Vercel, Codex, Claude Code, OpenCode, Chrome, Firefox, and
+declarative custom plugins.
 
 ## Install
 
@@ -29,20 +18,18 @@ bun install
 bun run check
 bun run build
 bun link
-```
-
-Run the guided setup:
-
-```bash
 ideality init
 ```
 
-For scripts and provisioning, use the prompt-free mode:
+Interactive mode is automatic in a terminal. The wizard fuzzy-searches folders
+and SSH private keys, derives the identity ID from the display label, and can
+generate an Ed25519 key. `--id` is only an explicit override.
+
+For provisioning:
 
 ```bash
 ideality init --non-interactive \
-  --id default \
-  --label Default \
+  --label "Example Account" \
   --root ~/code \
   --git-name "Example Developer" \
   --git-email developer@example.com \
@@ -51,111 +38,153 @@ ideality init --non-interactive \
   --shell zsh
 ```
 
-Interactive mode is selected automatically in a terminal. Use `--interactive`
-to force the wizard or `--non-interactive` to guarantee that no prompt occurs.
-The first identity receives the ID `default` automatically; use `--id` only to
-override it.
-Existing-file steps use an interactive fuzzy finder; SSH private keys are
-discovered from `~/.ssh` and `~/.ideality/ssh`.
-
-All managed files live under one root:
+All managed state lives under `~/.ideality`:
 
 ```text
-~/.ideality/
-  config.jsonc
-  secrets/
-  profiles/
-  ssh/
-  git/
-  shell/
+config.jsonc  bin/  completions/  git/  history/  plugins/
+profiles/     secrets/  shell/    ssh/
 ```
 
-Set
-`IDEALITY_HOME` to relocate all managed files, or `IDEALITY_CONFIG` to select a
-specific registry.
+Set `IDEALITY_HOME` to relocate the state directory or `IDEALITY_CONFIG` to
+select a registry.
 
-## Daily Use
+## Automatic Dispatch
+
+`ideality install` adds `~/.ideality/bin` to `PATH`. Managed shims in that
+directory intercept every registered tool, resolve the identity from `$PWD`,
+strip variables managed by other identities, inject the selected tool profile,
+and execute the real binary. Running `vercel`, `gh`, `railway`, `cf`, an AI
+CLI, or a browser needs no explicit wrapper.
 
 ```bash
 ideality status
-ideality status --json
+ideality explain vercel
+ideality explain cf --path ~/code/work/project --json
+ideality auth gh status
+ideality auth railway login --identity work
 ideality tui
+```
 
-ideality identity add work \
+The longest matching folder root wins. Outside all roots, the configured
+default identity is used. An explicit invocation remains available:
+
+```bash
+ideality run gh --identity work -- auth status
+ideality run chrome --identity work -- https://github.com
+```
+
+## Identities
+
+```bash
+ideality identity add
+ideality identity add --non-interactive --id work \
+  --label Work \
   --root ~/code/work \
   --git-name "Work Developer" \
   --git-email developer@company.example \
   --generate-ssh
-
 ideality identity ssh-public work
-ideality identity bind work ~/projects/client-a
-ideality identity default personal
+ideality identity bind work ~/projects/client
+ideality identity default work
 ```
 
-The shell hook re-evaluates the identity whenever the directory changes. Tools
-that need process-only isolation are exposed as shell functions, so `claude`,
-`vercel`, `opencode`, `chrome`, and `firefox` transparently pass through
-`ideality run`.
+Git uses generated `includeIf` configuration, including author, signing, and
+`core.sshCommand`. Other tools use process-only shims and identity-specific
+profile directories.
 
-Use an explicit identity or directory when scripting:
+## Secrets
 
-```bash
-ideality run gh --identity work -- auth status
-ideality run chrome --identity personal -- https://github.com
-ideality env --path ~/code/work/project --shell zsh
-```
-
-## Credentials
-
-Starter identities use file references rather than literal tokens. Write them
-without placing values in shell history:
+Starter profiles use logical secret references, never literal tokens. The
+default backend stores locked local files:
 
 ```bash
 ideality secret set work railway RAILWAY_API_TOKEN
-ideality secret set work cf CLOUDFLARE_API_TOKEN
-printf '%s' "$TOKEN" | ideality secret set work railway RAILWAY_API_TOKEN --stdin
+printf '%s' "$TOKEN" |
+  ideality secret set work cf CLOUDFLARE_API_TOKEN --stdin
 ideality secret list
 ```
 
-File sources using `{{root}}` require `secret set --path <directory>`. The
-directory must match a root owned by that identity.
+Choose an encrypted or external backend:
 
-Secret directories are created with mode `700`; files are atomically written
-with mode `600`. `status`, `doctor`, and the TUI never print resolved values.
-`ideality env --reveal` is the explicit escape hatch for debugging.
+```bash
+ideality secret backend age \
+  --recipient age1... \
+  --identity-file ~/.config/age/keys.txt
+ideality secret backend keychain
+ideality secret backend pass --prefix developer/ideality
+ideality secret backend onepassword
+```
 
-## Tool Isolation
+For 1Password, configure `secret:op://Vault/Item/credential`; Ideality reads it
+with `op read` and does not edit the item. Secret values are resolved only while
+starting the selected tool. Logical secrets are forbidden in shell-scoped
+profiles. `status`, `doctor`, `explain`, config output, and the TUI stay
+redacted.
 
-| Tool | Scope | Mechanism |
-| --- | --- | --- |
-| Git | native | generated `includeIf` files and `core.sshCommand` |
-| GitHub CLI | shell | `GH_CONFIG_DIR` |
-| Railway | shell | `RAILWAY_API_TOKEN` file source |
-| Cloudflare | shell | token, account, and zone variables |
-| Codex | shell | `CODEX_HOME` |
-| Vercel | process | identity-specific XDG directories |
-| Claude Code | process | `CLAUDE_CONFIG_DIR` |
-| OpenCode | process | identity-specific XDG directories |
-| Chrome | process | `--user-data-dir` |
-| Firefox | process | `-profile` |
-
-Authenticate from a matching directory after installation, or use
-`ideality run <tool> --identity <id>`. Each tool then writes into its selected
-profile.
+Local secret directories are mode `700`; secret files and age ciphertext are
+atomically written with mode `600`. The age and `pass` backends receive values
+through stdin rather than command arguments.
 
 ## Custom Tools
 
 ```bash
-ideality tool add acme --executable acme --isolation process
-ideality tool env work acme ACME_HOME value:{{idealityHome}}/profiles/work/acme
-ideality tool env work acme ACME_TOKEN file:{{idealityHome}}/secrets/work/acme-token --optional
+ideality tool add acme --executable acme
+ideality tool env work acme \
+  ACME_HOME value:{{idealityHome}}/profiles/{{identity}}/acme
+ideality tool env work acme ACME_TOKEN secret:{{identity}}/acme-token
 ideality tool args work acme -- --region eu
-ideality run acme --identity work -- account show
 ```
 
-String templates in values and arguments support `{{identity}}`, `{{home}}`,
-`{{idealityHome}}`, and `{{root}}`. See
-[custom adapters](docs/custom-adapters.md).
+Portable plugin manifest:
+
+```jsonc
+{
+  "version": 1,
+  "name": "acme",
+  "executable": "acme",
+  "detect": ["acme-cli"],
+  "auth": { "status": ["account", "show"] },
+  "profile": {
+    "env": {
+      "ACME_TOKEN": {
+        "from": "secret",
+        "key": "{{identity}}/acme-token"
+      }
+    }
+  }
+}
+```
+
+```bash
+ideality plugin validate acme.ideality.jsonc
+ideality plugin install acme.ideality.jsonc
+```
+
+Templates support `{{identity}}`, `{{home}}`, `{{idealityHome}}`, and
+`{{root}}`. See [custom adapters](docs/custom-adapters.md).
+
+## Safety
+
+Registry writes are atomic and retain the newest 50 previous valid configs in
+`~/.ideality/history`.
+
+```bash
+ideality identity bind work ~/projects/client --dry-run
+ideality plugin install acme.ideality.jsonc --dry-run
+ideality install --dry-run
+ideality rollback --list
+ideality rollback latest --dry-run
+ideality rollback latest
+ideality doctor --strict
+```
+
+Shell support:
+
+```bash
+ideality completion zsh --install
+ideality prompt
+ideality prompt --format '{label}:{identity}'
+```
 
 ## Command Map
 
@@ -164,11 +193,17 @@ ideality init
 ideality status|whoami|current
 ideality env
 ideality run|x
+ideality explain
+ideality prompt
+ideality auth <tool> login|status|logout
 ideality identity list|show|add|remove|bind|unbind|default|ssh-public
 ideality tool list|add|remove|env|args|enable|disable
-ideality secret set|list
+ideality plugin list|validate|install|remove
+ideality secret set|list|backend
 ideality install
 ideality hook
+ideality completion zsh|bash|fish
+ideality rollback
 ideality doctor
 ideality config path|validate|show|edit
 ideality tui
@@ -178,14 +213,9 @@ ideality tui
 
 ```bash
 bun run dev -- --help
-bun run typecheck
-bun test
+bun run check
 bun run build
 ```
-
-`bun run build` targets Linux x64 for local development. Cross-platform
-standalone builds require OpenTUI's optional runtime packages for each target,
-then `bun run build:all`.
 
 ## License
 

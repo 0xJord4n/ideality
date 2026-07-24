@@ -76,4 +76,26 @@ describe("doctor", () => {
       message: "secret file present (600)",
     });
   });
+
+  test("fails when canonical roots owned by different identities overlap", async () => {
+    const home = await mkdtemp(path.join(os.tmpdir(), "ideality-overlap-"));
+    const parent = path.join(home, "code", "sample");
+    const child = path.join(parent, "nested");
+    await mkdir(child, { recursive: true });
+    const config: IdealityConfig = {
+      version: 1,
+      defaultIdentity: "first",
+      identities: {
+        first: { label: "First", roots: [parent], tools: {} },
+        second: { label: "Second", roots: [child], tools: {} },
+      },
+      tools: {},
+    };
+    const checks = await runDoctor(config, home, path.join(home, ".ideality"));
+    expect(checks).toContainEqual({
+      status: "fail",
+      subject: "first/second:roots",
+      message: `canonical roots overlap: ${parent} and ${child}`,
+    });
+  });
 });

@@ -31,6 +31,28 @@ describe("parseConfig", () => {
       }`),
     ).toThrow("Invalid identity ID '../outside'");
   });
+
+  test("rejects logical secrets that would be exported into a shell", () => {
+    expect(() =>
+      parseConfig(`{
+        "version": 1,
+        "defaultIdentity": "sample",
+        "identities": {
+          "sample": {
+            "label": "Sample",
+            "roots": ["/workspace"],
+            "tools": {
+              "demo": {
+                "isolation": "shell",
+                "env": { "DEMO_TOKEN": { "from": "secret", "key": "sample/demo" } }
+              }
+            }
+          }
+        },
+        "tools": { "demo": { "executable": "demo", "isolation": "shell" } }
+      }`),
+    ).toThrow("Logical secrets require process isolation");
+  });
 });
 
 describe("getIdealityHome", () => {

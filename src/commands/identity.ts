@@ -19,6 +19,7 @@ import { expandHome } from "../core/resolution.js";
 import { createToolProfiles } from "../core/starter.js";
 import { installGitIntegration } from "../integrations/git.js";
 import { generateSshKey } from "../integrations/ssh.js";
+import { syncInstalledCompletions } from "../integrations/completion.js";
 import {
   assertIdentityId,
   discoverGitIdentity,
@@ -29,6 +30,7 @@ import {
 async function saveAndSync(config: Awaited<ReturnType<typeof loadConfig>>): Promise<void> {
   await saveConfig(config);
   await installGitIntegration(config, os.homedir(), getIdealityHome());
+  await syncInstalledCompletions(config, getIdealityHome());
 }
 
 type SshMode = "generate" | "existing" | "agent";
@@ -129,7 +131,11 @@ const identityCommand = defineGroup({
           argumentKind: "flag",
         }),
         "non-interactive": option(z.boolean().default(false), {
-          description: "Never prompt; require an identity ID",
+          description: "Never prompt; derive the ID from the label",
+          argumentKind: "flag",
+        }),
+        "dry-run": option(z.boolean().default(false), {
+          description: "Show the identity without changing files",
           argumentKind: "flag",
         }),
       },
@@ -315,9 +321,7 @@ const identityCommand = defineGroup({
             return;
           }
         } else if (!id) {
-          throw new Error(
-            "Non-interactive identity creation requires --id or a positional identity ID",
-          );
+          id = deriveIdentityId(label, Object.keys(config.identities));
         }
 
         assertIdentityId(id);
@@ -332,13 +336,15 @@ const identityCommand = defineGroup({
           }
           git.sshKey = expandedKey;
         } else if (sshMode === "generate") {
-          git.sshKey = (
-            await generateSshKey({
-              identity: id,
-              email: git.email,
-              idealityHome,
-            })
-          ).privateKey;
+          git.sshKey = flags["dry-run"]
+            ? path.join(idealityHome, "ssh", id)
+            : (
+                await generateSshKey({
+                  identity: id,
+                  email: git.email,
+                  idealityHome,
+                })
+              ).privateKey;
         }
         config.identities[id] = {
           label,
@@ -347,6 +353,10 @@ const identityCommand = defineGroup({
           git,
           tools: createToolProfiles(id),
         };
+        if (flags["dry-run"]) {
+          printJson({ id, ...config.identities[id] });
+          return;
+        }
         const spin = interactive
           ? spinner({ text: "Creating identity", showTimer: true })
           : null;
@@ -378,6 +388,10 @@ const identityCommand = defineGroup({
           description: "Skip confirmation",
           argumentKind: "flag",
         }),
+        "dry-run": option(z.boolean().default(false), {
+          description: "Show the change without saving it",
+          argumentKind: "flag",
+        }),
       },
       handler: async ({ positional, flags, prompt, colors }) => {
         const id = requirePositional(positional, 0, "identity ID");
@@ -398,14 +412,20 @@ const identityCommand = defineGroup({
           throw new Error("Removal cancelled");
         }
         delete config.identities[id];
-        await saveAndSync(config);
+        if (!flags["dry-run"]) await saveAndSync(config);
         console.log(colors.green(`Removed '${id}'; profile files were preserved`));
       },
     }),
     defineCommand({
       name: "bind",
       description: "Bind an additional directory root",
-      handler: async ({ positional, colors }) => {
+      options: {
+        "dry-run": option(z.boolean().default(false), {
+          description: "Show the change without saving it",
+          argumentKind: "flag",
+        }),
+      },
+      handler: async ({ positional, flags, colors }) => {
         const id = requirePositional(positional, 0, "identity ID");
         const root = requirePositional(positional, 1, "directory root");
         const config = await loadConfig();
@@ -416,14 +436,20 @@ const identityCommand = defineGroup({
         if (!identity.roots.includes(root)) {
           identity.roots.push(root);
         }
-        await saveAndSync(config);
+        if (!flags["dry-run"]) await saveAndSync(config);
         console.log(colors.green(`Bound ${root} to '${id}'`));
       },
     }),
     defineCommand({
       name: "unbind",
       description: "Remove a directory binding",
-      handler: async ({ positional, colors }) => {
+      options: {
+        "dry-run": option(z.boolean().default(false), {
+          description: "Show the change without saving it",
+          argumentKind: "flag",
+        }),
+      },
+      handler: async ({ positional, flags, colors }) => {
         const id = requirePositional(positional, 0, "identity ID");
         const root = requirePositional(positional, 1, "directory root");
         const config = await loadConfig();
@@ -435,21 +461,27 @@ const identityCommand = defineGroup({
           throw new Error("An identity must keep at least one root");
         }
         identity.roots = identity.roots.filter((entry) => entry !== root);
-        await saveAndSync(config);
+        if (!flags["dry-run"]) await saveAndSync(config);
         console.log(colors.green(`Unbound ${root} from '${id}'`));
       },
     }),
     defineCommand({
       name: "default",
       description: "Set the fallback identity",
-      handler: async ({ positional, colors }) => {
+      options: {
+        "dry-run": option(z.boolean().default(false), {
+          description: "Show the change without saving it",
+          argumentKind: "flag",
+        }),
+      },
+      handler: async ({ positional, flags, colors }) => {
         const id = requirePositional(positional, 0, "identity ID");
         const config = await loadConfig();
         if (!config.identities[id]) {
           throw new Error(`Identity '${id}' does not exist`);
         }
         config.defaultIdentity = id;
-        await saveConfig(config);
+        if (!flags["dry-run"]) await saveConfig(config);
         console.log(colors.green(`Default identity is now '${id}'`));
       },
     }),

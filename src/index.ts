@@ -11,7 +11,9 @@ import hookCommand from "./commands/hook.js";
 import identityCommand from "./commands/identity.js";
 import initCommand from "./commands/init.js";
 import installCommand from "./commands/install.js";
+import pluginCommand from "./commands/plugin.js";
 import promptCommand from "./commands/prompt.js";
+import rollbackCommand from "./commands/rollback.js";
 import runCommand from "./commands/run.js";
 import secretCommand from "./commands/secret.js";
 import statusCommand from "./commands/status.js";
@@ -31,10 +33,12 @@ for (const command of [
   runCommand,
   explainCommand,
   promptCommand,
+  rollbackCommand,
   authCommand,
   secretCommand,
   identityCommand,
   toolCommand,
+  pluginCommand,
   installCommand,
   hookCommand,
   completionCommand,

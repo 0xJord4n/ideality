@@ -1,4 +1,12 @@
-import { chmod, mkdir, rename } from "node:fs/promises";
+import {
+  chmod,
+  copyFile,
+  mkdir,
+  readdir,
+  rename,
+  rm,
+} from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import os from "node:os";
 import path from "node:path";
 
@@ -19,6 +27,33 @@ const valueSourceSchema = z.union([
     name: z.string().min(1),
     optional: z.boolean().optional(),
   }),
+  z.object({
+    from: z.literal("secret"),
+    key: z.string().min(1),
+    optional: z.boolean().optional(),
+  }),
+]);
+
+const secretBackendSchema = z.discriminatedUnion("type", [
+  z.object({
+    type: z.literal("file"),
+    directory: z.string().min(1).optional(),
+  }),
+  z.object({
+    type: z.literal("age"),
+    directory: z.string().min(1).optional(),
+    recipient: z.string().min(1),
+    identityFile: z.string().min(1),
+  }),
+  z.object({
+    type: z.literal("keychain"),
+    service: z.string().min(1).optional(),
+  }),
+  z.object({
+    type: z.literal("pass"),
+    prefix: z.string().min(1).optional(),
+  }),
+  z.object({ type: z.literal("onepassword") }),
 ]);
 
 const toolProfileSchema = z.object({
@@ -49,6 +84,7 @@ const configSchema = z
   .object({
     version: z.literal(1),
     defaultIdentity: z.string().min(1),
+    secretBackend: secretBackendSchema.optional(),
     identities: z.record(identitySchema),
     tools: z.record(
       z.object({
@@ -107,6 +143,21 @@ const configSchema = z
               code: z.ZodIssueCode.custom,
               path: ["identities", id, "tools", tool, "env", variable],
               message: `Invalid environment variable '${variable}'`,
+            });
+          }
+          const source = profile.env?.[variable];
+          const isolation =
+            profile.isolation ?? config.tools[tool]?.isolation ?? "shell";
+          if (
+            source &&
+            typeof source !== "string" &&
+            source.from === "secret" &&
+            isolation !== "process"
+          ) {
+            context.addIssue({
+              code: z.ZodIssueCode.custom,
+              path: ["identities", id, "tools", tool, "env", variable],
+              message: "Logical secrets require process isolation",
             });
           }
         }
@@ -172,12 +223,86 @@ export async function loadConfig(
 export async function saveConfig(
   config: IdealityConfig,
   configPath: string = getConfigPath(),
+  options: { snapshot?: boolean } = {},
 ): Promise<void> {
   const validated = configSchema.parse(config);
   await mkdir(path.dirname(configPath), { recursive: true, mode: 0o700 });
-  const temporaryPath = `${configPath}.${process.pid}.tmp`;
+  const existing = Bun.file(configPath);
   const content = `${JSON.stringify(validated, null, 2)}\n`;
+  if (
+    options.snapshot !== false &&
+    (await existing.exists()) &&
+    (await existing.text()) !== content
+  ) {
+    await createConfigSnapshot(configPath);
+  }
+  const temporaryPath = `${configPath}.${process.pid}.tmp`;
   await Bun.write(temporaryPath, content);
   await chmod(temporaryPath, 0o600);
   await rename(temporaryPath, configPath);
+}
+
+export function getHistoryDirectory(
+  configPath: string = getConfigPath(),
+): string {
+  return path.join(path.dirname(configPath), "history");
+}
+
+export async function createConfigSnapshot(
+  configPath: string = getConfigPath(),
+): Promise<string | null> {
+  if (!(await Bun.file(configPath).exists())) return null;
+  const directory = getHistoryDirectory(configPath);
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const timestamp = new Date().toISOString().replaceAll(":", "-");
+  const target = path.join(
+    directory,
+    `${timestamp}-${randomUUID().slice(0, 8)}.jsonc`,
+  );
+  await copyFile(configPath, target);
+  await chmod(target, 0o600);
+  const snapshots = (await readdir(directory))
+    .filter((name) => name.endsWith(".jsonc"))
+    .sort()
+    .reverse();
+  await Promise.all(
+    snapshots.slice(50).map((name) => rm(path.join(directory, name))),
+  );
+  return target;
+}
+
+export async function listConfigSnapshots(
+  configPath: string = getConfigPath(),
+): Promise<string[]> {
+  try {
+    return (await readdir(getHistoryDirectory(configPath)))
+      .filter((name) => name.endsWith(".jsonc"))
+      .sort()
+      .reverse();
+  } catch {
+    return [];
+  }
+}
+
+export async function restoreConfigSnapshot(
+  snapshot: string | undefined,
+  configPath: string = getConfigPath(),
+  options: { dryRun?: boolean } = {},
+): Promise<{ snapshot: string; config: IdealityConfig }> {
+  const snapshots = await listConfigSnapshots(configPath);
+  const name = !snapshot || snapshot === "latest" ? snapshots[0] : snapshot;
+  if (!name || !snapshots.includes(name)) {
+    throw new Error(
+      snapshot
+        ? `Unknown config snapshot '${snapshot}'`
+        : "No config snapshots are available",
+    );
+  }
+  const restored = parseConfig(
+    await Bun.file(path.join(getHistoryDirectory(configPath), name)).text(),
+  );
+  if (!options.dryRun) {
+    await saveConfig(restored, configPath);
+  }
+  return { snapshot: name, config: restored };
 }
