@@ -14,7 +14,10 @@ export function expandHome(value: string, home: string): string {
 
 function containsPath(root: string, candidate: string): boolean {
   const relative = path.relative(root, candidate);
-  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+  return (
+    relative === "" ||
+    (!relative.startsWith("..") && !path.isAbsolute(relative))
+  );
 }
 
 export function resolveIdentity(
@@ -47,7 +50,9 @@ export function resolveIdentity(
 
   const identity = config.identities[config.defaultIdentity];
   if (!identity) {
-    throw new Error(`Default identity '${config.defaultIdentity}' does not exist`);
+    throw new Error(
+      `Default identity '${config.defaultIdentity}' does not exist`,
+    );
   }
 
   return {

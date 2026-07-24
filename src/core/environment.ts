@@ -51,7 +51,9 @@ export async function resolveValueSource(
   config: IdealityConfig,
   source: ValueSource,
   resolved: ResolvedIdentity,
-  options: Required<Pick<EnvironmentOptions, "home" | "idealityHome" | "readFile">> &
+  options: Required<
+    Pick<EnvironmentOptions, "home" | "idealityHome" | "readFile">
+  > &
     Pick<EnvironmentOptions, "baseEnv" | "readSecret">,
   target?: {
     home: string;
@@ -81,7 +83,9 @@ export async function resolveValueSource(
       if (source.optional) {
         return { value: null, display: "<unset:env>" };
       }
-      throw new Error(`Required environment variable '${source.name}' is not set`);
+      throw new Error(
+        `Required environment variable '${source.name}' is not set`,
+      );
     }
     return { value, display: "<secret:env>" };
   }
@@ -148,7 +152,9 @@ function toolProfiles(
   if (selectedTool) {
     const profile = resolved.identity.tools[selectedTool];
     if (!profile || profile.enabled === false) {
-      throw new Error(`Tool '${selectedTool}' is not configured for '${resolved.id}'`);
+      throw new Error(
+        `Tool '${selectedTool}' is not configured for '${resolved.id}'`,
+      );
     }
     return [[selectedTool, profile]];
   }
@@ -168,12 +174,12 @@ export async function buildEnvironment(
   const values: Record<string, string> = { IDEALITY_IDENTITY: resolved.id };
   const redacted: Record<string, string> = { IDEALITY_IDENTITY: resolved.id };
   const unset = new Set<string>();
-  const readFile = options.readFile ?? ((file: string) => nodeReadFile(file, "utf8"));
+  const readFile =
+    options.readFile ?? ((file: string) => nodeReadFile(file, "utf8"));
   const idealityHome =
     options.idealityHome ?? path.join(options.home, ".ideality");
   const targetHome = options.targetHome ?? options.home;
-  const targetIdealityHome =
-    options.targetIdealityHome ?? idealityHome;
+  const targetIdealityHome = options.targetIdealityHome ?? idealityHome;
   const targetResolved = options.targetRoot
     ? {
         ...resolved,
@@ -192,17 +198,23 @@ export async function buildEnvironment(
         continue;
       }
 
-      const result = await resolveValueSource(config, source, resolved, {
-        home: options.home,
-        idealityHome,
-        baseEnv: options.baseEnv,
-        readFile,
-        readSecret: options.readSecret,
-      }, {
-        home: targetHome,
-        idealityHome: targetIdealityHome,
-        root: options.targetRoot,
-      });
+      const result = await resolveValueSource(
+        config,
+        source,
+        resolved,
+        {
+          home: options.home,
+          idealityHome,
+          baseEnv: options.baseEnv,
+          readFile,
+          readSecret: options.readSecret,
+        },
+        {
+          home: targetHome,
+          idealityHome: targetIdealityHome,
+          root: options.targetRoot,
+        },
+      );
       if (result.value === null) {
         unset.add(name);
         delete values[name];

@@ -1,5 +1,5 @@
-import os from "node:os";
 import { accessSync, constants } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 
 import type { IdealityConfig, ResolvedIdentity } from "../domain/config.js";

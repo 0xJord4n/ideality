@@ -1,11 +1,7 @@
 import { chmod, mkdir, rename } from "node:fs/promises";
 import path from "node:path";
-
-import type {
-  IdealityConfig,
-  ResolvedIdentity,
-} from "../domain/config.js";
 import { expandHome, resolveIdentity } from "../core/resolution.js";
+import type { IdealityConfig, ResolvedIdentity } from "../domain/config.js";
 
 export function resolveSecretContext(
   config: IdealityConfig,

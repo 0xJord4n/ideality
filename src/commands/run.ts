@@ -69,10 +69,7 @@ const runCommand = defineCommand({
         },
         workspaceTarget,
       );
-      const guestCwd = guestWorkspacePath(
-        runtime.resolved,
-        workspaceTarget,
-      );
+      const guestCwd = guestWorkspacePath(runtime.resolved, workspaceTarget);
       const environment = await buildEnvironment(
         runtime.config,
         runtime.resolved,
@@ -90,17 +87,12 @@ const runCommand = defineCommand({
       if (!executable) {
         throw new Error(`Executable for tool '${tool}' is not configured`);
       }
-      const configPath = await writeVmConfig(
-        vmId,
-        vm,
-        runtime.resolved,
-        {
-          home: runtime.home,
-          idealityHome: runtime.idealityHome,
-          networkDns: networkDnsServers(execution.network?.dns),
-          networkRequired: Boolean(execution.networkId),
-        },
-      );
+      const configPath = await writeVmConfig(vmId, vm, runtime.resolved, {
+        home: runtime.home,
+        idealityHome: runtime.idealityHome,
+        networkDns: networkDnsServers(execution.network?.dns),
+        networkRequired: Boolean(execution.networkId),
+      });
       await ensureVmRunning(vmId, vm, configPath);
       const hostEnv: Record<string, string> = {};
       for (const name of [
@@ -134,11 +126,15 @@ const runCommand = defineCommand({
       process.exitCode = result.exitCode;
       return;
     }
-    const environment = await buildEnvironment(runtime.config, runtime.resolved, {
-      home: runtime.home,
-      idealityHome: runtime.idealityHome,
-      tool,
-    });
+    const environment = await buildEnvironment(
+      runtime.config,
+      runtime.resolved,
+      {
+        home: runtime.home,
+        idealityHome: runtime.idealityHome,
+        tool,
+      },
+    );
     const executable = resolveExecutable(
       runtime.config,
       tool,

@@ -1,9 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import {
-  getIdealityHome,
-  parseConfig,
-} from "../src/core/config-store.js";
+import { getIdealityHome, parseConfig } from "../src/core/config-store.js";
 
 describe("parseConfig", () => {
   test("rejects a default identity that is not defined", () => {
@@ -83,7 +80,7 @@ describe("parseConfig", () => {
           ...base,
           secretBackend: { type: "dashlane" },
         }),
-    ).secretBackend,
+      ).secretBackend,
     ).toEqual({ type: "dashlane" });
   });
 

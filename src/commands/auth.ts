@@ -104,16 +104,18 @@ const authCommand = defineCommand({
     if (!executable) {
       throw new Error(`Executable for tool '${tool}' is not installed`);
     }
-    const environment = await buildEnvironment(runtime.config, runtime.resolved, {
-      home: runtime.home,
-      idealityHome: runtime.idealityHome,
-      tool,
-    });
+    const environment = await buildEnvironment(
+      runtime.config,
+      runtime.resolved,
+      {
+        home: runtime.home,
+        idealityHome: runtime.idealityHome,
+        tool,
+      },
+    );
     const extra = commandArguments(positional, 2);
     console.log(
-      colors.dim(
-        `${runtime.resolved.id}/${tool}: ${action} via ${executable}`,
-      ),
+      colors.dim(`${runtime.resolved.id}/${tool}: ${action} via ${executable}`),
     );
     const child = Bun.spawn(
       [

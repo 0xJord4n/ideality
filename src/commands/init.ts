@@ -20,24 +20,22 @@ import { findSshPrivateKeys } from "../core/file-search.js";
 import { deriveIdentityId } from "../core/identity-id.js";
 import { expandHome } from "../core/resolution.js";
 import { createStarterConfig } from "../core/starter.js";
+import {
+  installCompletion,
+  renderCompletion,
+} from "../integrations/completion.js";
 import { installGitIntegration } from "../integrations/git.js";
 import {
   installShellIntegration,
   type SupportedShell,
 } from "../integrations/shell.js";
 import { installShims } from "../integrations/shims.js";
-import {
-  installCompletion,
-  renderCompletion,
-} from "../integrations/completion.js";
 import { generateSshKey } from "../integrations/ssh.js";
 import { assertIdentityId, discoverGitIdentity } from "./shared.js";
 
 type SshMode = "generate" | "existing" | "agent";
 type Integration = "shell" | "git";
-type SshFileChoice =
-  | { kind: "file"; path: string }
-  | { kind: "manual" };
+type SshFileChoice = { kind: "file"; path: string } | { kind: "manual" };
 
 async function wizardStep<T>(prompt: Promise<T>): Promise<T> {
   const value = await prompt;
@@ -47,7 +45,14 @@ async function wizardStep<T>(prompt: Promise<T>): Promise<T> {
 
 function parseList(value: string | undefined): string[] {
   return value
-    ? [...new Set(value.split(",").map((item) => item.trim()).filter(Boolean))]
+    ? [
+        ...new Set(
+          value
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        ),
+      ]
     : [];
 }
 
@@ -139,7 +144,9 @@ const initCommand = defineCommand({
   },
   handler: async ({ flags, prompt, spinner, terminal, colors }) => {
     if (flags.interactive && flags["non-interactive"]) {
-      throw new Error("Use either --interactive or --non-interactive, not both");
+      throw new Error(
+        "Use either --interactive or --non-interactive, not both",
+      );
     }
     if (flags["ssh-key"] && flags["generate-ssh"]) {
       throw new Error("Use either --ssh-key or --generate-ssh, not both");
@@ -206,9 +213,7 @@ const initCommand = defineCommand({
               .map(([pack]) => pack)
           : [...DEFAULT_TOOL_PACKS];
     let selectedTools =
-      requestedTools.length > 0
-        ? requestedTools
-        : toolsInPacks(selectedPacks);
+      requestedTools.length > 0 ? requestedTools : toolsInPacks(selectedPacks);
 
     if (interactive) {
       // Bunli keeps each OpenTUI view's keyboard hooks until session disposal.
@@ -224,8 +229,7 @@ const initCommand = defineCommand({
 
       label = await wizardStep(
         prompt.text("Display label", {
-          default:
-            label,
+          default: label,
         }),
       );
       if (!id) id = deriveIdentityId(label, []);
@@ -408,7 +412,8 @@ const initCommand = defineCommand({
     }
     const knownTools = new Set(toolsInPacks(Object.keys(BUILTIN_TOOL_PACKS)));
     for (const tool of selectedTools) {
-      if (!knownTools.has(tool)) throw new Error(`Unknown built-in tool '${tool}'`);
+      if (!knownTools.has(tool))
+        throw new Error(`Unknown built-in tool '${tool}'`);
     }
     const git = { name: gitName, email: gitEmail };
     if (sshMode === "existing") {
@@ -421,14 +426,14 @@ const initCommand = defineCommand({
       if (flags["dry-run"]) {
         Object.assign(git, { sshKey: path.join(idealityHome, "ssh", id) });
       } else {
-      Object.assign(
-        git,
-        await generateSshKey({
-          identity: id,
-          email: gitEmail,
-          idealityHome,
-        }).then(({ privateKey }) => ({ sshKey: privateKey })),
-      );
+        Object.assign(
+          git,
+          await generateSshKey({
+            identity: id,
+            email: gitEmail,
+            idealityHome,
+          }).then(({ privateKey }) => ({ sshKey: privateKey })),
+        );
       }
     }
 

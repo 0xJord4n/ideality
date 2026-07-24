@@ -23,8 +23,11 @@ import {
 } from "../core/project-config.js";
 import { findExecutable } from "../core/runtime.js";
 import { createToolProfiles } from "../core/starter.js";
-import type { GitIdentity, IdealityConfig } from "../domain/config.js";
-import type { ExecutionTarget } from "../domain/config.js";
+import type {
+  ExecutionTarget,
+  GitIdentity,
+  IdealityConfig,
+} from "../domain/config.js";
 import { syncInstalledCompletions } from "../integrations/completion.js";
 import { installGitIntegration } from "../integrations/git.js";
 import { installShims } from "../integrations/shims.js";
@@ -49,7 +52,14 @@ async function wizardStep<T>(pending: Promise<T>): Promise<T> {
 
 function parseTools(value: string | undefined): string[] {
   return value
-    ? [...new Set(value.split(",").map((tool) => tool.trim()).filter(Boolean))]
+    ? [
+        ...new Set(
+          value
+            .split(",")
+            .map((tool) => tool.trim())
+            .filter(Boolean),
+        ),
+      ]
     : [];
 }
 
@@ -202,8 +212,11 @@ const setupCommand = defineCommand({
       );
     }
 
-    let scope: SetupScope =
-      flags["local-only"] ? "local" : flags.project ? "project" : "local";
+    let scope: SetupScope = flags["local-only"]
+      ? "local"
+      : flags.project
+        ? "project"
+        : "local";
     let detail: HandoverDetail = flags["requirements-only"]
       ? "requirements"
       : "full";
@@ -230,7 +243,13 @@ const setupCommand = defineCommand({
       prompt.note(
         [
           `Project: ${projectRoot}`,
-          `Git: ${await stat(path.join(projectRoot, ".git")).then(() => true).catch(() => false) ? "detected" : "not detected"}`,
+          `Git: ${
+            (await stat(path.join(projectRoot, ".git"))
+              .then(() => true)
+              .catch(() => false))
+              ? "detected"
+              : "not detected"
+          }`,
           `Handover: ${existingProject ? getProjectConfigPath(projectRoot) : "not configured"}`,
         ].join("\n"),
         "Detected",
@@ -303,10 +322,7 @@ const setupCommand = defineCommand({
                 value.length > 0 || "Identity label is required",
             }),
           );
-          identityId = deriveIdentityId(
-            label,
-            Object.keys(working.identities),
-          );
+          identityId = deriveIdentityId(label, Object.keys(working.identities));
           prompt.note(identityId, "Automatic ID");
           const discovered = discoverGitIdentity();
           const git: GitIdentity = {
@@ -434,11 +450,12 @@ const setupCommand = defineCommand({
       if (executionOptions.length > 1) {
         const selectedExecution = await wizardStep(
           prompt.select<string>("Execution and network (optional)", {
-            default: execution?.target === "vm"
-              ? `vm:${execution.vm}`
-              : execution?.network
-                ? `network:${execution.network}`
-                : "host",
+            default:
+              execution?.target === "vm"
+                ? `vm:${execution.vm}`
+                : execution?.network
+                  ? `network:${execution.network}`
+                  : "host",
             options: executionOptions,
           }),
         );
@@ -522,7 +539,8 @@ const setupCommand = defineCommand({
     }
 
     for (const tool of selectedTools) {
-      if (!working.tools[tool]) throw new Error(`Tool '${tool}' does not exist`);
+      if (!working.tools[tool])
+        throw new Error(`Tool '${tool}' does not exist`);
     }
     if (!working.identities[identityId]) {
       throw new Error(`Identity '${identityId}' does not exist`);
@@ -534,8 +552,7 @@ const setupCommand = defineCommand({
       identity.git?.sshKey,
     );
     for (const tool of selectedTools) {
-      identity.tools[tool] ??=
-        defaultProfiles[tool] ?? {};
+      identity.tools[tool] ??= defaultProfiles[tool] ?? {};
     }
     if (execution?.target === "vm" && !working.vms?.[execution.vm]) {
       throw new Error(`VM profile '${execution.vm}' does not exist`);
@@ -623,8 +640,7 @@ const setupCommand = defineCommand({
       identity: identityId,
       identityCreated: generatedIdentity,
       tools: selectedTools.sort(),
-      handover:
-        scope === "project" ? getProjectConfigPath(projectRoot) : null,
+      handover: scope === "project" ? getProjectConfigPath(projectRoot) : null,
       handoverDetail: scope === "project" ? detail : null,
       integrations,
       secretBackend: nextConfig.secretBackend?.type ?? "file",

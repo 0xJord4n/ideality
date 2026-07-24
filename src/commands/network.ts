@@ -8,24 +8,18 @@ import {
   loadConfig,
   saveConfig,
 } from "../core/config-store.js";
-import { resolveExecution } from "../core/execution.js";
 import { redactConfig } from "../core/environment.js";
+import { resolveExecution } from "../core/execution.js";
 import { findNetworkConfigFiles } from "../core/file-search.js";
 import { deriveIdentityId } from "../core/identity-id.js";
+import { loadActiveNetwork, networkCapability } from "../core/network.js";
 import {
   activateNetwork,
   deactivateNetwork,
   networkStatus,
 } from "../core/network-manager.js";
-import {
-  loadActiveNetwork,
-  networkCapability,
-} from "../core/network.js";
 import { loadRuntime } from "../core/runtime.js";
-import type {
-  NetworkProfile,
-  ValueSource,
-} from "../domain/config.js";
+import type { NetworkProfile, ValueSource } from "../domain/config.js";
 import { printJson, requirePositional } from "./shared.js";
 
 type NetworkDriver = NetworkProfile["driver"];
@@ -51,7 +45,9 @@ function parseDns(value: string): "provider" | { servers: string[] } {
     .map((server) => server.trim())
     .filter(Boolean);
   if (servers.length === 0) {
-    throw new Error("--dns must be 'provider' or a comma-separated server list");
+    throw new Error(
+      "--dns must be 'provider' or a comma-separated server list",
+    );
   }
   return { servers };
 }
@@ -120,8 +116,7 @@ const networkCommand = defineGroup({
         const active = await loadActiveNetwork(getIdealityHome());
         for (const [id, profile] of Object.entries(config.networks ?? {})) {
           const capability = networkCapability(profile);
-          const marker =
-            active?.profile === id ? colors.green("*") : " ";
+          const marker = active?.profile === id ? colors.green("*") : " ";
           console.log(
             `${marker} ${id.padEnd(18)} ${profile.driver.padEnd(10)} ${(profile.killSwitch ?? "required").padEnd(9)} ${capability.detail}`,
           );
@@ -162,7 +157,8 @@ const networkCommand = defineGroup({
           { description: "VPN driver" },
         ),
         config: option(z.string().optional(), {
-          description: "Config source: file:path, secret:key, env:NAME, or value:text",
+          description:
+            "Config source: file:path, secret:key, env:NAME, or value:text",
         }),
         username: option(z.string().optional(), {
           description: "OpenVPN username source",
@@ -265,7 +261,11 @@ const networkCommand = defineGroup({
           driver = await prompt.select<NetworkDriver>("VPN provider", {
             default: driver ?? "mullvad",
             options: [
-              { label: "Mullvad", value: "mullvad", hint: "verified lockdown mode" },
+              {
+                label: "Mullvad",
+                value: "mullvad",
+                hint: "verified lockdown mode",
+              },
               {
                 label: "Tailscale exit node",
                 value: "tailscale",
@@ -276,26 +276,43 @@ const networkCommand = defineGroup({
                 value: "warp",
                 hint: "managed Always On policy recommended",
               },
-              { label: "WireGuard", value: "wireguard", hint: "requires OS helper for strict mode" },
-              { label: "OpenVPN", value: "openvpn", hint: "requires OS helper for strict mode" },
+              {
+                label: "WireGuard",
+                value: "wireguard",
+                hint: "requires OS helper for strict mode",
+              },
+              {
+                label: "OpenVPN",
+                value: "openvpn",
+                hint: "requires OS helper for strict mode",
+              },
               { label: "Custom adapter", value: "custom" },
             ],
           });
           if (driver === "wireguard" || driver === "openvpn") {
-            const files = await findNetworkConfigFiles(os.homedir(), process.cwd());
-            const result = await prompt.filter<FileChoice>("VPN configuration", {
-              options: [
-                ...files.map((file) => ({
-                  label: file,
-                  value: { kind: "file", path: file } as const,
-                })),
-                { label: "Enter another source", value: { kind: "manual" } as const },
-              ],
-              placeholder: "Type to fuzzy search configuration files",
-              fuzzy: true,
-              limit: 12,
-              height: 10,
-            });
+            const files = await findNetworkConfigFiles(
+              os.homedir(),
+              process.cwd(),
+            );
+            const result = await prompt.filter<FileChoice>(
+              "VPN configuration",
+              {
+                options: [
+                  ...files.map((file) => ({
+                    label: file,
+                    value: { kind: "file", path: file } as const,
+                  })),
+                  {
+                    label: "Enter another source",
+                    value: { kind: "manual" } as const,
+                  },
+                ],
+                placeholder: "Type to fuzzy search configuration files",
+                fuzzy: true,
+                limit: 12,
+                height: 10,
+              },
+            );
             const choice = Array.isArray(result) ? result[0] : result;
             configSource =
               choice?.kind === "file"
@@ -303,37 +320,41 @@ const networkCommand = defineGroup({
                 : await prompt.text("Config source", {
                     default: configSource ?? "secret:vpn/config",
                   });
-            killSwitch = await prompt.select<
-              "required" | "provider" | "off"
-            >("Leak prevention", {
-              default: "provider",
-              options: [
-                {
-                  label: "Provider or OS enforced",
-                  value: "provider",
-                  hint: "tunnel status is checked before every launch",
-                },
-                {
-                  label: "Require verified kill switch",
-                  value: "required",
-                  hint: "fails closed until an OS helper is installed",
-                },
-                {
-                  label: "Tunnel only",
-                  value: "off",
-                  hint: "no leak-prevention claim",
-                },
-              ],
-            });
+            killSwitch = await prompt.select<"required" | "provider" | "off">(
+              "Leak prevention",
+              {
+                default: "provider",
+                options: [
+                  {
+                    label: "Provider or OS enforced",
+                    value: "provider",
+                    hint: "tunnel status is checked before every launch",
+                  },
+                  {
+                    label: "Require verified kill switch",
+                    value: "required",
+                    hint: "fails closed until an OS helper is installed",
+                  },
+                  {
+                    label: "Tunnel only",
+                    value: "off",
+                    hint: "no leak-prevention claim",
+                  },
+                ],
+              },
+            );
             useSudo = await prompt.confirm(
               "Run provider commands through sudo?",
               { default: useSudo },
             );
             if (
               driver === "openvpn" &&
-              (await prompt.confirm("Does this profile use username/password authentication?", {
-                default: Boolean(username || password),
-              }))
+              (await prompt.confirm(
+                "Does this profile use username/password authentication?",
+                {
+                  default: Boolean(username || password),
+                },
+              ))
             ) {
               username = await prompt.text("Username source", {
                 default: username ?? "secret:vpn/username",
@@ -343,22 +364,23 @@ const networkCommand = defineGroup({
               });
             }
           } else if (driver === "mullvad") {
-            killSwitch = await prompt.select<
-              "required" | "provider" | "off"
-            >("Leak prevention", {
-              default: killSwitch ?? "required",
-              options: [
-                {
-                  label: "Require Mullvad Lockdown mode",
-                  value: "required",
-                },
-                {
-                  label: "Trust Mullvad kill switch",
-                  value: "provider",
-                },
-                { label: "No enforcement", value: "off" },
-              ],
-            });
+            killSwitch = await prompt.select<"required" | "provider" | "off">(
+              "Leak prevention",
+              {
+                default: killSwitch ?? "required",
+                options: [
+                  {
+                    label: "Require Mullvad Lockdown mode",
+                    value: "required",
+                  },
+                  {
+                    label: "Trust Mullvad kill switch",
+                    value: "provider",
+                  },
+                  { label: "No enforcement", value: "off" },
+                ],
+              },
+            );
             if (
               await prompt.confirm("Select a relay location?", {
                 default: Boolean(country || city || hostname),
@@ -430,43 +452,45 @@ const networkCommand = defineGroup({
               "Block incoming Tailscale connections?",
               { default: shieldsUp },
             );
-            killSwitch = await prompt.select<
-              "required" | "provider" | "off"
-            >("Leak prevention", {
-              default: killSwitch ?? "provider",
-              options: [
-                {
-                  label: "Trust Tailscale exit-node routing",
-                  value: "provider",
-                  hint: "status is checked before each launch",
-                },
-                {
-                  label: "Require verified OS enforcement",
-                  value: "required",
-                  hint: "fails closed until a helper is installed",
-                },
-                { label: "No enforcement", value: "off" },
-              ],
-            });
+            killSwitch = await prompt.select<"required" | "provider" | "off">(
+              "Leak prevention",
+              {
+                default: killSwitch ?? "provider",
+                options: [
+                  {
+                    label: "Trust Tailscale exit-node routing",
+                    value: "provider",
+                    hint: "status is checked before each launch",
+                  },
+                  {
+                    label: "Require verified OS enforcement",
+                    value: "required",
+                    hint: "fails closed until a helper is installed",
+                  },
+                  { label: "No enforcement", value: "off" },
+                ],
+              },
+            );
           } else if (driver === "warp") {
-            killSwitch = await prompt.select<
-              "required" | "provider" | "off"
-            >("Leak prevention", {
-              default: killSwitch ?? "provider",
-              options: [
-                {
-                  label: "Trust managed WARP policy",
-                  value: "provider",
-                  hint: "use Traffic mode with Always On and Switch Locked",
-                },
-                {
-                  label: "Require verified OS enforcement",
-                  value: "required",
-                  hint: "fails closed until a helper is installed",
-                },
-                { label: "No enforcement", value: "off" },
-              ],
-            });
+            killSwitch = await prompt.select<"required" | "provider" | "off">(
+              "Leak prevention",
+              {
+                default: killSwitch ?? "provider",
+                options: [
+                  {
+                    label: "Trust managed WARP policy",
+                    value: "provider",
+                    hint: "use Traffic mode with Always On and Switch Locked",
+                  },
+                  {
+                    label: "Require verified OS enforcement",
+                    value: "required",
+                    hint: "fails closed until a helper is installed",
+                  },
+                  { label: "No enforcement", value: "off" },
+                ],
+              },
+            );
           } else {
             connect = await prompt.text("Connect command (JSON array)", {
               default: connect ?? '["vpn-helper","connect"]',
@@ -505,30 +529,30 @@ const networkCommand = defineGroup({
               "Does this adapter independently enforce and verify a kill switch?",
               { default: verifiedKillSwitch },
             );
-            killSwitch = await prompt.select<
-              "required" | "provider" | "off"
-            >("Leak prevention", {
-              default: verifiedKillSwitch ? "required" : "provider",
-              options: [
-                {
-                  label: "Require verified adapter",
-                  value: "required",
-                  hint: "requires the attestation above",
-                },
-                {
-                  label: "Trust custom provider setup",
-                  value: "provider",
-                },
-                { label: "No enforcement", value: "off" },
-              ],
-            });
+            killSwitch = await prompt.select<"required" | "provider" | "off">(
+              "Leak prevention",
+              {
+                default: verifiedKillSwitch ? "required" : "provider",
+                options: [
+                  {
+                    label: "Require verified adapter",
+                    value: "required",
+                    hint: "requires the attestation above",
+                  },
+                  {
+                    label: "Trust custom provider setup",
+                    value: "provider",
+                  },
+                  { label: "No enforcement", value: "off" },
+                ],
+              },
+            );
           }
         }
-        if (!driver) throw new Error("--driver is required in non-interactive mode");
+        if (!driver)
+          throw new Error("--driver is required in non-interactive mode");
         killSwitch ??=
-          driver === "tailscale" || driver === "warp"
-            ? "provider"
-            : "required";
+          driver === "tailscale" || driver === "warp" ? "provider" : "required";
         const id =
           flags.id ??
           deriveIdentityId(label, Object.keys(config.networks ?? {}));
@@ -607,7 +631,11 @@ const networkCommand = defineGroup({
             `${label} (${id})\nDriver: ${driver}\nKill switch: ${profile.killSwitch}`,
             "Review",
           );
-          if (!(await prompt.confirm("Create this network profile?", { default: true }))) {
+          if (
+            !(await prompt.confirm("Create this network profile?", {
+              default: true,
+            }))
+          ) {
             prompt.cancel("No files were changed.");
             return;
           }
@@ -649,13 +677,15 @@ const networkCommand = defineGroup({
         const networkId = requirePositional(positional, 1, "network profile");
         const config = await loadConfig();
         const identity = config.identities[identityId];
-        if (!identity) throw new Error(`Identity '${identityId}' does not exist`);
+        if (!identity)
+          throw new Error(`Identity '${identityId}' does not exist`);
         if (!config.networks?.[networkId]) {
           throw new Error(`Network profile '${networkId}' does not exist`);
         }
         const execution = { target: "host" as const, network: networkId };
         if (flags.tool) {
-          if (!config.tools[flags.tool]) throw new Error(`Tool '${flags.tool}' does not exist`);
+          if (!config.tools[flags.tool])
+            throw new Error(`Tool '${flags.tool}' does not exist`);
           (identity.tools[flags.tool] ??= {}).execution = execution;
         } else {
           identity.execution = execution;
@@ -697,7 +727,8 @@ const networkCommand = defineGroup({
     }),
     defineCommand({
       name: "down",
-      description: "Disconnect a network; Mullvad lockdown remains unless released",
+      description:
+        "Disconnect a network; Mullvad lockdown remains unless released",
       options: {
         ...operationOptions,
         release: option(z.boolean().default(false), {
@@ -766,9 +797,9 @@ const networkCommand = defineGroup({
               Object.values(identity.tools).some(
                 (tool) => tool.execution?.network === id,
               ),
-          ) ||
-          Object.values(config.vms ?? {}).some((vm) => vm.network === id);
-        if (referenced) throw new Error(`Network profile '${id}' is still referenced`);
+          ) || Object.values(config.vms ?? {}).some((vm) => vm.network === id);
+        if (referenced)
+          throw new Error(`Network profile '${id}' is still referenced`);
         delete config.networks[id];
         await saveConfig(config);
         console.log(colors.green(`Removed network profile '${id}'`));

@@ -25,9 +25,7 @@ describe("renderCompletion", () => {
   test("supports bash and fish", () => {
     const values = { identities: ["default"], tools: ["sample"] };
     expect(renderCompletion("bash", values)).toContain("complete -F");
-    expect(renderCompletion("fish", values)).toContain(
-      "complete -c ideality",
-    );
+    expect(renderCompletion("fish", values)).toContain("complete -c ideality");
   });
 
   test("installs a locked completion file under the ideality home", async () => {

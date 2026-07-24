@@ -18,7 +18,9 @@ export function commandArguments(
   argv: string[] = process.argv.slice(2),
 ): string[] {
   const separator = argv.indexOf("--");
-  return separator >= 0 ? argv.slice(separator + 1) : positional.slice(consumed);
+  return separator >= 0
+    ? argv.slice(separator + 1)
+    : positional.slice(consumed);
 }
 
 export function assertIdentityId(id: string): void {

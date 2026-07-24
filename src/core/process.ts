@@ -22,7 +22,8 @@ export const runProcess: ProcessRunner = async (command, options = {}) => {
   const child = Bun.spawn(command, {
     cwd: options.cwd,
     env: options.env,
-    stdin: options.input === undefined ? (inherit ? "inherit" : "ignore") : "pipe",
+    stdin:
+      options.input === undefined ? (inherit ? "inherit" : "ignore") : "pipe",
     stdout: inherit ? "inherit" : "pipe",
     stderr: inherit ? "inherit" : "pipe",
     signal: options.signal,

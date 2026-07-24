@@ -1,0 +1,14 @@
+{
+  "binary": "dist/index",
+  "standaloneBuild": {
+    "maxBytes": 122000000,
+    "description": "122 MB maximum for the compressed Linux x64 standalone executable"
+  },
+  "startup": {
+    "args": ["--version"],
+    "samples": 5,
+    "warmups": 1,
+    "maxMedianMs": 5000,
+    "description": "Median wall-clock startup must remain at or below 5 seconds"
+  }
+}

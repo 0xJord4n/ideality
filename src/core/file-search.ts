@@ -28,7 +28,9 @@ async function isPrivateKeyFile(file: string): Promise<boolean> {
     const buffer = Buffer.alloc(256);
     const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
     const header = buffer.subarray(0, bytesRead).toString("utf8").trimStart();
-    return PRIVATE_KEY_HEADERS.some((candidate) => header.startsWith(candidate));
+    return PRIVATE_KEY_HEADERS.some((candidate) =>
+      header.startsWith(candidate),
+    );
   } catch {
     return false;
   } finally {
@@ -85,9 +87,7 @@ export async function findSshPrivateKeys(options: {
       privateKey: await isPrivateKeyFile(file),
     })),
   );
-  return checks
-    .filter(({ privateKey }) => privateKey)
-    .map(({ file }) => file);
+  return checks.filter(({ privateKey }) => privateKey).map(({ file }) => file);
 }
 
 async function collectDirectories(
@@ -128,7 +128,9 @@ export async function findIdentityDirectories(home: string): Promise<string[]> {
     .map((name) => path.join(home, name))
     .filter((directory, index, all) => all.indexOf(directory) === index);
   return (
-    await Promise.all(roots.map((directory) => collectDirectories(directory, 3)))
+    await Promise.all(
+      roots.map((directory) => collectDirectories(directory, 3)),
+    )
   ).flat();
 }
 

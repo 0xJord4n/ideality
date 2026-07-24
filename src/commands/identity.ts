@@ -23,9 +23,9 @@ import {
 import { deriveIdentityId } from "../core/identity-id.js";
 import { expandHome } from "../core/resolution.js";
 import { createToolProfiles } from "../core/starter.js";
+import { syncInstalledCompletions } from "../integrations/completion.js";
 import { installGitIntegration } from "../integrations/git.js";
 import { generateSshKey } from "../integrations/ssh.js";
-import { syncInstalledCompletions } from "../integrations/completion.js";
 import {
   assertIdentityId,
   discoverGitIdentity,
@@ -33,16 +33,16 @@ import {
   requirePositional,
 } from "./shared.js";
 
-async function saveAndSync(config: Awaited<ReturnType<typeof loadConfig>>): Promise<void> {
+async function saveAndSync(
+  config: Awaited<ReturnType<typeof loadConfig>>,
+): Promise<void> {
   await saveConfig(config);
   await installGitIntegration(config, os.homedir(), getIdealityHome());
   await syncInstalledCompletions(config, getIdealityHome());
 }
 
 type SshMode = "generate" | "existing" | "agent";
-type FileChoice =
-  | { kind: "file"; path: string }
-  | { kind: "manual" };
+type FileChoice = { kind: "file"; path: string } | { kind: "manual" };
 
 async function wizardStep<T>(pending: Promise<T>): Promise<T> {
   const value = await pending;
@@ -52,7 +52,14 @@ async function wizardStep<T>(pending: Promise<T>): Promise<T> {
 
 function parseList(value: string | undefined): string[] {
   return value
-    ? [...new Set(value.split(",").map((item) => item.trim()).filter(Boolean))]
+    ? [
+        ...new Set(
+          value
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        ),
+      ]
     : [];
 }
 
@@ -74,7 +81,8 @@ const identityCommand = defineGroup({
       handler: async ({ colors }) => {
         const config = await loadConfig();
         for (const [id, identity] of Object.entries(config.identities)) {
-          const marker = id === config.defaultIdentity ? colors.green("*") : " ";
+          const marker =
+            id === config.defaultIdentity ? colors.green("*") : " ";
           console.log(
             `${marker} ${id.padEnd(16)} ${identity.label.padEnd(20)} ${identity.roots.join(", ")}`,
           );
@@ -184,10 +192,7 @@ const identityCommand = defineGroup({
           flags.label ??
           (id ? id[0]!.toUpperCase() + id.slice(1) : "New identity");
         let root = flags.root;
-        let git = discoverGitIdentity(
-          flags["git-name"],
-          flags["git-email"],
-        );
+        const git = discoverGitIdentity(flags["git-name"], flags["git-email"]);
         let sshMode: SshMode = flags["ssh-key"]
           ? "existing"
           : flags["generate-ssh"]
@@ -336,11 +341,13 @@ const identityCommand = defineGroup({
 
           selectedPacks = await wizardStep(
             prompt.multiselect<string>("Tool packs", {
-              options: Object.entries(BUILTIN_TOOL_PACKS).map(([pack, value]) => ({
-                label: value.label,
-                value: pack,
-                hint: value.description,
-              })),
+              options: Object.entries(BUILTIN_TOOL_PACKS).map(
+                ([pack, value]) => ({
+                  label: value.label,
+                  value: pack,
+                  hint: value.description,
+                }),
+              ),
               initialValues: selectedPacks,
               min: 1,
             }),
@@ -475,7 +482,9 @@ const identityCommand = defineGroup({
           throw new Error(`Identity '${id}' does not exist`);
         }
         if (id === config.defaultIdentity) {
-          throw new Error("Set a different default identity before removing this one");
+          throw new Error(
+            "Set a different default identity before removing this one",
+          );
         }
         if (
           !flags.force &&
@@ -488,7 +497,9 @@ const identityCommand = defineGroup({
         }
         delete config.identities[id];
         if (!flags["dry-run"]) await saveAndSync(config);
-        console.log(colors.green(`Removed '${id}'; profile files were preserved`));
+        console.log(
+          colors.green(`Removed '${id}'; profile files were preserved`),
+        );
       },
     }),
     defineCommand({

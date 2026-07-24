@@ -160,16 +160,21 @@ describe("VM adapters", () => {
   test("creates a missing Lima instance and resumes a stopped instance", async () => {
     const profile: VmProfile = { driver: "lima", instance: "secure" };
     const missingCommands: string[][] = [];
-    await ensureVmRunning("sample", profile, "/tmp/lima.yaml", async (command) => {
-      missingCommands.push(command);
-      if (command[1] === "--version") {
-        return { exitCode: 0, stdout: "limactl version 2.0.0", stderr: "" };
-      }
-      if (command[1] === "list") {
+    await ensureVmRunning(
+      "sample",
+      profile,
+      "/tmp/lima.yaml",
+      async (command) => {
+        missingCommands.push(command);
+        if (command[1] === "--version") {
+          return { exitCode: 0, stdout: "limactl version 2.0.0", stderr: "" };
+        }
+        if (command[1] === "list") {
+          return { exitCode: 0, stdout: "", stderr: "" };
+        }
         return { exitCode: 0, stdout: "", stderr: "" };
-      }
-      return { exitCode: 0, stdout: "", stderr: "" };
-    });
+      },
+    );
     expect(missingCommands.at(-1)).toEqual([
       "limactl",
       "start",
@@ -180,16 +185,21 @@ describe("VM adapters", () => {
     ]);
 
     const stoppedCommands: string[][] = [];
-    await ensureVmRunning("sample", profile, "/tmp/lima.yaml", async (command) => {
-      stoppedCommands.push(command);
-      if (command[1] === "--version") {
-        return { exitCode: 0, stdout: "limactl version 2.0.0", stderr: "" };
-      }
-      if (command[1] === "list") {
-        return { exitCode: 0, stdout: "Stopped\n", stderr: "" };
-      }
-      return { exitCode: 0, stdout: "", stderr: "" };
-    });
+    await ensureVmRunning(
+      "sample",
+      profile,
+      "/tmp/lima.yaml",
+      async (command) => {
+        stoppedCommands.push(command);
+        if (command[1] === "--version") {
+          return { exitCode: 0, stdout: "limactl version 2.0.0", stderr: "" };
+        }
+        if (command[1] === "list") {
+          return { exitCode: 0, stdout: "Stopped\n", stderr: "" };
+        }
+        return { exitCode: 0, stdout: "", stderr: "" };
+      },
+    );
     expect(stoppedCommands.at(-1)).toEqual([
       "limactl",
       "start",

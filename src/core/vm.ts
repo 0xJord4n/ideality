@@ -9,8 +9,8 @@ import type {
 } from "../domain/config.js";
 import { renderTemplate } from "./environment.js";
 import {
-  requireSuccessfulProcess,
   type ProcessRunner,
+  requireSuccessfulProcess,
   runProcess,
 } from "./process.js";
 import { findExecutable } from "./runtime.js";
@@ -173,9 +173,8 @@ export function renderLimaConfig(
     ],
     propagateProxyEnv: false,
     hostResolver: {
-      enabled: options.networkRequired ?? Boolean(profile.network)
-        ? false
-        : true,
+      enabled:
+        (options.networkRequired ?? Boolean(profile.network)) ? false : true,
     },
     ssh: {
       forwardAgent: false,
@@ -208,9 +207,7 @@ export function renderLimaConfig(
   return `${JSON.stringify(config, null, 2)}\n`;
 }
 
-export function networkDnsServers(
-  dns: NetworkDnsConfig | undefined,
-): string[] {
+export function networkDnsServers(dns: NetworkDnsConfig | undefined): string[] {
   return typeof dns === "object" ? dns.servers : [];
 }
 

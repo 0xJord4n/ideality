@@ -31,10 +31,14 @@ const envCommand = defineCommand({
   },
   handler: async ({ flags }) => {
     const runtime = await loadRuntime(flags.path, flags.identity);
-    const environment = await buildEnvironment(runtime.config, runtime.resolved, {
-      home: runtime.home,
-      idealityHome: runtime.idealityHome,
-    });
+    const environment = await buildEnvironment(
+      runtime.config,
+      runtime.resolved,
+      {
+        home: runtime.home,
+        idealityHome: runtime.idealityHome,
+      },
+    );
     if (flags.shell) {
       const stale = collectManagedVariables(runtime.config).filter(
         (name) => !(name in environment.values),

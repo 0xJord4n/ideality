@@ -24,7 +24,9 @@ function sample(label: string): IdealityConfig {
 
 describe("config transactions", () => {
   test("snapshots the old registry and restores it atomically", async () => {
-    const directory = await mkdtemp(path.join(os.tmpdir(), "ideality-history-"));
+    const directory = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-history-"),
+    );
     const configPath = path.join(directory, "config.jsonc");
     await saveConfig(sample("Before"), configPath);
     await saveConfig(sample("After"), configPath);
@@ -33,7 +35,9 @@ describe("config transactions", () => {
     expect((await restoreConfigSnapshot("latest", configPath)).snapshot).toBe(
       snapshots[0]!,
     );
-    expect((await loadConfig(configPath)).identities.sample?.label).toBe("Before");
+    expect((await loadConfig(configPath)).identities.sample?.label).toBe(
+      "Before",
+    );
   });
 
   test("dry-run validates a snapshot without changing the registry", async () => {
@@ -42,6 +46,8 @@ describe("config transactions", () => {
     await saveConfig(sample("Before"), configPath);
     await saveConfig(sample("After"), configPath);
     await restoreConfigSnapshot(undefined, configPath, { dryRun: true });
-    expect((await loadConfig(configPath)).identities.sample?.label).toBe("After");
+    expect((await loadConfig(configPath)).identities.sample?.label).toBe(
+      "After",
+    );
   });
 });

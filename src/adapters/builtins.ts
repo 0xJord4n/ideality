@@ -227,8 +227,6 @@ export const DEFAULT_TOOL_PACKS = ["essentials"];
 
 export function toolsInPacks(packs: string[]): string[] {
   return [
-    ...new Set(
-      packs.flatMap((pack) => BUILTIN_TOOL_PACKS[pack]?.tools ?? []),
-    ),
+    ...new Set(packs.flatMap((pack) => BUILTIN_TOOL_PACKS[pack]?.tools ?? [])),
   ];
 }

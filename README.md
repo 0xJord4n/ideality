@@ -402,6 +402,8 @@ ideality tui
 ```bash
 bun run dev -- --help
 bun run check
+bun run audit
+bun run perf:check
 bun run build
 ```
 

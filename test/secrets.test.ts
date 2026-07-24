@@ -1,7 +1,6 @@
 import { describe, expect, test } from "bun:test";
-
-import { resolveSecretContext } from "../src/integrations/secrets.js";
 import type { IdealityConfig } from "../src/domain/config.js";
+import { resolveSecretContext } from "../src/integrations/secrets.js";
 
 const config: IdealityConfig = {
   version: 1,

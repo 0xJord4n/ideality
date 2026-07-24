@@ -1,7 +1,6 @@
 import type { SelectOption } from "@opentui/core";
-
-import type { IdealityConfig } from "../domain/config.js";
 import { resolveExecution } from "../core/execution.js";
+import type { IdealityConfig } from "../domain/config.js";
 
 export interface DashboardTool {
   name: string;
@@ -55,11 +54,13 @@ export function buildDashboardModel(
   const execution = resolveExecution(config, resolved);
 
   return {
-    identities: Object.entries(config.identities).map(([identityId, identity]) => ({
-      name: `${identityId === config.defaultIdentity ? "* " : "  "}${identity.label}`,
-      description: identity.roots.join(", "),
-      value: identityId,
-    })),
+    identities: Object.entries(config.identities).map(
+      ([identityId, identity]) => ({
+        name: `${identityId === config.defaultIdentity ? "* " : "  "}${identity.label}`,
+        description: identity.roots.join(", "),
+        value: identityId,
+      }),
+    ),
     selected: {
       id,
       label: selected.label,
@@ -83,8 +84,7 @@ export function buildDashboardModel(
         return {
           name,
           executable: candidates[0] ?? definition.executable,
-          isolation:
-            profile?.isolation ?? definition.isolation ?? "shell",
+          isolation: profile?.isolation ?? definition.isolation ?? "shell",
           configured: Boolean(profile),
           enabled: profile?.enabled !== false,
           installed: candidates.some(executableExists),

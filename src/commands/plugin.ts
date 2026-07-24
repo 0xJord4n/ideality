@@ -13,8 +13,8 @@ import {
   removePluginManifest,
   writePluginManifest,
 } from "../core/plugins.js";
-import { installShims } from "../integrations/shims.js";
 import { syncInstalledCompletions } from "../integrations/completion.js";
+import { installShims } from "../integrations/shims.js";
 import { requirePositional } from "./shared.js";
 
 const pluginCommand = defineGroup({
@@ -73,7 +73,10 @@ const pluginCommand = defineGroup({
           return;
         }
         await saveConfig(next);
-        const installed = await writePluginManifest(manifest, getIdealityHome());
+        const installed = await writePluginManifest(
+          manifest,
+          getIdealityHome(),
+        );
         await installShims(next, getIdealityHome());
         await syncInstalledCompletions(next, getIdealityHome());
         console.log(colors.green(`Installed plugin '${manifest.id}'`));

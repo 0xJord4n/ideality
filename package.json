@@ -8,6 +8,7 @@
     "ideality": "./src/index.ts"
   },
   "type": "module",
+  "packageManager": "bun@1.3.14",
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bunli build",
@@ -36,6 +37,7 @@
     "zod": "^3.22.0"
   },
   "devDependencies": {
+    "@biomejs/biome": "^2.5.5",
     "@bunli/test": "0.6.0",
     "@tsconfig/bun": "1.0.10",
     "@types/bun": "1.3.14",

@@ -1,8 +1,7 @@
+import { afterEach, describe, expect, test } from "bun:test";
 import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-
-import { afterEach, describe, expect, test } from "bun:test";
 
 import {
   buildNetworkPlan,
@@ -17,9 +16,9 @@ const temporaryDirectories: string[] = [];
 
 afterEach(async () => {
   await Promise.all(
-    temporaryDirectories.splice(0).map((directory) =>
-      rm(directory, { recursive: true, force: true }),
-    ),
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
   );
 });
 
@@ -95,9 +94,7 @@ describe("network adapters", () => {
     };
 
     expect(networkCapability(profile).strictKillSwitch).toBe(false);
-    expect(
-      buildNetworkPlan("private", profile, "status"),
-    ).toEqual([
+    expect(buildNetworkPlan("private", profile, "status")).toEqual([
       {
         description: "Read custom network status",
         command: ["private-vpn", "status"],
@@ -121,8 +118,7 @@ describe("network adapters", () => {
     });
     expect(buildNetworkPlan("tailnet", profile, "up")).toEqual([
       {
-        description:
-          "Connect Tailscale through exit node exit.example.net",
+        description: "Connect Tailscale through exit node exit.example.net",
         command: [
           "tailscale",
           "up",
@@ -165,10 +161,14 @@ describe("network adapters", () => {
       },
     ]);
     expect(() =>
-      buildNetworkPlan("strict-warp", {
-        ...profile,
-        killSwitch: "required",
-      }, "up"),
+      buildNetworkPlan(
+        "strict-warp",
+        {
+          ...profile,
+          killSwitch: "required",
+        },
+        "up",
+      ),
     ).toThrow("requires a verified kill switch");
   });
 });

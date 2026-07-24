@@ -49,7 +49,9 @@ describe("buildEnvironment", () => {
     const environment = await buildEnvironment(config, resolved, {
       home: "/home/dev",
       readFile: async (file) =>
-        file === "/home/dev/.config/railway-tokens/personal" ? " secret-token\n" : "",
+        file === "/home/dev/.config/railway-tokens/personal"
+          ? " secret-token\n"
+          : "",
     });
 
     expect(environment.values).toEqual({
@@ -58,12 +60,15 @@ describe("buildEnvironment", () => {
       RAILWAY_API_TOKEN: "secret-token",
     });
     expect(environment.redacted.RAILWAY_API_TOKEN).toBe("<secret:file>");
-    expect(environment.redacted.GH_CONFIG_DIR).toBe("/home/dev/.config/gh-personal");
+    expect(environment.redacted.GH_CONFIG_DIR).toBe(
+      "/home/dev/.config/gh-personal",
+    );
   });
 
   test("redacts credential-like literal values", async () => {
     const literalConfig = structuredClone(config);
-    literalConfig.identities.personal!.tools.gh!.env!.ACME_API_TOKEN = "plain-secret";
+    literalConfig.identities.personal!.tools.gh!.env!.ACME_API_TOKEN =
+      "plain-secret";
     const literalResolved = {
       ...resolved,
       identity: literalConfig.identities.personal!,
@@ -77,7 +82,8 @@ describe("buildEnvironment", () => {
     expect(environment.values.ACME_API_TOKEN).toBe("plain-secret");
     expect(environment.redacted.ACME_API_TOKEN).toBe("<secret:literal>");
     expect(
-      redactConfig(literalConfig).identities.personal!.tools.gh!.env!.ACME_API_TOKEN,
+      redactConfig(literalConfig).identities.personal!.tools.gh!.env!
+        .ACME_API_TOKEN,
     ).toBe("<secret:literal>");
   });
 
@@ -121,27 +127,33 @@ describe("buildEnvironment", () => {
         "/home/dev",
         "/secure/ideality",
       ),
-    ).toBe(
-      "/secure/ideality/personal:/home/dev:/home/dev/code/personal",
-    );
+    ).toBe("/secure/ideality/personal:/home/dev:/home/dev/code/personal");
   });
 
   test("resolves logical secrets only through the selected environment", async () => {
     const secretConfig = structuredClone(config);
-    secretConfig.secretBackend = { type: "age", recipient: "age1x", identityFile: "/key" };
+    secretConfig.secretBackend = {
+      type: "age",
+      recipient: "age1x",
+      identityFile: "/key",
+    };
     secretConfig.identities.personal!.tools.railway!.env!.RAILWAY_API_TOKEN = {
       from: "secret",
       key: "{{identity}}/railway",
     };
-    const environment = await buildEnvironment(secretConfig, {
-      ...resolved,
-      identity: secretConfig.identities.personal!,
-    }, {
-      home: "/home/dev",
-      tool: "railway",
-      readSecret: async (_config, key) =>
-        key === "personal/railway" ? "resolved-secret" : "",
-    });
+    const environment = await buildEnvironment(
+      secretConfig,
+      {
+        ...resolved,
+        identity: secretConfig.identities.personal!,
+      },
+      {
+        home: "/home/dev",
+        tool: "railway",
+        readSecret: async (_config, key) =>
+          key === "personal/railway" ? "resolved-secret" : "",
+      },
+    );
     expect(environment.values.RAILWAY_API_TOKEN).toBe("resolved-secret");
     expect(environment.redacted.RAILWAY_API_TOKEN).toBe("<secret:age>");
   });

@@ -2,14 +2,14 @@ import { readdir, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 
 import type { IdealityConfig } from "../domain/config.js";
+import { renderShim } from "../integrations/shims.js";
+import { listConfigSnapshots } from "./config-store.js";
 import { renderTemplate } from "./environment.js";
+import { networkCapability } from "./network.js";
+import { listPluginManifests } from "./plugins.js";
 import { expandHome } from "./resolution.js";
 import { findExecutable, resolveExecutable } from "./runtime.js";
 import { secretBackendExecutable } from "./secret-backends.js";
-import { listConfigSnapshots } from "./config-store.js";
-import { listPluginManifests } from "./plugins.js";
-import { renderShim } from "../integrations/shims.js";
-import { networkCapability } from "./network.js";
 import { vmCapability } from "./vm.js";
 
 export type CheckStatus = "pass" | "warn" | "fail";
@@ -57,7 +57,9 @@ export async function runDoctor(
           checks.push({
             status: info.isDirectory() ? "pass" : "fail",
             subject: expanded,
-            message: info.isDirectory() ? `owned by ${id}` : "root exists but is not a directory",
+            message: info.isDirectory()
+              ? `owned by ${id}`
+              : "root exists but is not a directory",
           });
         } catch {
           checks.push({
@@ -100,7 +102,8 @@ export async function runDoctor(
           checks.push({
             status: "warn",
             subject: `${id}/${tool}:${name}`,
-            message: "credential-like value is stored directly in config; use a file source",
+            message:
+              "credential-like value is stored directly in config; use a file source",
           });
         }
         if (!source || typeof source === "string" || source.from !== "file") {
@@ -159,10 +162,9 @@ export async function runDoctor(
     checks.push({
       status: executable ? "pass" : "warn",
       subject: tool,
-      message:
-        executable
-          ? `executable ${executable}`
-          : `executable '${definition.executable}' is not installed`,
+      message: executable
+        ? `executable ${executable}`
+        : `executable '${definition.executable}' is not installed`,
     });
     if (definition.auth) {
       checks.push({
@@ -286,11 +288,10 @@ export async function runDoctor(
     const sudo = !profile.sudo || Boolean(findExecutable("sudo"));
     const strictRequested = (profile.killSwitch ?? "required") === "required";
     checks.push({
-      status:
-        !executable
+      status: !executable
+        ? "fail"
+        : !sudo
           ? "fail"
-          : !sudo
-            ? "fail"
           : strictRequested && !capability.strictKillSwitch
             ? "fail"
             : "pass",
@@ -299,9 +300,9 @@ export async function runDoctor(
         ? `required executable '${capability.executable}' is missing`
         : !sudo
           ? "profile requires sudo, but 'sudo' is missing"
-        : strictRequested && !capability.strictKillSwitch
-          ? `${capability.detail}; strict activation will fail closed`
-          : capability.detail,
+          : strictRequested && !capability.strictKillSwitch
+            ? `${capability.detail}; strict activation will fail closed`
+            : capability.detail,
     });
   }
   for (const [id, profile] of Object.entries(config.vms ?? {})) {

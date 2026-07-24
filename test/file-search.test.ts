@@ -1,8 +1,7 @@
-import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
+import { afterEach, describe, expect, test } from "bun:test";
+import { mkdir, mkdtemp, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
-
-import { afterEach, describe, expect, test } from "bun:test";
 
 import {
   findIdentityDirectories,
@@ -13,9 +12,9 @@ const temporaryDirectories: string[] = [];
 
 afterEach(async () => {
   await Promise.all(
-    temporaryDirectories.splice(0).map((directory) =>
-      rm(directory, { recursive: true, force: true }),
-    ),
+    temporaryDirectories
+      .splice(0)
+      .map((directory) => rm(directory, { recursive: true, force: true })),
   );
 });
 
@@ -51,9 +50,9 @@ describe("findSshPrivateKeys", () => {
     await mkdir(path.dirname(preferred), { recursive: true });
     await writeFile(preferred, "-----BEGIN OPENSSH PRIVATE KEY-----\nvalue\n");
 
-    expect(
-      await findSshPrivateKeys({ home, idealityHome, preferred }),
-    ).toEqual([preferred]);
+    expect(await findSshPrivateKeys({ home, idealityHome, preferred })).toEqual(
+      [preferred],
+    );
   });
 
   test("includes private keys linked into an SSH directory", async () => {
