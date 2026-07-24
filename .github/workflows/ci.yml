@@ -1,0 +1,78 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Check (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        run: bun run typecheck
+
+      - name: Test with coverage
+        run: bun test --coverage --coverage-reporter=text --coverage-reporter=lcov
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.os }}
+          path: coverage/lcov.info
+          if-no-files-found: error
+
+      - name: Build native binary
+        run: bun run build:native
+
+      - name: Smoke test compiled CLI (init -> status -> run -> setup -> rollback)
+        run: bash scripts/smoke.sh dist/ideality
+
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: ideality-${{ matrix.os }}
+          path: dist/ideality
+          if-no-files-found: error
+
+  cross-compile:
+    name: Cross-compile all release targets
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies (all target platforms)
+        run: bun install --frozen-lockfile --os '*' --cpu '*'
+
+      - name: Build release archives for all targets
+        run: bash scripts/build-release.sh

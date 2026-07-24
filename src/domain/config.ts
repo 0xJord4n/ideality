@@ -170,8 +170,11 @@ export type VmProfile =
       exec: string[];
     });
 
+/** Current registry schema version; bump together with a registered migration step. */
+export const CONFIG_VERSION = 1;
+
 export interface IdealityConfig {
-  version: 1;
+  version: typeof CONFIG_VERSION;
   defaultIdentity: string;
   secretBackend?: SecretBackendConfig;
   identities: Record<string, IdentityConfig>;

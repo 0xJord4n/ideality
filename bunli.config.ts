@@ -1,8 +1,10 @@
 import { defineConfig } from "@bunli/core";
 
+import pkg from "./package.json";
+
 export default defineConfig({
   name: "ideality",
-  version: "0.1.0",
+  version: pkg.version,
   description: "Folder-based identity orchestration for developer tools",
 
   commands: {

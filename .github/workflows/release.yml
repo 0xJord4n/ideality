@@ -1,0 +1,115 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    name: Build, sign, and publish release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Install dependencies (all target platforms)
+        run: bun install --frozen-lockfile --os '*' --cpu '*'
+
+      - name: Verify tag matches package.json version
+        run: |
+          tag_version="${GITHUB_REF_NAME#v}"
+          package_version="$(grep -m1 '"version":' package.json | cut -d '"' -f 4)"
+          if [ "$tag_version" != "$package_version" ]; then
+            echo "Tag v$tag_version does not match package.json version $package_version" >&2
+            exit 1
+          fi
+
+      - name: Typecheck and test
+        run: bun run check
+
+      - name: Build release archives (Linux/macOS x64/arm64)
+        run: bash scripts/build-release.sh
+
+      - name: Smoke test release binary (init -> status -> run -> setup -> rollback)
+        run: |
+          tar -C dist/release -xzf dist/release/ideality-linux-x64.tar.gz
+          bash scripts/smoke.sh dist/release/ideality
+          rm dist/release/ideality
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign artifacts (Sigstore keyless)
+        run: |
+          for artifact in dist/release/ideality-*.tar.gz dist/release/SHA256SUMS.txt; do
+            cosign sign-blob --yes --bundle "${artifact}.sigstore.json" "$artifact"
+          done
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: dist/release/ideality-*.tar.gz
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/release/ideality-*.tar.gz
+            dist/release/SHA256SUMS.txt
+            dist/release/*.sigstore.json
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+
+      - name: Upload checksums for the Homebrew job
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-checksums
+          path: dist/release/SHA256SUMS.txt
+          if-no-files-found: error
+
+  homebrew:
+    name: Publish Homebrew formula
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      - name: Download release checksums
+        uses: actions/download-artifact@v4
+        with:
+          name: release-checksums
+          path: dist/release
+
+      - name: Render Homebrew formula
+        run: |
+          bun scripts/homebrew-formula.ts \
+            --version "${GITHUB_REF_NAME#v}" \
+            --repository "$GITHUB_REPOSITORY" \
+            --checksums dist/release/SHA256SUMS.txt \
+            --out dist/release/ideality.rb
+          cat dist/release/ideality.rb
+
+      - name: Publish formula to tap
+        env:
+          TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}
+          TAP_REPOSITORY: ${{ vars.HOMEBREW_TAP_REPOSITORY }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: bash scripts/publish-homebrew.sh dist/release/ideality.rb
