@@ -54,6 +54,11 @@ const secretBackendSchema = z.discriminatedUnion("type", [
     prefix: z.string().min(1).optional(),
   }),
   z.object({ type: z.literal("onepassword") }),
+  z.object({
+    type: z.literal("bitwarden"),
+    appDataDirectory: z.string().min(1).optional(),
+  }),
+  z.object({ type: z.literal("dashlane") }),
 ]);
 
 const toolProfileSchema = z.object({

@@ -95,4 +95,73 @@ describe("secret backends", () => {
       ),
     ).rejects.toThrow("op://");
   });
+
+  test("reads Bitwarden password references with isolated CLI state", async () => {
+    const calls: Array<{
+      command: string[];
+      environment?: Record<string, string>;
+    }> = [];
+    const runner: SecretCommandRunner = async (
+      command,
+      _input,
+      environment,
+    ) => {
+      calls.push({ command, environment });
+      return {
+        exitCode: 0,
+        stdout: new TextEncoder().encode("bitwarden-value\n"),
+        stderr: "",
+      };
+    };
+    expect(
+      await readSecretValue(
+        config({
+          type: "bitwarden",
+          appDataDirectory: "~/.config/bitwarden-sample",
+        }),
+        "bw://item-id",
+        "/home/dev",
+        "/home/dev/.ideality",
+        runner,
+      ),
+    ).toBe("bitwarden-value");
+    expect(calls[0]).toEqual({
+      command: ["bw", "get", "password", "item-id"],
+      environment: {
+        BITWARDENCLI_APPDATA_DIR: "/home/dev/.config/bitwarden-sample",
+      },
+    });
+  });
+
+  test("reads Dashlane dl references and rejects writes", async () => {
+    const calls: string[][] = [];
+    const runner: SecretCommandRunner = async (command) => {
+      calls.push(command);
+      return {
+        exitCode: 0,
+        stdout: new TextEncoder().encode("dashlane-value\n"),
+        stderr: "",
+      };
+    };
+    expect(
+      await readSecretValue(
+        config({ type: "dashlane" }),
+        "dl://secret-id/value",
+        "/home/dev",
+        "/home/dev/.ideality",
+        runner,
+      ),
+    ).toBe("dashlane-value");
+    expect(calls[0]).toEqual(["dcli", "read", "dl://secret-id/value"]);
+    await expect(
+      writeSecretValue(
+        config({ type: "dashlane" }),
+        "dl://secret-id/value",
+        "value",
+        "/home/dev",
+        "/home/dev/.ideality",
+        runner,
+      ),
+    ).rejects.toThrow("read-only");
+  });
 });

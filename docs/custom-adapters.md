@@ -23,6 +23,17 @@ unset             Explicitly remove the variable
 Add `--optional` to external sources when absence should disable the credential
 rather than fail activation.
 
+Password-manager references use their native schemes:
+
+```text
+op://Vault/Item/field       1Password
+bw://item-id-or-name        Bitwarden login password
+dl://secret-id/field        Dashlane
+```
+
+These password-manager backends are read-only in Ideality. Use their native
+applications or CLIs to create and update vault items.
+
 Paths and arguments support:
 
 ```text

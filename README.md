@@ -113,13 +113,22 @@ ideality secret backend age \
 ideality secret backend keychain
 ideality secret backend pass --prefix developer/ideality
 ideality secret backend onepassword
+ideality secret backend bitwarden \
+  --app-data-directory ~/.config/bitwarden-work
+ideality secret backend dashlane
 ```
 
 For 1Password, configure `secret:op://Vault/Item/credential`; Ideality reads it
-with `op read` and does not edit the item. Secret values are resolved only while
-starting the selected tool. Logical secrets are forbidden in shell-scoped
-profiles. `status`, `doctor`, `explain`, config output, and the TUI stay
-redacted.
+with `op read`. Bitwarden uses `secret:bw://<item-id-or-name>` and retrieves the
+login password with `bw get password`; an optional app-data directory isolates
+the logged-in account. Dashlane uses its native
+`secret:dl://<secret-id>/<field>` references with `dcli read`.
+
+The 1Password, Bitwarden, and Dashlane backends are read-only in Ideality:
+create or update their items using the native application or CLI. Secret values
+are resolved only while starting the selected tool. Logical secrets are
+forbidden in shell-scoped profiles. `status`, `doctor`, `explain`, config
+output, and the TUI stay redacted.
 
 Local secret directories are mode `700`; secret files and age ciphertext are
 atomically written with mode `600`. The age and `pass` backends receive values

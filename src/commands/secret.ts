@@ -10,6 +10,7 @@ import {
 } from "../core/config-store.js";
 import { renderTemplate } from "../core/environment.js";
 import {
+  secretBackendWritable,
   writeSecretValue,
 } from "../core/secret-backends.js";
 import type { ResolvedIdentity } from "../domain/config.js";
@@ -99,6 +100,11 @@ const secretCommand = defineGroup({
             }`,
           );
           return;
+        }
+        if (source.from === "secret" && !secretBackendWritable(config)) {
+          throw new Error(
+            `${config.secretBackend?.type ?? "file"} references are read-only; create or update the item with its native app or CLI`,
+          );
         }
         const value = flags.stdin
           ? await Bun.stdin.text()
@@ -199,7 +205,7 @@ const secretCommand = defineGroup({
     }),
     defineCommand({
       name: "backend",
-      description: "Show or select file, age, keychain, pass, or onepassword storage",
+      description: "Show or select a local or password-manager secret backend",
       options: {
         directory: option(z.string().optional(), {
           description: "Override the file or age storage directory",
@@ -215,6 +221,9 @@ const secretCommand = defineGroup({
         }),
         prefix: option(z.string().optional(), {
           description: "pass store prefix",
+        }),
+        "app-data-directory": option(z.string().optional(), {
+          description: "Bitwarden CLI account data directory",
         }),
         "dry-run": option(z.boolean().default(false), {
           description: "Validate and show the backend without saving it",
@@ -256,6 +265,15 @@ const secretCommand = defineGroup({
             ...(flags.prefix ? { prefix: flags.prefix } : {}),
           };
         } else if (type === "onepassword") {
+          config.secretBackend = { type };
+        } else if (type === "bitwarden") {
+          config.secretBackend = {
+            type,
+            ...(flags["app-data-directory"]
+              ? { appDataDirectory: flags["app-data-directory"] }
+              : {}),
+          };
+        } else if (type === "dashlane") {
           config.secretBackend = { type };
         } else {
           throw new Error(`Unknown secret backend '${type}'`);

@@ -307,9 +307,9 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
           name: 'set',
           description: 'Securely write a configured secret reference',
           options: {
-            'stdin': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Read the value from standard input', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1417,"end":1422,"loc":{"start":{"line":53,"column":42,"index":1417},"end":{"line":53,"column":47,"index":1422}},"value":false}}]}, validator: '(val) => true' },
+            'stdin': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Read the value from standard input', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1442,"end":1447,"loc":{"start":{"line":54,"column":42,"index":1442},"end":{"line":54,"column":47,"index":1447}},"value":false}}]}, validator: '(val) => true' },
             'path': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Directory used to resolve a {{root}} template', short: 'C', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Validate and show the target without reading a value', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1730,"end":1735,"loc":{"start":{"line":61,"column":46,"index":1730},"end":{"line":61,"column":51,"index":1735}},"value":false}}]}, validator: '(val) => true' }
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Validate and show the target without reading a value', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1755,"end":1760,"loc":{"start":{"line":62,"column":46,"index":1755},"end":{"line":62,"column":51,"index":1760}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/secret'
         },
@@ -320,14 +320,15 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
         },
         {
           name: 'backend',
-          description: 'Show or select file, age, keychain, pass, or onepassword storage',
+          description: 'Show or select a local or password-manager secret backend',
           options: {
             'directory': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override the file or age storage directory', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
             'recipient': { type: 'z.string.optional', required: false, hasDefault: false, description: 'age recipient used for encryption', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
             'identity-file': { type: 'z.string.optional', required: false, hasDefault: false, description: 'age identity file used for decryption', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
             'service': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Desktop keychain service name', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
             'prefix': { type: 'z.string.optional', required: false, hasDefault: false, description: 'pass store prefix', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Validate and show the backend without saving it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":7614,"end":7619,"loc":{"start":{"line":219,"column":46,"index":7614},"end":{"line":219,"column":51,"index":7619}},"value":false}}]}, validator: '(val) => true' }
+            'app-data-directory': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Bitwarden CLI account data directory', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Validate and show the backend without saving it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":8027,"end":8032,"loc":{"start":{"line":228,"column":46,"index":8027},"end":{"line":228,"column":51,"index":8032}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/secret'
         }

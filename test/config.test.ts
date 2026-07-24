@@ -53,6 +53,39 @@ describe("parseConfig", () => {
       }`),
     ).toThrow("Logical secrets require process isolation");
   });
+
+  test("accepts Bitwarden and Dashlane secret backend settings", () => {
+    const base = {
+      version: 1,
+      defaultIdentity: "sample",
+      identities: {
+        sample: { label: "Sample", roots: ["/workspace"], tools: {} },
+      },
+      tools: {},
+    };
+    expect(
+      parseConfig(
+        JSON.stringify({
+          ...base,
+          secretBackend: {
+            type: "bitwarden",
+            appDataDirectory: "~/.config/bitwarden-sample",
+          },
+        }),
+      ).secretBackend,
+    ).toEqual({
+      type: "bitwarden",
+      appDataDirectory: "~/.config/bitwarden-sample",
+    });
+    expect(
+      parseConfig(
+        JSON.stringify({
+          ...base,
+          secretBackend: { type: "dashlane" },
+        }),
+      ).secretBackend,
+    ).toEqual({ type: "dashlane" });
+  });
 });
 
 describe("getIdealityHome", () => {

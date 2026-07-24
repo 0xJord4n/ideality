@@ -16,13 +16,21 @@ interface CommandResult {
 export type SecretCommandRunner = (
   command: string[],
   input?: string,
+  environment?: Record<string, string>,
 ) => Promise<CommandResult>;
 
 async function runCommand(
   command: string[],
   input?: string,
+  environment?: Record<string, string>,
 ): Promise<CommandResult> {
+  const env: Record<string, string> = {};
+  for (const [name, value] of Object.entries(process.env)) {
+    if (value !== undefined) env[name] = value;
+  }
+  Object.assign(env, environment);
   const child = Bun.spawn(command, {
+    env,
     stdin: input === undefined ? "ignore" : "pipe",
     stdout: "pipe",
     stderr: "pipe",
@@ -86,6 +94,29 @@ function commandError(command: string, result: CommandResult): Error {
   );
 }
 
+function externalReference(
+  key: string,
+  scheme: "bw://" | "dl://",
+  backendName: string,
+): string {
+  if (!key.startsWith(scheme)) {
+    throw new Error(`${backendName} secret keys must be ${scheme} references`);
+  }
+  const reference = key.slice(scheme.length);
+  if (!reference || /[\0\r\n]/.test(reference)) {
+    throw new Error(`Invalid ${backendName} secret reference`);
+  }
+  try {
+    const decoded = decodeURIComponent(reference);
+    if (/[\0\r\n]/.test(decoded)) {
+      throw new Error("control character");
+    }
+    return decoded;
+  } catch {
+    throw new Error(`Invalid ${backendName} secret reference encoding`);
+  }
+}
+
 export async function readSecretValue(
   config: IdealityConfig,
   key: string,
@@ -117,6 +148,30 @@ export async function readSecretValue(
     }
     const result = await runner(["op", "read", key]);
     if (result.exitCode !== 0) throw commandError("op", result);
+    return new TextDecoder().decode(result.stdout).trim();
+  }
+  if (selected.type === "bitwarden") {
+    const item = externalReference(key, "bw://", "Bitwarden");
+    const environment = selected.appDataDirectory
+      ? {
+          BITWARDENCLI_APPDATA_DIR: expandHome(
+            selected.appDataDirectory,
+            home,
+          ),
+        }
+      : undefined;
+    const result = await runner(
+      ["bw", "get", "password", item],
+      undefined,
+      environment,
+    );
+    if (result.exitCode !== 0) throw commandError("bw", result);
+    return new TextDecoder().decode(result.stdout).trim();
+  }
+  if (selected.type === "dashlane") {
+    externalReference(key, "dl://", "Dashlane");
+    const result = await runner(["dcli", "read", key]);
+    if (result.exitCode !== 0) throw commandError("dcli", result);
     return new TextDecoder().decode(result.stdout).trim();
   }
 
@@ -175,9 +230,19 @@ export async function writeSecretValue(
     if (result.exitCode !== 0) throw commandError("pass", result);
     return;
   }
-  if (selected.type === "onepassword") {
+  if (
+    selected.type === "onepassword" ||
+    selected.type === "bitwarden" ||
+    selected.type === "dashlane"
+  ) {
+    const name =
+      selected.type === "onepassword"
+        ? "1Password"
+        : selected.type === "bitwarden"
+          ? "Bitwarden"
+          : "Dashlane";
     throw new Error(
-      "1Password references are read-only in ideality; create the item with 'op' and use its op:// reference",
+      `${name} references are read-only in ideality; create or update the item with its native app or CLI`,
     );
   }
   if (process.platform === "darwin") {
@@ -215,7 +280,19 @@ export function secretBackendExecutable(
       return "pass";
     case "onepassword":
       return "op";
+    case "bitwarden":
+      return "bw";
+    case "dashlane":
+      return "dcli";
     default:
       return null;
   }
+}
+
+export function secretBackendWritable(config: IdealityConfig): boolean {
+  const type = backend(config).type;
+  if (type === "onepassword" || type === "bitwarden" || type === "dashlane") {
+    return false;
+  }
+  return type !== "keychain" || process.platform !== "darwin";
 }

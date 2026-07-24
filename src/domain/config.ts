@@ -14,7 +14,9 @@ export type SecretBackendConfig =
     }
   | { type: "keychain"; service?: string }
   | { type: "pass"; prefix?: string }
-  | { type: "onepassword" };
+  | { type: "onepassword" }
+  | { type: "bitwarden"; appDataDirectory?: string }
+  | { type: "dashlane" };
 
 export interface ToolProfile {
   enabled?: boolean;
