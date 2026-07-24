@@ -60,7 +60,9 @@ assignment rendering validates variable names and single-quotes values.
 For reusable integrations, prefer a plugin manifest. `ideality plugin install`
 validates the manifest, creates a process-scoped definition and profile for
 every identity, stores the manifest under `~/.ideality/plugins`, and
-synchronizes the universal shim directory.
+synchronizes the universal shim directory. The same installed manifests are
+available in `ideality tui` with redacted metadata inspection, local manifest
+installation, and confirmation-gated removal.
 
 The canonical plugin format is `schemas/tool-adapter.v1.schema.json`. Existing
 version-1 plugin manifests remain supported through a compatibility

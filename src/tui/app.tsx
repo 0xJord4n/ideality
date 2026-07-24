@@ -5,16 +5,29 @@ import { useMemo, useReducer, useRef, useState } from "react";
 import type { AuthHealthState } from "../core/auth.js";
 import type { IdealityConfig } from "../domain/config.js";
 import {
-  loadRollbackSnapshots,
+  MaskedSecretInput,
+  PluginScreen,
+  SecretScreen,
+} from "./admin-screens.js";
+import {
   applyRollbackSnapshot,
+  deleteTuiSecret,
+  installPluginPath,
+  loadPluginAdmin,
+  loadRollbackSnapshots,
+  loadSecretAdmin,
+  loadPolicyStatus,
   previewRollbackSnapshot,
   probeAuthHealth,
-  loadPolicyStatus,
+  removeInstalledPlugin,
   saveDraftConfig,
+  writeTuiSecret,
 } from "./effects.js";
 import { buildDashboardModel, type DashboardModel } from "./model.js";
 import {
   canApplyRollback,
+  canRunPluginSideEffect,
+  canRunSecretSideEffect,
   createTuiState,
   diffConfigs,
   formatDiffLine,
@@ -67,11 +80,14 @@ const DIFF_COLORS: Record<ConfigDiffLine["op"], string> = {
 
 const KEY_HINTS: Record<TuiState["screen"], string> = {
   dashboard:
-    "tab pane  space toggle  n net  v vm  m default  b bind  x unbind  s save  u undo  h history  a auth  p policy  e edit  d doctor  q quit",
+    "tab pane  space toggle  n net  v vm  m default  b bind  x unbind  s save  u undo  h history  a auth  p policy  g plugins  k secrets  e edit  d doctor  q quit",
   diff: "y save  c discard  esc back",
   rollback: "up/down select  enter preview  esc back",
   auth: "r probe again  esc back",
   policy: "r re-check  esc back",
+  plugins: "up/down select  i install manifest  x remove  r refresh  esc back",
+  secrets:
+    "up/down select  b backend  n set secret  x delete  r refresh  esc back",
 };
 
 function errorText(error: unknown): string {
@@ -161,6 +177,122 @@ function TuiApp({ context, onExit }: TuiAppProps) {
       );
   };
 
+  const runPluginLoad = () => {
+    dispatch({ type: "plugins-loading" });
+    loadPluginAdmin(context.idealityHome, stateRef.current.saved)
+      .then((plugins) => dispatch({ type: "plugins-loaded", plugins }))
+      .catch((error: unknown) =>
+        dispatch({ type: "plugins-failed", error: errorText(error) }),
+      );
+  };
+
+  const runPluginInstall = (manifestPath: string) => {
+    const guard = canRunPluginSideEffect(stateRef.current);
+    if (!guard.ok) {
+      dispatch({
+        type: "status",
+        status: { kind: "error", text: guard.reason },
+      });
+      return;
+    }
+    installPluginPath(manifestPath, context.configPath, {
+      home: context.home,
+      idealityHome: context.idealityHome,
+    })
+      .then(({ config }) => {
+        dispatch({ type: "plugin-installed", config });
+        return loadPluginAdmin(context.idealityHome, config);
+      })
+      .then((plugins) => dispatch({ type: "plugins-loaded", plugins }))
+      .catch((error: unknown) =>
+        dispatch({ type: "plugins-failed", error: errorText(error) }),
+      );
+  };
+
+  const runPluginRemove = (id: string) => {
+    const guard = canRunPluginSideEffect(stateRef.current);
+    if (!guard.ok) {
+      dispatch({
+        type: "status",
+        status: { kind: "error", text: guard.reason },
+      });
+      return;
+    }
+    removeInstalledPlugin(id, context.configPath, {
+      home: context.home,
+      idealityHome: context.idealityHome,
+    })
+      .then(({ config }) => dispatch({ type: "plugin-removed", id, config }))
+      .catch((error: unknown) =>
+        dispatch({ type: "plugins-failed", error: errorText(error) }),
+      );
+  };
+
+  const runSecretLoad = () => {
+    const guard = canRunSecretSideEffect(stateRef.current);
+    if (!guard.ok) {
+      dispatch({
+        type: "status",
+        status: { kind: "error", text: guard.reason },
+      });
+      return;
+    }
+    dispatch({ type: "secrets-loading" });
+    loadSecretAdmin(stateRef.current.saved, {
+      home: context.home,
+      idealityHome: context.idealityHome,
+    })
+      .then((secrets) => dispatch({ type: "secrets-loaded", secrets }))
+      .catch((error: unknown) =>
+        dispatch({ type: "secrets-failed", error: errorText(error) }),
+      );
+  };
+
+  const runSecretWrite = (key: string, value: string) => {
+    const guard = canRunSecretSideEffect(stateRef.current);
+    if (!guard.ok) {
+      dispatch({
+        type: "status",
+        status: { kind: "error", text: guard.reason },
+      });
+      return;
+    }
+    writeTuiSecret(key, value, context.configPath, {
+      home: context.home,
+      idealityHome: context.idealityHome,
+    })
+      .then(() => {
+        dispatch({ type: "secret-written", key });
+        return loadSecretAdmin(stateRef.current.saved, {
+          home: context.home,
+          idealityHome: context.idealityHome,
+        });
+      })
+      .then((secrets) => dispatch({ type: "secrets-loaded", secrets }))
+      .catch((error: unknown) =>
+        dispatch({ type: "secrets-failed", error: errorText(error) }),
+      );
+  };
+
+  const runSecretDelete = (key: string) => {
+    const guard = canRunSecretSideEffect(stateRef.current);
+    if (!guard.ok) {
+      dispatch({
+        type: "status",
+        status: { kind: "error", text: guard.reason },
+      });
+      return;
+    }
+    deleteTuiSecret(key, context.configPath, {
+      home: context.home,
+      idealityHome: context.idealityHome,
+    })
+      .then(() => dispatch({ type: "secret-deleted", key }))
+      .catch((error: unknown) =>
+        dispatch({ type: "secrets-failed", error: errorText(error) }),
+      );
+  };
+
   const requireCleanDraft = (action: DashboardAction): void => {
     if (
       diffConfigs(stateRef.current.saved, stateRef.current.draft).length > 0
@@ -208,6 +340,12 @@ function TuiApp({ context, onExit }: TuiAppProps) {
     } else if (name === "p") {
       dispatch({ type: "open-screen", screen: "policy" });
       if (current.policy.phase === "idle") runPolicyCheck();
+    } else if (name === "g") {
+      dispatch({ type: "open-screen", screen: "plugins" });
+      runPluginLoad();
+    } else if (name === "k") {
+      dispatch({ type: "open-screen", screen: "secrets" });
+      runSecretLoad();
     } else if (name === "e") {
       requireCleanDraft("edit");
     } else if (name === "d") {
@@ -262,11 +400,90 @@ function TuiApp({ context, onExit }: TuiAppProps) {
     }
   };
 
+  const handlePluginsKey = (name: string): void => {
+    const current = stateRef.current;
+    if (current.plugins.pendingRemove) {
+      if (name === "y") runPluginRemove(current.plugins.pendingRemove);
+      else if (name === "escape" || name === "n") {
+        dispatch({ type: "plugin-remove-cancelled" });
+      }
+      return;
+    }
+    if (name === "up" || name === "down") {
+      dispatch({ type: "plugin-move", direction: name === "up" ? -1 : 1 });
+    } else if (name === "i") {
+      dispatch({ type: "open-admin-input", input: { kind: "plugin-path" } });
+    } else if (name === "x") {
+      dispatch({ type: "plugin-remove-requested" });
+    } else if (name === "r") {
+      runPluginLoad();
+    } else if (name === "escape") {
+      dispatch({ type: "open-screen", screen: "dashboard" });
+    }
+  };
+
+  const handleSecretsKey = (name: string): void => {
+    const current = stateRef.current;
+    if (current.secrets.pendingDelete) {
+      if (name === "y") runSecretDelete(current.secrets.pendingDelete);
+      else if (name === "escape" || name === "n") {
+        dispatch({ type: "secret-delete-cancelled" });
+      }
+      return;
+    }
+    if (name === "up" || name === "down") {
+      dispatch({ type: "secret-move", direction: name === "up" ? -1 : 1 });
+    } else if (name === "b") {
+      dispatch({
+        type: "open-admin-input",
+        input: { kind: "secret-backend" },
+      });
+    } else if (name === "n") {
+      const guard = canRunSecretSideEffect(current);
+      if (!guard.ok) {
+        dispatch({
+          type: "status",
+          status: { kind: "error", text: guard.reason },
+        });
+        return;
+      }
+      if (!current.secrets.summary?.writable) {
+        dispatch({
+          type: "status",
+          status: {
+            kind: "error",
+            text: "Selected secret backend is read-only",
+          },
+        });
+      } else {
+        dispatch({ type: "open-admin-input", input: { kind: "secret-key" } });
+      }
+    } else if (name === "x") {
+      const guard = canRunSecretSideEffect(current);
+      if (!guard.ok) {
+        dispatch({
+          type: "status",
+          status: { kind: "error", text: guard.reason },
+        });
+        return;
+      }
+      dispatch({ type: "secret-delete-requested" });
+    } else if (name === "r") {
+      runSecretLoad();
+    } else if (name === "escape") {
+      dispatch({ type: "open-screen", screen: "dashboard" });
+    }
+  };
+
   useKeyboard((key) => {
     const current = stateRef.current;
     const name = key.name;
     if (current.bindingFolder) {
       if (name === "escape") dispatch({ type: "close-bind-input" });
+      return;
+    }
+    if (current.adminInput) {
+      if (name === "escape") dispatch({ type: "close-admin-input" });
       return;
     }
     if (current.confirmingQuit) {
@@ -289,8 +506,28 @@ function TuiApp({ context, onExit }: TuiAppProps) {
       else if (name === "escape") {
         dispatch({ type: "open-screen", screen: "dashboard" });
       }
+    } else if (current.screen === "plugins") {
+      handlePluginsKey(name);
+    } else if (current.screen === "secrets") {
+      handleSecretsKey(name);
     }
   });
+
+  const handleAdminInputSubmit = (value: string): void => {
+    const input = stateRef.current.adminInput;
+    if (!input) return;
+    if (input.kind === "plugin-path") {
+      dispatch({ type: "close-admin-input" });
+      runPluginInstall(value);
+      return;
+    }
+    if (input.kind === "secret-value") {
+      dispatch({ type: "close-admin-input" });
+      runSecretWrite(input.key, value);
+      return;
+    }
+    dispatch({ type: "submit-admin-input", value });
+  };
 
   return (
     <box
@@ -325,11 +562,18 @@ function TuiApp({ context, onExit }: TuiAppProps) {
       {state.screen === "rollback" && <RollbackScreen state={state} />}
       {state.screen === "auth" && <AuthScreen state={state} />}
       {state.screen === "policy" && <PolicyScreen state={state} />}
+      {state.screen === "plugins" && (
+        <PluginScreen state={state} colors={COLORS} />
+      )}
+      {state.screen === "secrets" && (
+        <SecretScreen state={state} colors={COLORS} />
+      )}
 
       <Footer
         state={state}
         stagedCount={stagedDiff.length}
         dispatch={dispatch}
+        onAdminInputSubmit={handleAdminInputSubmit}
       />
     </box>
   );
@@ -673,9 +917,16 @@ interface FooterProps {
   state: TuiState;
   stagedCount: number;
   dispatch: (action: TuiAction) => void;
+  onAdminInputSubmit: (value: string) => void;
 }
 
-function Footer({ state, stagedCount, dispatch }: FooterProps) {
+function Footer({
+  state,
+  stagedCount,
+  dispatch,
+  onAdminInputSubmit,
+}: FooterProps) {
+  const adminInput = state.adminInput;
   return (
     <box
       style={{
@@ -685,7 +936,37 @@ function Footer({ state, stagedCount, dispatch }: FooterProps) {
         backgroundColor: COLORS.panel,
       }}
     >
-      {state.bindingFolder ? (
+      {adminInput?.kind === "secret-value" ? (
+        <MaskedSecretInput
+          label={`Value for ${adminInput.key}:`}
+          colors={COLORS}
+          onSubmit={onAdminInputSubmit}
+        />
+      ) : adminInput ? (
+        <box style={{ flexDirection: "row", gap: 1 }}>
+          <text fg={COLORS.accent}>
+            {adminInput.kind === "plugin-path"
+              ? "Manifest path:"
+              : adminInput.kind === "secret-backend"
+                ? "Backend:"
+                : "Secret key:"}
+          </text>
+          <input
+            focused
+            placeholder={
+              adminInput.kind === "plugin-path"
+                ? "/path/to/plugin.jsonc"
+                : adminInput.kind === "secret-backend"
+                  ? "file [directory] | age recipient identityFile [directory] | pass [prefix]"
+                  : "identity/tool-token"
+            }
+            onSubmit={(value) => {
+              if (typeof value === "string") onAdminInputSubmit(value);
+            }}
+            style={{ flexGrow: 1 }}
+          />
+        </box>
+      ) : state.bindingFolder ? (
         <box style={{ flexDirection: "row", gap: 1 }}>
           <text fg={COLORS.accent}>Bind folder:</text>
           <input

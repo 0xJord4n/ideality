@@ -206,10 +206,16 @@ ideality tui
 ```
 
 The dashboard (`ideality tui`) manages the registry directly: it stages
-identity, folder-binding, tool-enablement, network, and VM edits in memory,
-previews a readable diff, and only writes on an explicit save through the
-transactional history. It also previews and applies rollback snapshots, and
-surfaces redacted auth health (`a`) and the team policy summary (`p`).
+identity, folder-binding, tool-enablement, network, VM, and secret-backend edits
+in memory, previews a readable diff, and only writes on an explicit save through
+the transactional history. It also previews and applies rollback snapshots,
+surfaces redacted auth health (`a`) and the team policy summary (`p`), lists and
+installs local plugin manifests (`g`), and administers value-free secret
+references (`k`). Plugin removal and secret deletion both require an explicit
+confirmation; secret entry is masked and values are never shown in TUI state,
+diffs, logs, or command arguments. Plugin install/remove requires a clean staged
+draft, and secret list/write/delete requires any staged secret-backend change to
+be saved or discarded before side effects run.
 
 ## VPN And VM Isolation
 
@@ -298,7 +304,10 @@ The 1Password, Bitwarden, and Dashlane backends are read-only in Ideality:
 create or update their items using the native application or CLI. Secret values
 are resolved only while starting the selected tool. Logical secrets are
 forbidden in shell-scoped profiles. `status`, `doctor`, `explain`, config
-output, and the TUI stay redacted.
+output, and the TUI stay redacted. In `ideality tui`, press `k` to inspect the
+selected backend, stage backend settings, list backend-owned logical references
+where safe listing is supported, create or update writable backend secrets
+through masked input, and delete references only after confirming.
 
 Local secret directories are mode `700`; secret files and age ciphertext are
 atomically written with mode `600`. The age and `pass` backends receive values

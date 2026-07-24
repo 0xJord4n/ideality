@@ -1,4 +1,4 @@
-import { chmod, mkdir, rename } from "node:fs/promises";
+import { chmod, mkdir, readdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 
 import type { IdealityConfig, SecretBackendConfig } from "../domain/config.js";
@@ -17,6 +17,13 @@ export type SecretCommandRunner = (
   input?: string,
   environment?: Record<string, string>,
 ) => Promise<CommandResult>;
+
+export interface SecretReferenceList {
+  backend: SecretBackendConfig["type"];
+  supported: boolean;
+  writable: boolean;
+  references: string[];
+}
 
 async function runCommand(
   command: string[],
@@ -91,6 +98,33 @@ function commandError(command: string, result: CommandResult): Error {
   return new Error(
     `${command} failed${result.stderr ? `: ${result.stderr}` : ""}`,
   );
+}
+
+async function listFilesRecursively(
+  directory: string,
+  suffix = "",
+): Promise<string[]> {
+  const found: string[] = [];
+  async function visit(current: string, prefix: string): Promise<void> {
+    const entries = await readdir(current, { withFileTypes: true });
+    for (const entry of entries) {
+      const relative = prefix ? `${prefix}/${entry.name}` : entry.name;
+      const absolute = path.join(current, entry.name);
+      if (entry.isDirectory()) {
+        await visit(absolute, relative);
+      } else if (entry.isFile() && (!suffix || relative.endsWith(suffix))) {
+        found.push(suffix ? relative.slice(0, -suffix.length) : relative);
+      }
+    }
+  }
+  try {
+    await visit(directory, "");
+    return found.sort();
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (code === "ENOENT") return [];
+    throw error;
+  }
 }
 
 function externalReference(
@@ -264,6 +298,83 @@ export async function writeSecretValue(
     `${normalized}\n`,
   );
   if (result.exitCode !== 0) throw commandError("secret-tool", result);
+}
+
+/** List backend-owned logical references without reading secret values. */
+export async function listSecretReferences(
+  config: IdealityConfig,
+  home: string,
+  idealityHome: string,
+): Promise<SecretReferenceList> {
+  const selected = backend(config);
+  if (selected.type === "file") {
+    return {
+      backend: selected.type,
+      supported: true,
+      writable: secretBackendWritable(config),
+      references: await listFilesRecursively(
+        directoryFor(selected, home, idealityHome),
+      ),
+    };
+  }
+  if (selected.type === "age") {
+    return {
+      backend: selected.type,
+      supported: true,
+      writable: secretBackendWritable(config),
+      references: await listFilesRecursively(
+        directoryFor(selected, home, idealityHome),
+        ".age",
+      ),
+    };
+  }
+  return {
+    backend: selected.type,
+    supported: false,
+    writable: secretBackendWritable(config),
+    references: [],
+  };
+}
+
+/** Delete a backend-owned logical secret without accepting or exposing values. */
+export async function deleteSecretValue(
+  config: IdealityConfig,
+  key: string,
+  home: string,
+  idealityHome: string,
+  runner: SecretCommandRunner = runCommand,
+): Promise<void> {
+  if (!secretBackendWritable(config)) {
+    throw new Error(
+      `${backend(config).type} references are read-only; delete the item with its native app or CLI`,
+    );
+  }
+  const selected = backend(config);
+  if (selected.type === "file" || selected.type === "age") {
+    await rm(secretFile(selected, key, home, idealityHome), { force: true });
+    return;
+  }
+  if (selected.type === "pass") {
+    assertKey(key);
+    const name = [selected.prefix ?? "ideality", key].filter(Boolean).join("/");
+    const result = await runner(["pass", "rm", "--force", name]);
+    if (result.exitCode !== 0) throw commandError("pass", result);
+    return;
+  }
+  if (selected.type === "keychain") {
+    assertKey(key);
+    const service = selected.service ?? "ideality";
+    const command =
+      process.platform === "darwin"
+        ? ["security", "delete-generic-password", "-s", service, "-a", key]
+        : ["secret-tool", "clear", "service", service, "key", key];
+    const result = await runner(command);
+    if (result.exitCode !== 0) throw commandError(command[0]!, result);
+    return;
+  }
+  throw new Error(
+    `${selected.type} references are read-only; delete the item with its native app or CLI`,
+  );
 }
 
 export function secretBackendExecutable(config: IdealityConfig): string | null {

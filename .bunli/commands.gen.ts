@@ -550,7 +550,7 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
     },
   'tui': {
       name: 'tui',
-      description: 'Open the interactive identity dashboard',
+      description: 'Open the interactive identity, plugin, and secret dashboard',
       options: {
         'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for initial identity selection', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' }
       },
