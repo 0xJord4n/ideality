@@ -1,19 +1,28 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
-import { mkdtemp, stat, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+
+import pkg from "../package.json";
 
 const repoRoot = path.resolve(import.meta.dir, "..");
 const installScript = path.join(repoRoot, "scripts", "install.sh");
 const rehearsalScript = path.join(repoRoot, "scripts", "release-rehearsal.sh");
 const formulaScript = path.join(repoRoot, "scripts", "homebrew-formula.ts");
+const releaseWorkflow = path.join(
+  repoRoot,
+  ".github",
+  "workflows",
+  "release.yml",
+);
 
 const hostTarget = `${process.platform === "darwin" ? "darwin" : "linux"}-${
   process.arch === "arm64" ? "arm64" : "x64"
 }`;
 
 const STUB_VERSION = "9.9.9-rehearsal";
+const PACKAGE_VERSION = pkg.version;
 
 interface RunResult {
   exitCode: number;
@@ -40,11 +49,16 @@ function run(cmd: string[], env: Record<string, string> = {}): RunResult {
  * Build a release-shaped artifact directory (archive + SHA256SUMS.txt)
  * around a stub `ideality` executable, mirroring build-release.sh output.
  */
-async function makeStubRelease(): Promise<string> {
+async function makeStubRelease(
+  binaryVersion: string = STUB_VERSION,
+  options: { delegateToSource?: boolean } = {},
+): Promise<string> {
   const dir = await mkdtemp(path.join(os.tmpdir(), "ideality-release-"));
   await writeFile(
     path.join(dir, "ideality"),
-    `#!/bin/sh\necho "ideality ${STUB_VERSION}"\n`,
+    options.delegateToSource
+      ? `#!/bin/sh\nexec bun run "${path.join(repoRoot, "src", "index.ts")}" "$@"\n`
+      : `#!/bin/sh\necho "ideality ${binaryVersion}"\n`,
     { mode: 0o755 },
   );
   const archive = `ideality-${hostTarget}.tar.gz`;
@@ -64,7 +78,49 @@ async function makeStubRelease(): Promise<string> {
   ]);
   if (result.exitCode !== 0)
     throw new Error(`checksum failed: ${result.stderr}`);
+  const checksum = (await Bun.file(path.join(dir, "SHA256SUMS.txt")).text())
+    .trim()
+    .split(/\s+/)[0]!;
+  await writeFile(
+    path.join(dir, "release-metadata.json"),
+    JSON.stringify(
+      {
+        schemaVersion: 1,
+        package: "ideality",
+        version: PACKAGE_VERSION,
+        artifacts: {
+          [hostTarget]: {
+            filename: archive,
+            sha256: checksum,
+            size: (await stat(path.join(dir, archive))).size,
+          },
+        },
+      },
+      null,
+      2,
+    ),
+  );
+  await writeFile(
+    path.join(dir, "release-metadata.json.sigstore.json"),
+    JSON.stringify({ fakeBundle: true }),
+  );
   return dir;
+}
+
+async function makeFakeCosign(): Promise<{ bin: string; log: string }> {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "ideality-cosign-"));
+  const log = path.join(dir, "cosign.args");
+  const bin = path.join(dir, "cosign");
+  await writeFile(
+    bin,
+    `#!/bin/sh
+printf '%s\\n' "$@" > "${log}"
+exit 0
+`,
+    { mode: 0o755 },
+  );
+  await chmod(bin, 0o755);
+  return { bin, log };
 }
 
 // A repository slug that cannot resolve: proves the installer never falls
@@ -74,37 +130,81 @@ const UNREACHABLE_REPO = "example-invalid/ideality-rehearsal-does-not-exist";
 describe("scripts/install.sh", () => {
   test("installs from a local artifact directory when IDEALITY_BASE_URL is set (offline)", async () => {
     const artifacts = await makeStubRelease();
+    const cosign = await makeFakeCosign();
     const home = await mkdtemp(path.join(os.tmpdir(), "ideality-home-"));
     const installDir = path.join(home, "bin");
     const result = run(["bash", installScript], {
       HOME: home,
       IDEALITY_BASE_URL: `file://${artifacts}`,
+      IDEALITY_COSIGN: cosign.bin,
       IDEALITY_INSTALL_DIR: installDir,
       IDEALITY_REPO: UNREACHABLE_REPO,
     });
     expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Verifying release metadata signature");
     expect(result.stdout).toContain("Verifying checksum");
     expect(result.stdout).toContain(STUB_VERSION);
+    const args = (await readFile(cosign.log, "utf8")).trim().split("\n");
+    expect(args[0]).toBe("verify-blob");
+    expect(args[1]).toBe("--bundle");
+    expect(path.basename(args[2]!)).toBe("release-metadata.json.sigstore.json");
+    expect(args.slice(3, 7)).toEqual([
+      "--certificate-identity-regexp",
+      "https://github.com/0xJord4n/ideality/\\.github/workflows/release\\.yml.*",
+      "--certificate-oidc-issuer",
+      "https://token.actions.githubusercontent.com",
+    ]);
+    expect(path.basename(args[7]!)).toBe("release-metadata.json");
     const installed = await stat(path.join(installDir, "ideality"));
     expect(installed.isFile()).toBe(true);
   });
 
   test("rejects an archive whose checksum does not match the manifest", async () => {
     const artifacts = await makeStubRelease();
+    const cosign = await makeFakeCosign();
     await writeFile(
-      path.join(artifacts, "SHA256SUMS.txt"),
-      `${"0".repeat(64)}  ideality-${hostTarget}.tar.gz\n`,
+      path.join(artifacts, "release-metadata.json"),
+      JSON.stringify(
+        {
+          schemaVersion: 1,
+          package: "ideality",
+          version: PACKAGE_VERSION,
+          artifacts: {
+            [hostTarget]: {
+              filename: `ideality-${hostTarget}.tar.gz`,
+              sha256: "0".repeat(64),
+            },
+          },
+        },
+        null,
+        2,
+      ),
     );
     const home = await mkdtemp(path.join(os.tmpdir(), "ideality-home-"));
     const installDir = path.join(home, "bin");
     const result = run(["bash", installScript], {
       HOME: home,
       IDEALITY_BASE_URL: `file://${artifacts}`,
+      IDEALITY_COSIGN: cosign.bin,
       IDEALITY_INSTALL_DIR: installDir,
       IDEALITY_REPO: UNREACHABLE_REPO,
     });
     expect(result.exitCode).not.toBe(0);
     expect(existsSync(path.join(installDir, "ideality"))).toBe(false);
+  });
+
+  test("fails closed when cosign cannot verify release metadata", async () => {
+    const artifacts = await makeStubRelease();
+    const home = await mkdtemp(path.join(os.tmpdir(), "ideality-home-"));
+    const result = run(["bash", installScript], {
+      HOME: home,
+      IDEALITY_BASE_URL: `file://${artifacts}`,
+      IDEALITY_COSIGN: path.join(artifacts, "missing-cosign"),
+      IDEALITY_INSTALL_DIR: path.join(home, "bin"),
+      IDEALITY_REPO: UNREACHABLE_REPO,
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("cosign is required");
   });
 });
 
@@ -141,6 +241,43 @@ describe("scripts/release-rehearsal.sh", () => {
     expect(copy.exitCode).toBe(0);
     const result = run(["bash", rehearsalScript, "--release-dir", artifacts]);
     expect(result.exitCode).not.toBe(0);
+  });
+
+  test("fails when release metadata is not truthful about a checksum", async () => {
+    const artifacts = await makeStubRelease();
+    const metadata = JSON.parse(
+      await Bun.file(path.join(artifacts, "release-metadata.json")).text(),
+    );
+    metadata.artifacts[hostTarget].sha256 = "0".repeat(64);
+    await writeFile(
+      path.join(artifacts, "release-metadata.json"),
+      JSON.stringify(metadata, null, 2),
+    );
+    const result = run(["bash", rehearsalScript, "--release-dir", artifacts]);
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain("metadata verification failed");
+  });
+
+  test("uses a controlled fake verifier for offline installer rehearsal", async () => {
+    const artifacts = await makeStubRelease(PACKAGE_VERSION, {
+      delegateToSource: true,
+    });
+    const result = run(["bash", rehearsalScript, "--release-dir", artifacts]);
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain(
+      "Verified offline metadata signature command",
+    );
+  }, 120_000);
+});
+
+describe(".github/workflows/release.yml", () => {
+  test("signs and uploads release metadata plus its Sigstore bundle", async () => {
+    const workflow = await readFile(releaseWorkflow, "utf8");
+    expect(workflow).toContain("dist/release/release-metadata.json");
+    expect(workflow).toContain("cosign sign-blob --yes --bundle");
+    expect(workflow).toContain(
+      "dist/release/release-metadata.json.sigstore.json",
+    );
   });
 });
 

@@ -43,6 +43,29 @@ else
   shasum -a 256 ideality-*.tar.gz > SHA256SUMS.txt
 fi
 
+version="$(grep -m1 '"version":' "$repo_root/package.json" | cut -d '"' -f 4)"
+[ -n "$version" ] || { echo "build-release: could not read version from package.json" >&2; exit 1; }
+{
+  printf '{\n'
+  printf '  "schemaVersion": 1,\n'
+  printf '  "package": "ideality",\n'
+  printf '  "version": "%s",\n' "$version"
+  printf '  "artifacts": {\n'
+  for index in "${!targets[@]}"; do
+    target="${targets[$index]}"
+    archive="ideality-$target.tar.gz"
+    sum="$(grep -E " \*?$archive\$" SHA256SUMS.txt | awk '{print $1}')"
+    size="$(wc -c < "$archive" | tr -d ' ')"
+    [ -n "$sum" ] || { echo "build-release: missing checksum for $archive" >&2; exit 1; }
+    comma=","
+    [ "$index" -eq "$((${#targets[@]} - 1))" ] && comma=""
+    printf '    "%s": { "filename": "%s", "sha256": "%s", "size": %s }%s\n' \
+      "$target" "$archive" "$sum" "$size" "$comma"
+  done
+  printf '  }\n'
+  printf '}\n'
+} > release-metadata.json
+
 echo "==> Release artifacts"
 ls -l
 cat SHA256SUMS.txt

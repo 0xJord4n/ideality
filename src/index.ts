@@ -23,6 +23,7 @@ import setupCommand from "./commands/setup.js";
 import statusCommand from "./commands/status.js";
 import toolCommand from "./commands/tool.js";
 import tuiCommand from "./commands/tui.js";
+import updateCommand from "./commands/update.js";
 import vmCommand from "./commands/vm.js";
 
 const cli = await createCLI({
@@ -54,6 +55,7 @@ for (const command of [
   doctorCommand,
   configCommand,
   tuiCommand,
+  updateCommand,
 ]) {
   cli.command(command);
 }
