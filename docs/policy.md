@@ -14,6 +14,21 @@ The command prints every violation and exits with status `1` when the policy
 is missing, malformed, or unsatisfied, which makes it usable directly as a CI
 gate. The `p` key inside `ideality tui` shows the same summary and findings.
 
+`ideality setup` also enforces a present `.ideality/policy.jsonc` before it
+writes local config, project handovers, SSH keys, shims, completions, or Git
+integration files. Dry-run setup performs the same validation before printing
+the proposed changes. Projects without `.ideality/policy.jsonc` keep the normal
+setup behavior.
+
+Use `--allow-policy-violations` only as an explicit one-invocation override:
+
+```bash
+ideality setup --allow-policy-violations
+```
+
+`--yes` confirms prompts and sensitive handover trust, but it does not bypass
+team policy.
+
 ## Schema
 
 `version` is required and must be `1`. Every other section is optional; an

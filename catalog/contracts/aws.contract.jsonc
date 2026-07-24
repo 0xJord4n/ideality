@@ -1,0 +1,24 @@
+// AWS CLI - adapter behavior contract.
+// catalog:check compiles catalog/aws.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "aws",
+  "detection": ["aws"],
+  "auth": {
+    "login": ["aws", "sso", "login"],
+    "status": ["aws", "sts", "get-caller-identity"],
+    "logout": ["aws", "sso", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "AWS_CONFIG_FILE": "{{idealityHome}}/profiles/{{identity}}/cloud/aws/config",
+        "AWS_SHARED_CREDENTIALS_FILE": "{{idealityHome}}/profiles/{{identity}}/cloud/aws/credentials"
+      }
+    }
+  ],
+  "redactions": []
+}

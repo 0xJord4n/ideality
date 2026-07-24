@@ -14,6 +14,10 @@ import {
 import { findSshPrivateKeys } from "../core/file-search.js";
 import { deriveIdentityId } from "../core/identity-id.js";
 import {
+  checkPresentProjectPolicy,
+  formatPolicyFailure,
+} from "../core/policy.js";
+import {
   applyProjectConfig,
   createProjectConfig,
   findProjectRoot,
@@ -186,6 +190,11 @@ const setupCommand = defineCommand({
     }),
     "dry-run": option(z.boolean().default(false), {
       description: "Show the complete change without writing files",
+      argumentKind: "flag",
+    }),
+    "allow-policy-violations": option(z.boolean().default(false), {
+      description:
+        "Bypass .ideality/policy.jsonc violations for this setup invocation",
       argumentKind: "flag",
     }),
   },
@@ -612,15 +621,7 @@ const setupCommand = defineCommand({
 
     if (sshMode === "generate") {
       const git = working.identities[identityId]!.git!;
-      git.sshKey = flags["dry-run"]
-        ? path.join(idealityHome, "ssh", identityId)
-        : (
-            await generateSshKey({
-              identity: identityId,
-              email: git.email,
-              idealityHome,
-            })
-          ).privateKey;
+      git.sshKey = path.join(idealityHome, "ssh", identityId);
     }
 
     const projectConfig = createProjectConfig(
@@ -647,6 +648,31 @@ const setupCommand = defineCommand({
       handoverRisks: risks,
       execution: execution ?? { target: "host" },
     };
+    const policyTarget = scope === "project" ? projectConfig : existingProject;
+    const policyResult = await checkPresentProjectPolicy(
+      projectRoot,
+      policyTarget,
+    );
+    if (policyResult?.status === "fail") {
+      const message = formatPolicyFailure(
+        "Project setup violates team policy",
+        policyResult.policyPath,
+        policyResult.findings,
+      );
+      if (!flags["allow-policy-violations"]) {
+        throw new Error(message);
+      }
+      const overrideMessage = formatPolicyFailure(
+        "Project setup violates team policy; continuing because --allow-policy-violations was set",
+        policyResult.policyPath,
+        policyResult.findings,
+      );
+      if (interactive) {
+        prompt.note(overrideMessage, "Policy override");
+      } else {
+        console.warn(overrideMessage);
+      }
+    }
 
     if (interactive) {
       prompt.note(
@@ -688,6 +714,17 @@ const setupCommand = defineCommand({
         projectConfig: scope === "project" ? projectConfig : null,
       });
       return;
+    }
+
+    if (sshMode === "generate" && !flags["dry-run"]) {
+      const git = working.identities[identityId]!.git!;
+      git.sshKey = (
+        await generateSshKey({
+          identity: identityId,
+          email: git.email,
+          idealityHome,
+        })
+      ).privateKey;
     }
 
     const spin = interactive

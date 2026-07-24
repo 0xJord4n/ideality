@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ideality adapter behavior contract (v1)",
+  "description": "Declarative expectations for one catalog adapter's observable compiled behavior. catalog:check compiles the manifest with the runtime compiler and fails on any drift; contracts are data only and never execute the tool.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "contractVersion",
+    "kind",
+    "tool",
+    "detection",
+    "profiles",
+    "redactions"
+  ],
+  "properties": {
+    "contractVersion": {
+      "const": 1,
+      "description": "Contract format version. Only 1 is supported."
+    },
+    "kind": {
+      "const": "tool-contract",
+      "description": "Contract kind discriminator."
+    },
+    "tool": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "maxLength": 64,
+      "description": "Catalog ID of the adapter this contract locks; must match catalog/<tool>.jsonc and this file's name."
+    },
+    "detection": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+        "maxLength": 128
+      },
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Expected executable probe order: the primary executable followed by every alternative, deduplicated."
+    },
+    "auth": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "login": { "$ref": "#/$defs/argv" },
+        "status": { "$ref": "#/$defs/argv" },
+        "logout": { "$ref": "#/$defs/argv" }
+      },
+      "description": "Expected full auth argv per action, starting with the executable (e.g. [\"gh\", \"auth\", \"login\"]). Required exactly when the manifest declares auth, covering the same actions."
+    },
+    "profiles": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/profileCase" },
+      "minItems": 1,
+      "description": "Named identity shapes with the exact compiled default profile expected for each."
+    },
+    "redactions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+      },
+      "uniqueItems": true,
+      "description": "Exact set of profile env vars that carry secret material (non-literal sources or sensitive names) and therefore surface redacted."
+    }
+  },
+  "$defs": {
+    "argv": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "description": "Full expected argv, never interpreted by a shell."
+    },
+    "profileCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case"],
+      "properties": {
+        "case": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9_-]*$",
+          "maxLength": 64,
+          "description": "Unique name for this identity shape, e.g. 'default' or 'with-ssh-key'."
+        },
+        "identity": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sshKey": { "type": "string", "minLength": 1 },
+            "signingKey": { "type": "string", "minLength": 1 }
+          },
+          "description": "Identity fields provided to the compiler for this case; omit for an identity without keys."
+        },
+        "env": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+          "description": "Expected compiled profile env, compared verbatim (value sources included). Omitted means empty."
+        },
+        "args": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Expected compiled profile argv entries in order. Omitted means empty."
+        }
+      }
+    }
+  }
+}

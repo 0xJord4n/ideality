@@ -6,6 +6,10 @@
     {
       "fileMatch": ["/catalog/*.jsonc"],
       "url": "./schemas/tool-adapter.v1.schema.json"
+    },
+    {
+      "fileMatch": ["/catalog/contracts/*.contract.jsonc"],
+      "url": "./schemas/tool-adapter-contract.v1.schema.json"
     }
   ]
 }

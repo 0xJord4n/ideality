@@ -114,6 +114,14 @@ export interface PolicyCheckResult {
   findings: PolicyFinding[];
 }
 
+export interface PresentPolicyCheckResult {
+  status: "pass" | "fail";
+  projectRoot: string;
+  policyPath: string;
+  policy: { version: number; label?: string } | null;
+  findings: PolicyFinding[];
+}
+
 export function getPolicyPath(projectRoot: string): string {
   return path.join(projectRoot, PROJECT_DIRECTORY, POLICY_FILE);
 }
@@ -350,6 +358,64 @@ export function evaluatePolicy(
   return findings;
 }
 
+function policySummary(policy: TeamPolicy): {
+  version: number;
+  label?: string;
+} {
+  return {
+    version: policy.version,
+    ...(policy.label ? { label: policy.label } : {}),
+  };
+}
+
+export function formatPolicyFailure(
+  heading: string,
+  policyPath: string,
+  findings: PolicyFinding[],
+): string {
+  return [
+    `${heading} (${policyPath})`,
+    ...findings.map((finding) => `- ${finding.subject}: ${finding.message}`),
+  ].join("\n");
+}
+
+export async function checkPresentProjectPolicy(
+  projectRoot: string,
+  config: IdealityConfig | null,
+): Promise<PresentPolicyCheckResult | null> {
+  const policyPath = getPolicyPath(projectRoot);
+  const policyFile = Bun.file(policyPath);
+  if (!(await policyFile.exists())) return null;
+
+  const parsed = parsePolicyDocument(await policyFile.text());
+  if (parsed.ok === false) {
+    return {
+      status: "fail",
+      projectRoot,
+      policyPath,
+      policy: null,
+      findings: [parsed.finding],
+    };
+  }
+
+  const findings = config
+    ? evaluatePolicy(parsed.policy, config)
+    : [
+        {
+          code: "project-missing",
+          subject: PROJECT_SUBJECT,
+          message: `No project configuration at '${getProjectConfigPath(projectRoot)}'`,
+        },
+      ];
+  return {
+    status: findings.length === 0 ? "pass" : "fail",
+    projectRoot,
+    policyPath,
+    policy: policySummary(parsed.policy),
+    findings,
+  };
+}
+
 export async function checkProjectPolicy(
   projectRoot: string,
 ): Promise<PolicyCheckResult> {
@@ -366,7 +432,7 @@ export async function checkProjectPolicy(
     });
   } else {
     const parsed = parsePolicyDocument(await policyFile.text());
-    if (parsed.ok) {
+    if (parsed.ok === true) {
       policy = parsed.policy;
     } else {
       findings.push(parsed.finding);
@@ -401,12 +467,7 @@ export async function checkProjectPolicy(
     status: findings.length === 0 ? "pass" : "fail",
     projectRoot,
     policyPath,
-    policy: policy
-      ? {
-          version: policy.version,
-          ...(policy.label ? { label: policy.label } : {}),
-        }
-      : null,
+    policy: policy ? policySummary(policy) : null,
     findings,
   };
 }

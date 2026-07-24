@@ -11,9 +11,9 @@ import type {
 
 export const TOOL_ADAPTER_SCHEMA_VERSION = 1;
 
-const SAFE_ID = /^[a-z][a-z0-9_-]*$/;
-const SAFE_EXECUTABLE = /^[A-Za-z0-9][A-Za-z0-9._+-]*$/;
-const SAFE_VARIABLE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+export const SAFE_ID = /^[a-z][a-z0-9_-]*$/;
+export const SAFE_EXECUTABLE = /^[A-Za-z0-9][A-Za-z0-9._+-]*$/;
+export const SAFE_VARIABLE = /^[A-Za-z_][A-Za-z0-9_]*$/;
 
 export interface ToolAdapterExecutable {
   primary: string;

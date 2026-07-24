@@ -28,6 +28,7 @@
     "catalog:docs": "bun run scripts/catalog-check.ts --write",
     "check": "bun run format:check && bun run lint && bun run typecheck && bun run catalog:check && bun test",
     "smoke": "bash scripts/smoke.sh",
+    "release:rehearsal": "bash scripts/release-rehearsal.sh",
     "version:patch": "bun pm version patch --no-git-tag-version",
     "version:minor": "bun pm version minor --no-git-tag-version",
     "version:major": "bun pm version major --no-git-tag-version"

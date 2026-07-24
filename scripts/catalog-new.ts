@@ -6,6 +6,10 @@ import { existsSync } from "node:fs";
 import path from "node:path";
 
 import {
+  CONTRACTS_DIRECTORY,
+  renderContractTemplate,
+} from "./catalog-contracts.js";
+import {
   BUILTINS_FILE,
   CATALOG_DIRECTORY,
   checkCatalogEntries,
@@ -145,10 +149,19 @@ const manifestPath = path.join(CATALOG_DIRECTORY, `${scaffold.id}.jsonc`);
 if (existsSync(manifestPath)) {
   fail(`catalog/${scaffold.id}.jsonc already exists`);
 }
+const contractPath = path.join(
+  CONTRACTS_DIRECTORY,
+  `${scaffold.id}.contract.jsonc`,
+);
+if (existsSync(contractPath)) {
+  fail(`catalog/contracts/${scaffold.id}.contract.jsonc already exists`);
+}
 
 let rendered: string;
+let renderedContract: string;
 try {
   rendered = renderManifestTemplate(scaffold);
+  renderedContract = renderContractTemplate(scaffold);
 } catch (error) {
   fail((error as Error).message);
 }
@@ -180,14 +193,20 @@ if (dryRun) {
   console.log(`would create catalog/${scaffold.id}.jsonc:\n`);
   console.log(rendered);
   console.log(
+    `would create catalog/contracts/${scaffold.id}.contract.jsonc:\n`,
+  );
+  console.log(renderedContract);
+  console.log(
     "would update src/adapters/builtins.ts, docs/tool-packs.md, README.md",
   );
   process.exit(0);
 }
 
 await Bun.write(manifestPath, rendered);
+await Bun.write(contractPath, renderedContract);
 await Bun.write(BUILTINS_FILE, updatedBuiltins);
 console.log(`created catalog/${scaffold.id}.jsonc`);
+console.log(`created catalog/contracts/${scaffold.id}.contract.jsonc`);
 console.log("updated src/adapters/builtins.ts");
 for (const update of await computeDocsUpdates()) {
   if (update.updated === update.current) continue;
@@ -200,6 +219,9 @@ Next steps:
   1. Edit catalog/${scaffold.id}.jsonc - add auth commands and profile env/args.
      Your editor validates it against schemas/tool-adapter.v1.schema.json
      (wired up in .vscode/settings.json).
-  2. bun run catalog:check
-  3. bun test
-  4. Open a PR - see CONTRIBUTING.md for the catalog PR checklist.`);
+  2. Update catalog/contracts/${scaffold.id}.contract.jsonc to match: expected
+     auth argv, compiled profile per identity shape, and secret redactions.
+     catalog:check fails with an expected-versus-actual diff until they agree.
+  3. bun run catalog:check
+  4. bun test
+  5. Open a PR - see CONTRIBUTING.md for the catalog PR checklist.`);

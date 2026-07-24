@@ -76,3 +76,28 @@ validated by `schemas/tool-adapter.v1.schema.json` in the editor (see
 checklist in [CONTRIBUTING.md](../CONTRIBUTING.md). Plugin manifests use the
 same schema, so a proven local plugin can be promoted to the catalog by
 changing its `pack`.
+
+### Behavior contracts
+
+Each catalog adapter can ship a behavior contract at
+`catalog/contracts/<id>.contract.jsonc` (`bun run catalog:new` scaffolds one
+for every new adapter, and `schemas/tool-adapter-contract.v1.schema.json`
+describes the format for editors). A contract is versioned, declarative data —
+it cannot express hooks, shell strings, or code — that pins the adapter's
+observable compiled behavior:
+
+- `detection`: the executable probe order (primary, then aliases).
+- `auth`: the full argv per auth action, executable included.
+- `profiles`: the exact compiled `env`/`args` per named identity shape,
+  including both branches of identity-derived arguments such as
+  `fromIdentity: "sshKey"`.
+- `redactions`: the exact set of env vars that carry secret material and must
+  surface redacted.
+
+`bun run catalog:check` recompiles every manifest with the runtime compiler
+and reports each drift as a deterministic expected-versus-actual failure. It
+never executes the third-party tool. Independent of contracts, the same check
+enforces catalog-wide safety invariants for every manifest: sensitive-named
+env vars must use secret/env/file sources rather than literals, shell-scoped
+adapters cannot resolve secrets, and secret keys must be identity-scoped with
+`{{identity}}`.

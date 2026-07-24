@@ -12,10 +12,13 @@
 
 ## Checklist
 
-- [ ] I authored exactly one new file: `catalog/<id>.jsonc`. The other changes
-      in this PR (`src/adapters/builtins.ts` import, generated blocks in
+- [ ] I authored both adapter data files: `catalog/<id>.jsonc` and
+      `catalog/contracts/<id>.contract.jsonc`. The other changes in this PR
+      (`src/adapters/builtins.ts` import, generated blocks in
       `docs/tool-packs.md` and `README.md`) are the mechanical output of
       `bun run catalog:new` / `bun run catalog:docs`.
+- [ ] The behavior contract matches the compiled manifest behavior for
+      detection order, auth argv, profile env/args, and secret redactions.
 - [ ] `bun run check` passes locally (typecheck, `catalog:check`, tests).
 - [ ] Auth commands and profile args are argv arrays; the manifest contains no
       shell strings.

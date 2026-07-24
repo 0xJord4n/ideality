@@ -1,0 +1,19 @@
+// Gerrit SSH command transport - adapter behavior contract.
+// catalog:check compiles catalog/gerrit.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "gerrit",
+  "detection": ["ssh"],
+  "profiles": [
+    // Without an SSH key the identity-derived "-i" pair must vanish entirely.
+    { "case": "default" },
+    {
+      "case": "with-ssh-key",
+      "identity": { "sshKey": "/home/contract/.ssh/id_ed25519" },
+      "args": ["-i", "/home/contract/.ssh/id_ed25519"]
+    }
+  ],
+  "redactions": []
+}

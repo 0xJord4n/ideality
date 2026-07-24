@@ -1,8 +1,8 @@
 # Contributing
 
 Thanks for improving Ideality. The most common contribution is a new built-in
-tool adapter, and that workflow is fully tooled: you author **one file**, the
-scripts handle everything else.
+tool adapter, and that workflow is fully tooled: you author **two files** — the
+manifest and its behavior contract — and the scripts handle everything else.
 
 ## Development setup
 
@@ -44,7 +44,9 @@ detection), `--description <text>`, `--scope process|shell`,
 
 The scaffolder deterministically:
 
-- creates `catalog/<id>.jsonc` (the only file you author),
+- creates `catalog/<id>.jsonc` (the manifest you author),
+- creates `catalog/contracts/<id>.contract.jsonc` (the behavior contract you
+  keep in lockstep with the manifest),
 - registers the manifest import in `src/adapters/builtins.ts`,
 - regenerates the generated blocks in `docs/tool-packs.md` and `README.md`
   from catalog data.
@@ -74,7 +76,29 @@ Fill in, as applicable:
 See [docs/custom-adapters.md](docs/custom-adapters.md) for value-source and
 template semantics.
 
-### 3. Verify
+### 3. Update the behavior contract
+
+`catalog/contracts/<id>.contract.jsonc` declares the adapter's observable
+compiled behavior; `catalog:check` compiles your manifest with the runtime
+compiler and fails with an expected-versus-actual diff on any drift. Contracts
+are pure data validated against
+`schemas/tool-adapter-contract.v1.schema.json` — nothing in them (or in the
+manifest) ever runs the third-party tool. Keep in lockstep with the manifest:
+
+- `detection`: the executable probe order — primary first, then every alias.
+- `auth`: the full argv per action including the executable, e.g.
+  `["gh", "auth", "login"]`. Required exactly when the manifest declares
+  `auth`, covering the same actions.
+- `profiles`: named identity shapes with the exact compiled `env`/`args`
+  (omitted means empty). Adapters with identity-derived args (e.g.
+  `fromIdentity: "sshKey"`) need one case where the identity provides the
+  field and one where it is omitted, so both branches stay locked.
+- `redactions`: the exact set of env vars carrying secret material (secret,
+  env, or file sources, or sensitive names). Declaring a var that is not
+  secret-bearing fails, and so does shipping a secret-bearing var without
+  declaring it.
+
+### 4. Verify
 
 ```bash
 bun run check        # typecheck + catalog:check + full test suite
@@ -90,15 +114,20 @@ bun run check        # typecheck + catalog:check + full test suite
 - every catalog file is registered in `src/adapters/builtins.ts` and the
   registry contains nothing else,
 - the generated docs blocks are fresh (`bun run catalog:docs` rewrites them),
-- the editor JSON schema has not drifted from the runtime parser.
+- the editor JSON schema has not drifted from the runtime parser,
+- every behavior contract matches the compiled manifest exactly (detection
+  order, auth argv, profile env/args per identity shape, redaction set),
+- catalog-wide safety invariants hold for every manifest: no sensitive-named
+  env var with a literal value, no secret sources in shell-scoped adapters,
+  and every secret key scoped per identity with `{{identity}}`.
 
-### 4. Open the PR
+### 5. Open the PR
 
 Use the catalog PR template: append `?template=catalog-adapter.md` to the
 compare URL, or copy `.github/PULL_REQUEST_TEMPLATE/catalog-adapter.md` into
-the description. A catalog PR contains your one authored manifest plus the
-mechanical changes from step 1 — nothing else. CI runs the same
-`typecheck` / `catalog:check` / `bun test` gate as `bun run check`.
+the description. A catalog PR contains your authored manifest and behavior
+contract plus the mechanical changes from step 1 — nothing else. CI runs the
+same `typecheck` / `catalog:check` / `bun test` gate as `bun run check`.
 
 ## Ground rules
 

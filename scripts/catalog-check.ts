@@ -4,6 +4,11 @@
 import path from "node:path";
 
 import {
+  checkCatalogSafety,
+  checkContracts,
+  loadContracts,
+} from "./catalog-contracts.js";
+import {
   checkCatalogEntries,
   checkRegistryCompleteness,
   checkSchemaSync,
@@ -51,6 +56,11 @@ if (registry) {
 }
 issues.push(...(await checkSchemaSync()));
 
+const { contracts, issues: contractIssues } = await loadContracts();
+issues.push(...contractIssues);
+issues.push(...checkContracts(entries, contracts));
+issues.push(...checkCatalogSafety(entries));
+
 if (issues.length > 0) {
   for (const problem of issues) {
     console.error(`error: ${problem.message}`);
@@ -63,5 +73,5 @@ if (issues.length > 0) {
 
 const packCount = registry ? Object.keys(registry.packs).length : 0;
 console.log(
-  `catalog check passed: ${entries.length} manifests, ${packCount} packs, generated docs fresh, editor schema in sync.`,
+  `catalog check passed: ${entries.length} manifests, ${packCount} packs, ${contracts.length} behavior contracts, safety invariants hold, generated docs fresh, editor schema in sync.`,
 );

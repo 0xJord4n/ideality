@@ -42,11 +42,8 @@ jobs:
       - name: Build release archives (Linux/macOS x64/arm64)
         run: bash scripts/build-release.sh
 
-      - name: Smoke test release binary (init -> status -> run -> setup -> rollback)
-        run: |
-          tar -C dist/release -xzf dist/release/ideality-linux-x64.tar.gz
-          bash scripts/smoke.sh dist/release/ideality
-          rm dist/release/ideality
+      - name: Rehearse release offline (checksums, archive layout, binary smoke, installer, formula)
+        run: bash scripts/release-rehearsal.sh --no-build
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v3

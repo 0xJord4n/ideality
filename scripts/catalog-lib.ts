@@ -1,6 +1,8 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 
+import { parse, printParseErrorCode, type ParseError } from "jsonc-parser";
+
 import {
   parseToolAdapterManifest,
   TOOL_ADAPTER_SCHEMA_VERSION,
@@ -14,6 +16,10 @@ export const BUILTINS_FILE = path.join(REPO_ROOT, "src/adapters/builtins.ts");
 export const SCHEMA_FILE = path.join(
   REPO_ROOT,
   "schemas/tool-adapter.v1.schema.json",
+);
+export const EDITOR_SETTINGS_FILE = path.join(
+  REPO_ROOT,
+  ".vscode/settings.json",
 );
 export const TOOL_ADAPTERS_FILE = path.join(
   REPO_ROOT,
@@ -60,11 +66,13 @@ export interface DocsUpdate {
   updated: string;
 }
 
-function issue(file: string, message: string): CatalogIssue {
+/** Build one catalog issue for a file. */
+export function issue(file: string, message: string): CatalogIssue {
   return { file, message };
 }
 
-function byteSort(values: string[]): string[] {
+/** Sort strings by byte order, locale-independently. */
+export function byteSort(values: string[]): string[] {
   return [...values].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
 }
 
@@ -179,7 +187,22 @@ export async function loadCatalog(
 ): Promise<{ entries: CatalogEntry[]; issues: CatalogIssue[] }> {
   const entries: CatalogEntry[] = [];
   const issues: CatalogIssue[] = [];
-  for (const file of byteSort(await readdir(directory))) {
+  const dirents = (await readdir(directory, { withFileTypes: true })).sort(
+    (a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0),
+  );
+  for (const dirent of dirents) {
+    const file = dirent.name;
+    if (dirent.isDirectory()) {
+      if (file !== "contracts") {
+        issues.push(
+          issue(
+            file,
+            `${file}: unexpected directory in catalog/ (only contracts/ is allowed)`,
+          ),
+        );
+      }
+      continue;
+    }
     if (!file.endsWith(".jsonc")) {
       issues.push(
         issue(
@@ -347,6 +370,42 @@ function sameList(a: unknown, b: string[]): boolean {
   );
 }
 
+const EDITOR_SCHEMA_MAPPINGS = [
+  {
+    fileMatch: "/catalog/*.jsonc",
+    url: "./schemas/tool-adapter.v1.schema.json",
+  },
+  {
+    fileMatch: "/catalog/contracts/*.contract.jsonc",
+    url: "./schemas/tool-adapter-contract.v1.schema.json",
+  },
+] as const;
+
+/** Verify contributors receive schema validation for every catalog document. */
+export function checkEditorSchemaMappings(
+  settings: unknown,
+  file = path.relative(REPO_ROOT, EDITOR_SETTINGS_FILE),
+): CatalogIssue[] {
+  const schemas = get(settings, "json.schemas");
+  const mappings = Array.isArray(schemas) ? schemas : [];
+  return EDITOR_SCHEMA_MAPPINGS.flatMap((expected) => {
+    const found = mappings.some(
+      (mapping) =>
+        get(mapping, "url") === expected.url &&
+        Array.isArray(get(mapping, "fileMatch")) &&
+        (get(mapping, "fileMatch") as unknown[]).includes(expected.fileMatch),
+    );
+    return found
+      ? []
+      : [
+          issue(
+            file,
+            `${file}: missing JSON schema mapping '${expected.url}' for '${expected.fileMatch}'`,
+          ),
+        ];
+  });
+}
+
 /** Verify the editor JSON schema has not drifted from the runtime zod parser. */
 export async function checkSchemaSync(): Promise<CatalogIssue[]> {
   const issues: CatalogIssue[] = [];
@@ -454,6 +513,26 @@ export async function checkSchemaSync(): Promise<CatalogIssue[]> {
   );
   if (!sameList(authKeys, ["login", "status", "logout"])) {
     drift("auth actions", ["login", "status", "logout"], authKeys);
+  }
+
+  const editorFile = path.relative(REPO_ROOT, EDITOR_SETTINGS_FILE);
+  const editorErrors: ParseError[] = [];
+  const editorSettings: unknown = parse(
+    await Bun.file(EDITOR_SETTINGS_FILE).text(),
+    editorErrors,
+    { allowTrailingComma: true, disallowComments: false },
+  );
+  if (editorErrors.length > 0) {
+    issues.push(
+      issue(
+        editorFile,
+        `${editorFile}: invalid JSONC: ${editorErrors
+          .map((error) => printParseErrorCode(error.error))
+          .join(", ")}`,
+      ),
+    );
+  } else {
+    issues.push(...checkEditorSchemaMappings(editorSettings, editorFile));
   }
   return issues;
 }

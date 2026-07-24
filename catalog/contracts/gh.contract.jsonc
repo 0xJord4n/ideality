@@ -1,0 +1,23 @@
+// GitHub CLI - adapter behavior contract.
+// catalog:check compiles catalog/gh.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "gh",
+  "detection": ["gh"],
+  "auth": {
+    "login": ["gh", "auth", "login"],
+    "status": ["gh", "auth", "status"],
+    "logout": ["gh", "auth", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "GH_CONFIG_DIR": "{{idealityHome}}/profiles/{{identity}}/gh"
+      }
+    }
+  ],
+  "redactions": []
+}

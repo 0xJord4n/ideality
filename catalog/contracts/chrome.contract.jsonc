@@ -1,0 +1,24 @@
+// Google Chrome - adapter behavior contract.
+// catalog:check compiles catalog/chrome.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "chrome",
+  "detection": [
+    "google-chrome",
+    "google-chrome-stable",
+    "chromium",
+    "chromium-browser"
+  ],
+  "profiles": [
+    {
+      "case": "default",
+      "args": [
+        "--user-data-dir={{idealityHome}}/profiles/{{identity}}/browsers/chrome",
+        "--profile-directory=Default"
+      ]
+    }
+  ],
+  "redactions": []
+}

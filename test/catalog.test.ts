@@ -14,7 +14,12 @@ const catalogDirectory = path.resolve(import.meta.dir, "../catalog");
 
 describe("catalog manifests", () => {
   test("ships exactly one manifest file per built-in tool", () => {
-    const files = readdirSync(catalogDirectory).sort();
+    // Behavior contracts live in the contracts/ subdirectory; manifests are
+    // the only files directly inside catalog/.
+    const files = readdirSync(catalogDirectory, { withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name)
+      .sort();
     expect(files).toEqual(
       Object.keys(BUILTIN_TOOLS)
         .map((id) => `${id}.jsonc`)

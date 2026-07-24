@@ -7,6 +7,9 @@
 #   IDEALITY_VERSION      Version to install, e.g. 0.1.0 or v0.1.0 (default: latest)
 #   IDEALITY_INSTALL_DIR  Install directory (default: ~/.local/bin)
 #   IDEALITY_REPO         GitHub repository slug (default: 0xJord4n/ideality)
+#   IDEALITY_BASE_URL     Base URL serving the archives and SHA256SUMS.txt,
+#                         e.g. file:///path/to/dist/release. Overrides the
+#                         GitHub release URL; used by release rehearsals.
 set -euo pipefail
 
 repo="${IDEALITY_REPO:-0xJord4n/ideality}"
@@ -33,7 +36,9 @@ case "$(uname -m)" in
 esac
 
 target="$os-$arch"
-if [ "$version" = "latest" ]; then
+if [ -n "${IDEALITY_BASE_URL:-}" ]; then
+  base_url="${IDEALITY_BASE_URL%/}"
+elif [ "$version" = "latest" ]; then
   base_url="https://github.com/$repo/releases/latest/download"
 else
   base_url="https://github.com/$repo/releases/download/v${version#v}"
