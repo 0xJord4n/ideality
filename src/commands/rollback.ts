@@ -39,7 +39,7 @@ const rollbackCommand = defineCommand({
       getConfigPath(),
       { dryRun: flags["dry-run"] },
     );
-    if (!flags["dry-run"]) {
+    if (!flags["dry-run"] && restored.config) {
       await installShims(restored.config, getIdealityHome());
       await installGitIntegration(
         restored.config,
@@ -53,6 +53,13 @@ const rollbackCommand = defineCommand({
         ? `Would restore ${restored.snapshot}`
         : colors.green(`Restored ${restored.snapshot}`),
     );
+    if (!restored.config) {
+      console.log(
+        `Snapshot uses registry version ${restored.version}; ${
+          flags["dry-run"] ? "integrations would be" : "integrations were"
+        } left untouched. Run 'ideality config migrate' and then 'ideality install' to reconcile.`,
+      );
+    }
   },
 });
 

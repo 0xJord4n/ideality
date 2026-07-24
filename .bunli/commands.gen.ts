@@ -92,6 +92,14 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
           path: './src/commands/config'
         },
         {
+          name: 'migrate',
+          description: 'Migrate the registry to the current schema version',
+          options: {
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the migration plan without writing', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1393,"end":1398,"loc":{"start":{"line":45,"column":46,"index":1393},"end":{"line":45,"column":51,"index":1398}},"value":false}}]}, validator: '(val) => true' }
+          },
+          path: './src/commands/config'
+        },
+        {
           name: 'edit',
           description: 'Open the registry in $EDITOR',
           path: './src/commands/config'

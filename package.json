@@ -11,14 +11,20 @@
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bunli build",
-    "build:all": "bunli build --targets all",
+    "build:native": "bash scripts/build-native.sh",
+    "build:all": "bunli build --targets linux-x64,linux-arm64,darwin-x64,darwin-arm64",
+    "build:release": "bash scripts/build-release.sh",
     "test": "bun test",
     "test:watch": "bun test --watch",
     "typecheck": "tsc --noEmit",
     "catalog:new": "bun run scripts/catalog-new.ts",
     "catalog:check": "bun run scripts/catalog-check.ts",
     "catalog:docs": "bun run scripts/catalog-check.ts --write",
-    "check": "bun run typecheck && bun run catalog:check && bun test"
+    "check": "bun run typecheck && bun run catalog:check && bun test",
+    "smoke": "bash scripts/smoke.sh",
+    "version:patch": "bun pm version patch --no-git-tag-version",
+    "version:minor": "bun pm version minor --no-git-tag-version",
+    "version:major": "bun pm version major --no-git-tag-version"
   },
   "dependencies": {
     "@bunli/core": "0.9.1",

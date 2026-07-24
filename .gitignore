@@ -2,6 +2,7 @@ node_modules/
 dist/
 .codegraph/
 .omc/
+coverage/
 
 .DS_Store
 *.log

@@ -1,6 +1,7 @@
 #!/usr/bin/env bun
 import { createCLI } from "@bunli/core";
 
+import { VERSION } from "./version.js";
 import authCommand from "./commands/auth.js";
 import configCommand from "./commands/config.js";
 import completionCommand from "./commands/completion.js";
@@ -25,7 +26,7 @@ import vmCommand from "./commands/vm.js";
 
 const cli = await createCLI({
   name: "ideality",
-  version: "0.1.0",
+  version: VERSION,
   description: "Folder-based identity orchestration for developer tools",
 });
 

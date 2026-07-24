@@ -12,6 +12,45 @@ VPNs, VMs, and declarative custom plugins.
 
 ## Install
 
+### Homebrew (macOS and Linux)
+
+```bash
+brew install 0xJord4n/tap/ideality
+```
+
+### Install script
+
+Downloads the release binary for your platform, verifies its checksum, and
+installs it to `~/.local/bin`:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/install.sh | bash
+```
+
+Set `IDEALITY_VERSION` to pin a version and `IDEALITY_INSTALL_DIR` to change
+the destination.
+
+### Prebuilt binaries
+
+Every release ships `ideality-<os>-<arch>.tar.gz` archives for Linux and
+macOS (x64 and arm64) with a `SHA256SUMS.txt` manifest, Sigstore keyless
+signatures (`*.sigstore.json`), and GitHub build provenance attestations.
+Download from the [releases page](https://github.com/0xJord4n/ideality/releases),
+then verify and unpack:
+
+```bash
+sha256sum -c --ignore-missing SHA256SUMS.txt
+cosign verify-blob \
+  --bundle ideality-linux-x64.tar.gz.sigstore.json \
+  --certificate-identity-regexp 'https://github.com/0xJord4n/ideality/\.github/workflows/release\.yml.*' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  ideality-linux-x64.tar.gz
+gh attestation verify ideality-linux-x64.tar.gz --repo 0xJord4n/ideality
+tar -xzf ideality-linux-x64.tar.gz
+```
+
+### From source
+
 Requires Bun 1.3 or newer.
 
 ```bash
@@ -307,6 +346,7 @@ ideality install --dry-run
 ideality rollback --list
 ideality rollback latest --dry-run
 ideality rollback latest
+ideality config migrate --dry-run
 ideality doctor --strict
 ```
 
@@ -340,7 +380,7 @@ ideality hook
 ideality completion zsh|bash|fish
 ideality rollback
 ideality doctor
-ideality config path|validate|show|edit
+ideality config path|validate|show|migrate|edit
 ideality tui
 ```
 

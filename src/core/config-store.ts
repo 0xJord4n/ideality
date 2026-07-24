@@ -13,7 +13,7 @@ import path from "node:path";
 import { parse, printParseErrorCode, type ParseError } from "jsonc-parser";
 import { z } from "zod";
 
-import type { IdealityConfig } from "../domain/config.js";
+import { CONFIG_VERSION, type IdealityConfig } from "../domain/config.js";
 
 const valueSourceSchema = z.union([
   z.string(),
@@ -242,7 +242,7 @@ const vmSchema = z.discriminatedUnion("driver", [
 
 const configSchema = z
   .object({
-    version: z.literal(1),
+    version: z.literal(CONFIG_VERSION),
     defaultIdentity: z.string().min(1),
     secretBackend: secretBackendSchema.optional(),
     identities: z.record(identitySchema),
@@ -438,7 +438,7 @@ export function getConfigPath(env: NodeJS.ProcessEnv = process.env): string {
     : path.join(getIdealityHome(env), "config.jsonc");
 }
 
-export function parseConfig(source: string): IdealityConfig {
+export function parseJsonc(source: string): unknown {
   const errors: ParseError[] = [];
   const value: unknown = parse(source, errors, {
     allowTrailingComma: true,
@@ -450,7 +450,20 @@ export function parseConfig(source: string): IdealityConfig {
       .join(", ");
     throw new Error(`Invalid JSONC: ${detail}`);
   }
+  return value;
+}
 
+export function readRegistryVersion(value: unknown): number | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  const version = (value as Record<string, unknown>).version;
+  return typeof version === "number" && Number.isInteger(version)
+    ? version
+    : undefined;
+}
+
+export function validateConfig(value: unknown): IdealityConfig {
   const result = configSchema.safeParse(value);
   if (!result.success) {
     const detail = result.error.issues
@@ -459,6 +472,22 @@ export function parseConfig(source: string): IdealityConfig {
     throw new Error(`Invalid ideality config: ${detail}`);
   }
   return result.data;
+}
+
+export function parseConfig(source: string): IdealityConfig {
+  const value = parseJsonc(source);
+  const version = readRegistryVersion(value);
+  if (version !== undefined && version > CONFIG_VERSION) {
+    throw new Error(
+      `Registry version ${version} is newer than this ideality build supports (${CONFIG_VERSION}). Upgrade ideality instead of editing the registry.`,
+    );
+  }
+  if (version !== undefined && version < CONFIG_VERSION) {
+    throw new Error(
+      `Registry version ${version} predates the current schema (${CONFIG_VERSION}). Run 'ideality config migrate'.`,
+    );
+  }
+  return validateConfig(value);
 }
 
 export async function loadConfig(
@@ -477,9 +506,17 @@ export async function saveConfig(
   options: { snapshot?: boolean } = {},
 ): Promise<void> {
   const validated = configSchema.parse(config);
+  const content = `${JSON.stringify(validated, null, 2)}\n`;
+  await writeConfigContent(content, configPath, options);
+}
+
+async function writeConfigContent(
+  content: string,
+  configPath: string,
+  options: { snapshot?: boolean } = {},
+): Promise<void> {
   await mkdir(path.dirname(configPath), { recursive: true, mode: 0o700 });
   const existing = Bun.file(configPath);
-  const content = `${JSON.stringify(validated, null, 2)}\n`;
   if (
     options.snapshot !== false &&
     (await existing.exists()) &&
@@ -535,11 +572,18 @@ export async function listConfigSnapshots(
   }
 }
 
+export interface RestoredConfigSnapshot {
+  snapshot: string;
+  version: number;
+  /** Null when the snapshot holds an older schema version than the current build. */
+  config: IdealityConfig | null;
+}
+
 export async function restoreConfigSnapshot(
   snapshot: string | undefined,
   configPath: string = getConfigPath(),
   options: { dryRun?: boolean } = {},
-): Promise<{ snapshot: string; config: IdealityConfig }> {
+): Promise<RestoredConfigSnapshot> {
   const snapshots = await listConfigSnapshots(configPath);
   const name = !snapshot || snapshot === "latest" ? snapshots[0] : snapshot;
   if (!name || !snapshots.includes(name)) {
@@ -549,11 +593,29 @@ export async function restoreConfigSnapshot(
         : "No config snapshots are available",
     );
   }
-  const restored = parseConfig(
-    await Bun.file(path.join(getHistoryDirectory(configPath), name)).text(),
-  );
-  if (!options.dryRun) {
-    await saveConfig(restored, configPath);
+  const source = await Bun.file(
+    path.join(getHistoryDirectory(configPath), name),
+  ).text();
+  const version = readRegistryVersion(parseJsonc(source));
+  if (version === undefined) {
+    throw new Error(`Snapshot '${name}' has no integer 'version' field`);
   }
-  return { snapshot: name, config: restored };
+  if (version > CONFIG_VERSION) {
+    throw new Error(
+      `Snapshot '${name}' has registry version ${version}, newer than this ideality build supports (${CONFIG_VERSION})`,
+    );
+  }
+  if (version === CONFIG_VERSION) {
+    const restored = parseConfig(source);
+    if (!options.dryRun) {
+      await saveConfig(restored, configPath);
+    }
+    return { snapshot: name, version, config: restored };
+  }
+  // Pre-migration snapshot: restore the exact bytes; the current schema cannot
+  // validate them, so the caller re-runs 'ideality config migrate' afterwards.
+  if (!options.dryRun) {
+    await writeConfigContent(source, configPath);
+  }
+  return { snapshot: name, version, config: null };
 }
