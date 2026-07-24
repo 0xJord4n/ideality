@@ -19,12 +19,13 @@ import Prompt from '../src/commands/prompt.js'
 import Rollback from '../src/commands/rollback.js'
 import Run from '../src/commands/run.js'
 import Secret from '../src/commands/secret.js'
+import Setup from '../src/commands/setup.js'
 import Status from '../src/commands/status.js'
 import Tool from '../src/commands/tool.js'
 import Tui from '../src/commands/tui.js'
 
 // Narrow list of command names to avoid typeof-cycles in types
-const names = ['auth', 'completion', 'config', 'doctor', 'env', 'explain', 'hook', 'identity', 'init', 'install', 'plugin', 'prompt', 'rollback', 'run', 'secret', 'status', 'tool', 'tui'] as const
+const names = ['auth', 'completion', 'config', 'doctor', 'env', 'explain', 'hook', 'identity', 'init', 'install', 'plugin', 'prompt', 'rollback', 'run', 'secret', 'setup', 'status', 'tool', 'tui'] as const
 type GeneratedNames = typeof names[number]
 
 const modules: Record<GeneratedNames, Command<any>> = {
@@ -43,6 +44,7 @@ const modules: Record<GeneratedNames, Command<any>> = {
   'rollback': Rollback,
   'run': Run,
   'secret': Secret,
+  'setup': Setup,
   'status': Status,
   'tool': Tool,
   'tui': Tui
@@ -334,6 +336,23 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
         }
       ],
       path: './src/commands/secret'
+    },
+  'setup': {
+      name: 'setup',
+      description: 'Configure the current project with an interactive wizard',
+      options: {
+        'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Project directory', short: 'C', fileType: 'directory', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
+        'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Local identity to activate', short: 'i', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+        'tools': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Comma-separated tools for non-interactive setup', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+        'project': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Write a complete .ideality/project.jsonc handover bundle', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3054,"end":3059,"loc":{"start":{"line":95,"column":40,"index":3054},"end":{"line":95,"column":45,"index":3059}},"value":false}}]}, validator: '(val) => true' },
+        'local-only': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Keep configuration only under the user ideality home', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3224,"end":3229,"loc":{"start":{"line":99,"column":45,"index":3224},"end":{"line":99,"column":50,"index":3229}},"value":false}}]}, validator: '(val) => true' },
+        'advanced': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show SSH, handover, and integration controls', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3386,"end":3391,"loc":{"start":{"line":103,"column":41,"index":3386},"end":{"line":103,"column":46,"index":3391}},"value":false}}]}, validator: '(val) => true' },
+        'requirements-only': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Share tool requirements without full identity profiles', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3551,"end":3556,"loc":{"start":{"line":107,"column":52,"index":3551},"end":{"line":107,"column":57,"index":3556}},"value":false}}]}, validator: '(val) => true' },
+        'non-interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Never prompt; require identity and tool flags as needed', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3724,"end":3729,"loc":{"start":{"line":111,"column":50,"index":3724},"end":{"line":111,"column":55,"index":3729}},"value":false}}]}, validator: '(val) => true' },
+        'yes': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Apply without the final confirmation', short: 'y', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3884,"end":3889,"loc":{"start":{"line":115,"column":36,"index":3884},"end":{"line":115,"column":41,"index":3889}},"value":false}}]}, validator: '(val) => true' },
+        'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the complete change without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4049,"end":4054,"loc":{"start":{"line":120,"column":42,"index":4049},"end":{"line":120,"column":47,"index":4054}},"value":false}}]}, validator: '(val) => true' }
+      },
+      path: './src/commands/setup'
     },
   'status': {
       name: 'status',

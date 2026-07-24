@@ -16,6 +16,7 @@ import promptCommand from "./commands/prompt.js";
 import rollbackCommand from "./commands/rollback.js";
 import runCommand from "./commands/run.js";
 import secretCommand from "./commands/secret.js";
+import setupCommand from "./commands/setup.js";
 import statusCommand from "./commands/status.js";
 import toolCommand from "./commands/tool.js";
 import tuiCommand from "./commands/tui.js";
@@ -28,6 +29,7 @@ const cli = await createCLI({
 
 for (const command of [
   initCommand,
+  setupCommand,
   statusCommand,
   envCommand,
   runCommand,

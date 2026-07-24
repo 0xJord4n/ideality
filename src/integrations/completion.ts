@@ -7,6 +7,7 @@ export type CompletionShell = "zsh" | "bash" | "fish";
 
 const COMMANDS = [
   "init",
+  "setup",
   "status",
   "env",
   "run",
