@@ -1,0 +1,23 @@
+// Bun package registry client - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "bun",
+  "displayName": "Bun package registry client",
+  "pack": "registries",
+  "executable": {
+    "primary": "bun",
+    "shim": false
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "profile": {
+    "env": {
+      "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/{{identity}}/registries/bun/npmrc",
+      "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/{{identity}}/registries/bun/npm-cache",
+      "BUN_INSTALL_CACHE_DIR": "{{idealityHome}}/profiles/{{identity}}/registries/bun/cache"
+    }
+  }
+}

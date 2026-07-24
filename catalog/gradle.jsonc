@@ -1,0 +1,23 @@
+// Gradle registry client - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "gradle",
+  "displayName": "Gradle registry client",
+  "pack": "registries",
+  "executable": {
+    "primary": "gradle",
+    "alternatives": [
+      "gradlew"
+    ]
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "profile": {
+    "env": {
+      "GRADLE_USER_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/gradle"
+    }
+  }
+}

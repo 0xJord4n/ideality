@@ -1,0 +1,29 @@
+// Gitea and Forgejo CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "tea",
+  "displayName": "Gitea and Forgejo CLI",
+  "pack": "source-control",
+  "executable": {
+    "primary": "tea"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "partial"
+  },
+  "auth": {
+    "status": [
+      "login",
+      "list"
+    ]
+  },
+  "profile": {
+    "env": {
+      "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/source-control/tea/config",
+      "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/source-control/tea/data",
+      "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/source-control/tea/state",
+      "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/source-control/tea/cache"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+// Visual Studio Code - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "code",
+  "displayName": "Visual Studio Code",
+  "pack": "editors",
+  "executable": {
+    "primary": "code",
+    "alternatives": [
+      "code-insiders"
+    ]
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "profile": {
+    "args": [
+      "--user-data-dir",
+      "{{idealityHome}}/profiles/{{identity}}/editors/vscode/user-data",
+      "--extensions-dir",
+      "{{idealityHome}}/profiles/{{identity}}/editors/vscode/extensions"
+    ]
+  }
+}

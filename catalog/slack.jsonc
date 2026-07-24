@@ -1,0 +1,20 @@
+// Slack desktop - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "slack",
+  "displayName": "Slack desktop",
+  "pack": "editors",
+  "executable": {
+    "primary": "slack"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "partial"
+  },
+  "profile": {
+    "args": [
+      "--user-data-dir={{idealityHome}}/profiles/{{identity}}/desktop/slack"
+    ]
+  }
+}

@@ -1,0 +1,31 @@
+// DigitalOcean CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "doctl",
+  "displayName": "DigitalOcean CLI",
+  "pack": "cloud",
+  "executable": {
+    "primary": "doctl"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "auth",
+      "init"
+    ],
+    "status": [
+      "account",
+      "get"
+    ]
+  },
+  "profile": {
+    "args": [
+      "--config",
+      "{{idealityHome}}/profiles/{{identity}}/cloud/doctl/config.yaml"
+    ]
+  }
+}

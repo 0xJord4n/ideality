@@ -364,8 +364,8 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
           name: 'install',
           description: 'Install or update a plugin manifest',
           options: {
-            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Replace an existing tool definition', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1773,"end":1778,"loc":{"start":{"line":51,"column":42,"index":1773},"end":{"line":51,"column":47,"index":1778}},"value":false}}]}, validator: '(val) => true' },
-            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Validate and show the plugin without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1957,"end":1962,"loc":{"start":{"line":56,"column":46,"index":1957},"end":{"line":56,"column":51,"index":1962}},"value":false}}]}, validator: '(val) => true' }
+            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Replace an existing tool definition', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1775,"end":1780,"loc":{"start":{"line":51,"column":42,"index":1775},"end":{"line":51,"column":47,"index":1780}},"value":false}}]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Validate and show the plugin without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1959,"end":1964,"loc":{"start":{"line":56,"column":46,"index":1959},"end":{"line":56,"column":51,"index":1964}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/plugin'
         },
@@ -373,8 +373,8 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
           name: 'remove',
           description: 'Remove a plugin and its identity profiles',
           options: {
-            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Confirm removal', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3237,"end":3242,"loc":{"start":{"line":87,"column":42,"index":3237},"end":{"line":87,"column":47,"index":3242}},"value":false}}]}, validator: '(val) => true' },
-            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the removal without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3401,"end":3406,"loc":{"start":{"line":92,"column":46,"index":3401},"end":{"line":92,"column":51,"index":3406}},"value":false}}]}, validator: '(val) => true' }
+            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Confirm removal', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3233,"end":3238,"loc":{"start":{"line":87,"column":42,"index":3233},"end":{"line":87,"column":47,"index":3238}},"value":false}}]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the removal without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3397,"end":3402,"loc":{"start":{"line":92,"column":46,"index":3397},"end":{"line":92,"column":51,"index":3402}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/plugin'
         }

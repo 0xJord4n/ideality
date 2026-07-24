@@ -1,0 +1,48 @@
+// Cloudflare CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "cf",
+  "displayName": "Cloudflare CLI",
+  "pack": "essentials",
+  "executable": {
+    "primary": "cf"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "credentials"
+  },
+  "auth": {
+    "login": [
+      "auth",
+      "login"
+    ],
+    "status": [
+      "auth",
+      "whoami"
+    ],
+    "logout": [
+      "auth",
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "CLOUDFLARE_API_TOKEN": {
+        "from": "secret",
+        "key": "{{identity}}/cloudflare-token",
+        "optional": true
+      },
+      "CLOUDFLARE_ACCOUNT_ID": {
+        "from": "file",
+        "path": "{{idealityHome}}/profiles/{{identity}}/cloudflare-account-id",
+        "optional": true
+      },
+      "CLOUDFLARE_ZONE_ID": {
+        "from": "file",
+        "path": "{{idealityHome}}/profiles/{{identity}}/cloudflare-zone-id",
+        "optional": true
+      }
+    }
+  }
+}

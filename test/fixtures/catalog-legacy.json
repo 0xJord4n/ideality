@@ -1,0 +1,1953 @@
+{
+  "builtinTools": {
+    "gh": {
+      "executable": "gh",
+      "description": "GitHub CLI",
+      "pack": "essentials",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "auth",
+          "login"
+        ],
+        "status": [
+          "auth",
+          "status"
+        ],
+        "logout": [
+          "auth",
+          "logout"
+        ]
+      }
+    },
+    "railway": {
+      "executable": "railway",
+      "description": "Railway CLI",
+      "pack": "essentials",
+      "isolation": "process",
+      "stateIsolation": "credentials",
+      "auth": {
+        "login": [
+          "login"
+        ],
+        "status": [
+          "whoami"
+        ],
+        "logout": [
+          "logout"
+        ]
+      }
+    },
+    "cf": {
+      "executable": "cf",
+      "description": "Cloudflare CLI",
+      "pack": "essentials",
+      "isolation": "process",
+      "stateIsolation": "credentials",
+      "auth": {
+        "login": [
+          "auth",
+          "login"
+        ],
+        "status": [
+          "auth",
+          "whoami"
+        ],
+        "logout": [
+          "auth",
+          "logout"
+        ]
+      }
+    },
+    "vercel": {
+      "executable": "vercel",
+      "description": "Vercel CLI",
+      "pack": "essentials",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "login"
+        ],
+        "status": [
+          "whoami"
+        ],
+        "logout": [
+          "logout"
+        ]
+      }
+    },
+    "codex": {
+      "executable": "codex",
+      "description": "OpenAI Codex CLI",
+      "pack": "essentials",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "login"
+        ],
+        "status": [
+          "login",
+          "status"
+        ],
+        "logout": [
+          "logout"
+        ]
+      }
+    },
+    "claude": {
+      "executable": "claude",
+      "description": "Claude Code",
+      "pack": "essentials",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "auth",
+          "login"
+        ],
+        "status": [
+          "auth",
+          "status"
+        ],
+        "logout": [
+          "auth",
+          "logout"
+        ]
+      }
+    },
+    "opencode": {
+      "executable": "opencode",
+      "description": "OpenCode",
+      "pack": "essentials",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "auth",
+          "login"
+        ],
+        "status": [
+          "auth",
+          "list"
+        ],
+        "logout": [
+          "auth",
+          "logout"
+        ]
+      }
+    },
+    "chrome": {
+      "executable": "google-chrome",
+      "description": "Google Chrome",
+      "pack": "essentials",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "detect": [
+        "google-chrome",
+        "google-chrome-stable",
+        "chromium",
+        "chromium-browser"
+      ]
+    },
+    "firefox": {
+      "executable": "firefox",
+      "description": "Firefox",
+      "pack": "essentials",
+      "isolation": "process",
+      "stateIsolation": "full"
+    },
+    "aws": {
+      "executable": "aws",
+      "description": "AWS CLI",
+      "pack": "cloud",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "sso",
+          "login"
+        ],
+        "status": [
+          "sts",
+          "get-caller-identity"
+        ],
+        "logout": [
+          "sso",
+          "logout"
+        ]
+      }
+    },
+    "gcloud": {
+      "executable": "gcloud",
+      "description": "Google Cloud CLI",
+      "pack": "cloud",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "auth",
+          "login"
+        ],
+        "status": [
+          "auth",
+          "list"
+        ],
+        "logout": [
+          "auth",
+          "revoke",
+          "--all"
+        ]
+      }
+    },
+    "az": {
+      "executable": "az",
+      "description": "Azure CLI",
+      "pack": "cloud",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "login"
+        ],
+        "status": [
+          "account",
+          "show"
+        ],
+        "logout": [
+          "logout"
+        ]
+      }
+    },
+    "doctl": {
+      "executable": "doctl",
+      "description": "DigitalOcean CLI",
+      "pack": "cloud",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "auth",
+          "init"
+        ],
+        "status": [
+          "account",
+          "get"
+        ]
+      }
+    },
+    "glab": {
+      "executable": "glab",
+      "description": "GitLab CLI",
+      "pack": "source-control",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "auth",
+          "login"
+        ],
+        "status": [
+          "auth",
+          "status"
+        ],
+        "logout": [
+          "auth",
+          "logout"
+        ]
+      }
+    },
+    "tea": {
+      "executable": "tea",
+      "description": "Gitea and Forgejo CLI",
+      "pack": "source-control",
+      "isolation": "process",
+      "stateIsolation": "partial",
+      "auth": {
+        "status": [
+          "login",
+          "list"
+        ]
+      }
+    },
+    "bitbucket": {
+      "executable": "bitbucket",
+      "description": "Bitbucket community CLI",
+      "pack": "source-control",
+      "isolation": "process",
+      "stateIsolation": "credentials",
+      "detect": [
+        "bb"
+      ]
+    },
+    "gerrit": {
+      "executable": "ssh",
+      "description": "Gerrit SSH command transport",
+      "pack": "source-control",
+      "isolation": "process",
+      "stateIsolation": "credentials"
+    },
+    "code": {
+      "executable": "code",
+      "description": "Visual Studio Code",
+      "pack": "editors",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "detect": [
+        "code-insiders"
+      ]
+    },
+    "cursor": {
+      "executable": "cursor",
+      "description": "Cursor",
+      "pack": "editors",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "windsurf": {
+      "executable": "windsurf",
+      "description": "Windsurf",
+      "pack": "editors",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "zed": {
+      "executable": "zed",
+      "description": "Zed",
+      "pack": "editors",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "idea": {
+      "executable": "idea",
+      "description": "IntelliJ IDEA",
+      "pack": "editors",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "pycharm": {
+      "executable": "pycharm",
+      "description": "PyCharm",
+      "pack": "editors",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "webstorm": {
+      "executable": "webstorm",
+      "description": "WebStorm",
+      "pack": "editors",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "goland": {
+      "executable": "goland",
+      "description": "GoLand",
+      "pack": "editors",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "rustrover": {
+      "executable": "rustrover",
+      "description": "RustRover",
+      "pack": "editors",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "slack": {
+      "executable": "slack",
+      "description": "Slack desktop",
+      "pack": "editors",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "discord": {
+      "executable": "discord",
+      "description": "Discord desktop",
+      "pack": "editors",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "npm": {
+      "executable": "npm",
+      "description": "npm registry client",
+      "pack": "registries",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "login"
+        ],
+        "status": [
+          "whoami"
+        ],
+        "logout": [
+          "logout"
+        ]
+      }
+    },
+    "pnpm": {
+      "executable": "pnpm",
+      "description": "pnpm registry client",
+      "pack": "registries",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "login"
+        ],
+        "status": [
+          "whoami"
+        ],
+        "logout": [
+          "logout"
+        ]
+      }
+    },
+    "yarn": {
+      "executable": "yarn",
+      "description": "Yarn registry client",
+      "pack": "registries",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "npm",
+          "login"
+        ],
+        "status": [
+          "npm",
+          "whoami"
+        ]
+      }
+    },
+    "bun": {
+      "executable": "bun",
+      "description": "Bun package registry client",
+      "pack": "registries",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "shim": false
+    },
+    "cargo": {
+      "executable": "cargo",
+      "description": "Cargo registry client",
+      "pack": "registries",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "login"
+        ],
+        "logout": [
+          "logout"
+        ]
+      }
+    },
+    "uv": {
+      "executable": "uv",
+      "description": "uv Python package client",
+      "pack": "registries",
+      "isolation": "process",
+      "stateIsolation": "full"
+    },
+    "pip": {
+      "executable": "pip",
+      "description": "pip Python package client",
+      "pack": "registries",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "detect": [
+        "pip3"
+      ]
+    },
+    "gem": {
+      "executable": "gem",
+      "description": "RubyGems client",
+      "pack": "registries",
+      "isolation": "process",
+      "stateIsolation": "full"
+    },
+    "composer": {
+      "executable": "composer",
+      "description": "Composer registry client",
+      "pack": "registries",
+      "isolation": "process",
+      "stateIsolation": "full"
+    },
+    "mvn": {
+      "executable": "mvn",
+      "description": "Maven registry client",
+      "pack": "registries",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "gradle": {
+      "executable": "gradle",
+      "description": "Gradle registry client",
+      "pack": "registries",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "detect": [
+        "gradlew"
+      ]
+    },
+    "nuget": {
+      "executable": "nuget",
+      "description": "NuGet client",
+      "pack": "registries",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "fly": {
+      "executable": "fly",
+      "description": "Fly.io CLI",
+      "pack": "deployment",
+      "isolation": "process",
+      "stateIsolation": "credentials",
+      "detect": [
+        "flyctl"
+      ],
+      "auth": {
+        "login": [
+          "auth",
+          "login"
+        ],
+        "status": [
+          "auth",
+          "whoami"
+        ],
+        "logout": [
+          "auth",
+          "logout"
+        ]
+      }
+    },
+    "netlify": {
+      "executable": "netlify",
+      "description": "Netlify CLI",
+      "pack": "deployment",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "login"
+        ],
+        "status": [
+          "status"
+        ],
+        "logout": [
+          "logout"
+        ]
+      }
+    },
+    "supabase": {
+      "executable": "supabase",
+      "description": "Supabase CLI",
+      "pack": "deployment",
+      "isolation": "process",
+      "stateIsolation": "credentials",
+      "auth": {
+        "login": [
+          "login"
+        ]
+      }
+    },
+    "firebase": {
+      "executable": "firebase",
+      "description": "Firebase CLI",
+      "pack": "deployment",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "login"
+        ],
+        "status": [
+          "login:list"
+        ],
+        "logout": [
+          "logout"
+        ]
+      }
+    },
+    "heroku": {
+      "executable": "heroku",
+      "description": "Heroku CLI",
+      "pack": "deployment",
+      "isolation": "process",
+      "stateIsolation": "credentials",
+      "auth": {
+        "login": [
+          "login"
+        ],
+        "status": [
+          "auth:whoami"
+        ],
+        "logout": [
+          "logout"
+        ]
+      }
+    },
+    "render": {
+      "executable": "render",
+      "description": "Render CLI",
+      "pack": "deployment",
+      "isolation": "process",
+      "stateIsolation": "credentials"
+    },
+    "sst": {
+      "executable": "sst",
+      "description": "SST CLI",
+      "pack": "deployment",
+      "isolation": "process",
+      "stateIsolation": "credentials"
+    },
+    "pulumi": {
+      "executable": "pulumi",
+      "description": "Pulumi CLI",
+      "pack": "deployment",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "login"
+        ],
+        "status": [
+          "whoami"
+        ],
+        "logout": [
+          "logout"
+        ]
+      }
+    },
+    "shopify": {
+      "executable": "shopify",
+      "description": "Shopify CLI",
+      "pack": "deployment",
+      "isolation": "process",
+      "stateIsolation": "credentials",
+      "auth": {
+        "logout": [
+          "auth",
+          "logout"
+        ]
+      }
+    },
+    "stripe": {
+      "executable": "stripe",
+      "description": "Stripe CLI",
+      "pack": "deployment",
+      "isolation": "process",
+      "stateIsolation": "credentials",
+      "auth": {
+        "login": [
+          "login"
+        ],
+        "status": [
+          "config",
+          "--list"
+        ]
+      }
+    },
+    "gemini": {
+      "executable": "gemini",
+      "description": "Gemini CLI",
+      "pack": "ai",
+      "isolation": "process",
+      "stateIsolation": "full"
+    },
+    "copilot": {
+      "executable": "copilot",
+      "description": "GitHub Copilot CLI",
+      "pack": "ai",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "login"
+        ]
+      }
+    },
+    "aider": {
+      "executable": "aider",
+      "description": "Aider",
+      "pack": "ai",
+      "isolation": "process",
+      "stateIsolation": "credentials"
+    },
+    "amp": {
+      "executable": "amp",
+      "description": "Amp",
+      "pack": "ai",
+      "isolation": "process",
+      "stateIsolation": "full"
+    },
+    "goose": {
+      "executable": "goose",
+      "description": "Goose",
+      "pack": "ai",
+      "isolation": "process",
+      "stateIsolation": "partial"
+    },
+    "cn": {
+      "executable": "cn",
+      "description": "Continue CLI",
+      "pack": "ai",
+      "isolation": "process",
+      "stateIsolation": "credentials",
+      "auth": {
+        "login": [
+          "login"
+        ]
+      }
+    },
+    "kiro-cli": {
+      "executable": "kiro-cli",
+      "description": "Kiro CLI",
+      "pack": "ai",
+      "isolation": "process",
+      "stateIsolation": "full"
+    },
+    "qwen": {
+      "executable": "qwen",
+      "description": "Qwen Code",
+      "pack": "ai",
+      "isolation": "process",
+      "stateIsolation": "full",
+      "auth": {
+        "login": [
+          "auth"
+        ]
+      }
+    }
+  },
+  "builtinToolPacks": {
+    "essentials": {
+      "label": "Developer essentials",
+      "description": "GitHub, hosting, AI agents, and browsers",
+      "tools": [
+        "gh",
+        "railway",
+        "cf",
+        "vercel",
+        "codex",
+        "claude",
+        "opencode",
+        "chrome",
+        "firefox"
+      ]
+    },
+    "cloud": {
+      "label": "Cloud accounts",
+      "description": "AWS, Google Cloud, Azure, and DigitalOcean",
+      "tools": [
+        "aws",
+        "gcloud",
+        "az",
+        "doctl"
+      ]
+    },
+    "source-control": {
+      "label": "Source control",
+      "description": "GitLab, Gitea/Forgejo, Bitbucket, and Gerrit",
+      "tools": [
+        "glab",
+        "tea",
+        "bitbucket",
+        "gerrit"
+      ]
+    },
+    "editors": {
+      "label": "Editors and desktop",
+      "description": "Editors, JetBrains IDEs, Slack, and Discord",
+      "tools": [
+        "code",
+        "cursor",
+        "windsurf",
+        "zed",
+        "idea",
+        "pycharm",
+        "webstorm",
+        "goland",
+        "rustrover",
+        "slack",
+        "discord"
+      ]
+    },
+    "registries": {
+      "label": "Package registries",
+      "description": "JavaScript, Python, Rust, Ruby, PHP, JVM, and NuGet",
+      "tools": [
+        "npm",
+        "pnpm",
+        "yarn",
+        "bun",
+        "cargo",
+        "uv",
+        "pip",
+        "gem",
+        "composer",
+        "mvn",
+        "gradle",
+        "nuget"
+      ]
+    },
+    "deployment": {
+      "label": "Deployment platforms",
+      "description": "Fly, Netlify, Supabase, Firebase, Heroku, and more",
+      "tools": [
+        "fly",
+        "netlify",
+        "supabase",
+        "firebase",
+        "heroku",
+        "render",
+        "sst",
+        "pulumi",
+        "shopify",
+        "stripe"
+      ]
+    },
+    "ai": {
+      "label": "AI tools",
+      "description": "Gemini, Copilot, Aider, Amp, Goose, Continue, Kiro, and Qwen",
+      "tools": [
+        "gemini",
+        "copilot",
+        "aider",
+        "amp",
+        "goose",
+        "cn",
+        "kiro-cli",
+        "qwen"
+      ]
+    }
+  },
+  "defaultToolPacks": [
+    "essentials"
+  ],
+  "profilesWithSshKey": {
+    "gh": {
+      "isolation": "process",
+      "env": {
+        "GH_CONFIG_DIR": "{{idealityHome}}/profiles/sample/gh"
+      }
+    },
+    "railway": {
+      "isolation": "process",
+      "env": {
+        "RAILWAY_API_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/railway-token",
+          "optional": true
+        }
+      }
+    },
+    "cf": {
+      "isolation": "process",
+      "env": {
+        "CLOUDFLARE_API_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/cloudflare-token",
+          "optional": true
+        },
+        "CLOUDFLARE_ACCOUNT_ID": {
+          "from": "file",
+          "path": "{{idealityHome}}/profiles/sample/cloudflare-account-id",
+          "optional": true
+        },
+        "CLOUDFLARE_ZONE_ID": {
+          "from": "file",
+          "path": "{{idealityHome}}/profiles/sample/cloudflare-zone-id",
+          "optional": true
+        }
+      }
+    },
+    "vercel": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/vercel/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/vercel/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/vercel/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/vercel/cache"
+      }
+    },
+    "codex": {
+      "isolation": "process",
+      "env": {
+        "CODEX_HOME": "{{idealityHome}}/profiles/sample/codex"
+      }
+    },
+    "claude": {
+      "isolation": "process",
+      "env": {
+        "CLAUDE_CONFIG_DIR": "{{idealityHome}}/profiles/sample/claude"
+      }
+    },
+    "opencode": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/opencode/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/opencode/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/opencode/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/opencode/cache"
+      }
+    },
+    "chrome": {
+      "isolation": "process",
+      "args": [
+        "--user-data-dir={{idealityHome}}/profiles/sample/browsers/chrome",
+        "--profile-directory=Default"
+      ]
+    },
+    "firefox": {
+      "isolation": "process",
+      "args": [
+        "-profile",
+        "{{idealityHome}}/profiles/sample/browsers/firefox"
+      ]
+    },
+    "aws": {
+      "isolation": "process",
+      "env": {
+        "AWS_CONFIG_FILE": "{{idealityHome}}/profiles/sample/cloud/aws/config",
+        "AWS_SHARED_CREDENTIALS_FILE": "{{idealityHome}}/profiles/sample/cloud/aws/credentials"
+      }
+    },
+    "gcloud": {
+      "isolation": "process",
+      "env": {
+        "CLOUDSDK_CONFIG": "{{idealityHome}}/profiles/sample/cloud/gcloud"
+      }
+    },
+    "az": {
+      "isolation": "process",
+      "env": {
+        "AZURE_CONFIG_DIR": "{{idealityHome}}/profiles/sample/cloud/azure"
+      }
+    },
+    "doctl": {
+      "isolation": "process",
+      "args": [
+        "--config",
+        "{{idealityHome}}/profiles/sample/cloud/doctl/config.yaml"
+      ]
+    },
+    "glab": {
+      "isolation": "process",
+      "env": {
+        "GLAB_CONFIG_DIR": "{{idealityHome}}/profiles/sample/source-control/glab",
+        "GITLAB_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/gitlab-token",
+          "optional": true
+        }
+      }
+    },
+    "tea": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/source-control/tea/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/source-control/tea/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/source-control/tea/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/source-control/tea/cache"
+      }
+    },
+    "bitbucket": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/source-control/bitbucket/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/source-control/bitbucket/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/source-control/bitbucket/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/source-control/bitbucket/cache",
+        "BITBUCKET_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/bitbucket-token",
+          "optional": true
+        }
+      }
+    },
+    "gerrit": {
+      "isolation": "process",
+      "args": [
+        "-i",
+        "/home/sample/.ssh/id_ed25519"
+      ]
+    },
+    "code": {
+      "isolation": "process",
+      "args": [
+        "--user-data-dir",
+        "{{idealityHome}}/profiles/sample/editors/vscode/user-data",
+        "--extensions-dir",
+        "{{idealityHome}}/profiles/sample/editors/vscode/extensions"
+      ]
+    },
+    "cursor": {
+      "isolation": "process",
+      "args": [
+        "--user-data-dir",
+        "{{idealityHome}}/profiles/sample/editors/cursor/user-data",
+        "--extensions-dir",
+        "{{idealityHome}}/profiles/sample/editors/cursor/extensions"
+      ]
+    },
+    "windsurf": {
+      "isolation": "process",
+      "args": [
+        "--user-data-dir",
+        "{{idealityHome}}/profiles/sample/editors/windsurf/user-data",
+        "--extensions-dir",
+        "{{idealityHome}}/profiles/sample/editors/windsurf/extensions"
+      ]
+    },
+    "zed": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/editors/zed/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/editors/zed/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/editors/zed/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/editors/zed/cache"
+      }
+    },
+    "idea": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/idea/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/idea/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/idea/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/idea/cache"
+      }
+    },
+    "pycharm": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/pycharm/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/pycharm/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/pycharm/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/pycharm/cache"
+      }
+    },
+    "webstorm": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/webstorm/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/webstorm/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/webstorm/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/webstorm/cache"
+      }
+    },
+    "goland": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/goland/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/goland/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/goland/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/goland/cache"
+      }
+    },
+    "rustrover": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/rustrover/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/rustrover/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/rustrover/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/rustrover/cache"
+      }
+    },
+    "slack": {
+      "isolation": "process",
+      "args": [
+        "--user-data-dir={{idealityHome}}/profiles/sample/desktop/slack"
+      ]
+    },
+    "discord": {
+      "isolation": "process",
+      "args": [
+        "--user-data-dir={{idealityHome}}/profiles/sample/desktop/discord"
+      ]
+    },
+    "npm": {
+      "isolation": "process",
+      "env": {
+        "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/sample/registries/npm/npmrc",
+        "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/sample/registries/npm/cache"
+      }
+    },
+    "pnpm": {
+      "isolation": "process",
+      "env": {
+        "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/sample/registries/pnpm/npmrc",
+        "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/sample/registries/pnpm/cache",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/registries/pnpm/data"
+      }
+    },
+    "yarn": {
+      "isolation": "process",
+      "env": {
+        "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/sample/registries/yarn/npmrc",
+        "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/sample/registries/yarn/npm-cache",
+        "YARN_CACHE_FOLDER": "{{idealityHome}}/profiles/sample/registries/yarn/cache"
+      }
+    },
+    "bun": {
+      "isolation": "process",
+      "env": {
+        "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/sample/registries/bun/npmrc",
+        "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/sample/registries/bun/npm-cache",
+        "BUN_INSTALL_CACHE_DIR": "{{idealityHome}}/profiles/sample/registries/bun/cache"
+      }
+    },
+    "cargo": {
+      "isolation": "process",
+      "env": {
+        "CARGO_HOME": "{{idealityHome}}/profiles/sample/registries/cargo"
+      }
+    },
+    "uv": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/registries/uv/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/registries/uv/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/registries/uv/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/registries/uv/cache",
+        "UV_CACHE_DIR": "{{idealityHome}}/profiles/sample/registries/uv/cache"
+      }
+    },
+    "pip": {
+      "isolation": "process",
+      "env": {
+        "PIP_CONFIG_FILE": "{{idealityHome}}/profiles/sample/registries/pip/pip.conf",
+        "PIP_CACHE_DIR": "{{idealityHome}}/profiles/sample/registries/pip/cache"
+      }
+    },
+    "gem": {
+      "isolation": "process",
+      "env": {
+        "GEM_HOME": "{{idealityHome}}/profiles/sample/registries/rubygems/gems",
+        "GEM_PATH": "{{idealityHome}}/profiles/sample/registries/rubygems/gems",
+        "GEMRC": "{{idealityHome}}/profiles/sample/registries/rubygems/gemrc"
+      }
+    },
+    "composer": {
+      "isolation": "process",
+      "env": {
+        "COMPOSER_HOME": "{{idealityHome}}/profiles/sample/registries/composer",
+        "COMPOSER_CACHE_DIR": "{{idealityHome}}/profiles/sample/registries/composer/cache"
+      }
+    },
+    "mvn": {
+      "isolation": "process",
+      "env": {
+        "MAVEN_OPTS": "-Duser.home={{idealityHome}}/profiles/sample/registries/maven/home"
+      }
+    },
+    "gradle": {
+      "isolation": "process",
+      "env": {
+        "GRADLE_USER_HOME": "{{idealityHome}}/profiles/sample/registries/gradle"
+      }
+    },
+    "nuget": {
+      "isolation": "process",
+      "env": {
+        "NUGET_PACKAGES": "{{idealityHome}}/profiles/sample/registries/nuget/packages",
+        "DOTNET_CLI_HOME": "{{idealityHome}}/profiles/sample/registries/nuget/dotnet-home"
+      }
+    },
+    "fly": {
+      "isolation": "process",
+      "env": {
+        "FLY_API_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/fly-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/fly/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/fly/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/fly/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/fly/cache"
+      }
+    },
+    "netlify": {
+      "isolation": "process",
+      "env": {
+        "NETLIFY_AUTH_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/netlify-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/netlify/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/netlify/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/netlify/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/netlify/cache"
+      }
+    },
+    "supabase": {
+      "isolation": "process",
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/supabase-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/supabase/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/supabase/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/supabase/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/supabase/cache"
+      }
+    },
+    "firebase": {
+      "isolation": "process",
+      "env": {
+        "FIREBASE_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/firebase-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/firebase/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/firebase/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/firebase/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/firebase/cache"
+      }
+    },
+    "heroku": {
+      "isolation": "process",
+      "env": {
+        "HEROKU_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/heroku-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/heroku/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/heroku/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/heroku/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/heroku/cache"
+      }
+    },
+    "render": {
+      "isolation": "process",
+      "env": {
+        "RENDER_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/render-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/render/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/render/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/render/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/render/cache"
+      }
+    },
+    "sst": {
+      "isolation": "process",
+      "env": {
+        "SST_AUTH_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/sst-token",
+          "optional": true
+        },
+        "AWS_CONFIG_FILE": "{{idealityHome}}/profiles/sample/cloud/aws/config",
+        "AWS_SHARED_CREDENTIALS_FILE": "{{idealityHome}}/profiles/sample/cloud/aws/credentials"
+      }
+    },
+    "pulumi": {
+      "isolation": "process",
+      "env": {
+        "PULUMI_HOME": "{{idealityHome}}/profiles/sample/deployment/pulumi",
+        "PULUMI_ACCESS_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/pulumi-token",
+          "optional": true
+        },
+        "AWS_CONFIG_FILE": "{{idealityHome}}/profiles/sample/cloud/aws/config",
+        "AWS_SHARED_CREDENTIALS_FILE": "{{idealityHome}}/profiles/sample/cloud/aws/credentials",
+        "CLOUDSDK_CONFIG": "{{idealityHome}}/profiles/sample/cloud/gcloud",
+        "AZURE_CONFIG_DIR": "{{idealityHome}}/profiles/sample/cloud/azure"
+      }
+    },
+    "shopify": {
+      "isolation": "process",
+      "env": {
+        "SHOPIFY_CLI_PARTNERS_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/shopify-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/shopify/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/shopify/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/shopify/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/shopify/cache"
+      }
+    },
+    "stripe": {
+      "isolation": "process",
+      "env": {
+        "STRIPE_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/stripe-api-key",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/stripe/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/stripe/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/stripe/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/stripe/cache"
+      }
+    },
+    "gemini": {
+      "isolation": "process",
+      "env": {
+        "GEMINI_CLI_HOME": "{{idealityHome}}/profiles/sample/ai/gemini",
+        "GEMINI_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/gemini-api-key",
+          "optional": true
+        }
+      }
+    },
+    "copilot": {
+      "isolation": "process",
+      "env": {
+        "COPILOT_HOME": "{{idealityHome}}/profiles/sample/ai/copilot",
+        "COPILOT_CACHE_HOME": "{{idealityHome}}/profiles/sample/ai/copilot/cache",
+        "COPILOT_GITHUB_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/copilot-github-token",
+          "optional": true
+        }
+      }
+    },
+    "aider": {
+      "isolation": "process",
+      "env": {
+        "OPENAI_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/openai-api-key",
+          "optional": true
+        },
+        "ANTHROPIC_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/anthropic-api-key",
+          "optional": true
+        }
+      }
+    },
+    "amp": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/ai/amp/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/ai/amp/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/ai/amp/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/ai/amp/cache",
+        "AMP_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/amp-api-key",
+          "optional": true
+        }
+      }
+    },
+    "goose": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/ai/goose/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/ai/goose/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/ai/goose/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/ai/goose/cache",
+        "GOOSE_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/goose-api-key",
+          "optional": true
+        }
+      }
+    },
+    "cn": {
+      "isolation": "process",
+      "env": {
+        "CONTINUE_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/continue-api-key",
+          "optional": true
+        }
+      }
+    },
+    "kiro-cli": {
+      "isolation": "process",
+      "env": {
+        "KIRO_HOME": "{{idealityHome}}/profiles/sample/ai/kiro"
+      }
+    },
+    "qwen": {
+      "isolation": "process",
+      "env": {
+        "QWEN_HOME": "{{idealityHome}}/profiles/sample/ai/qwen",
+        "QWEN_RUNTIME_DIR": "{{idealityHome}}/profiles/sample/ai/qwen/runtime",
+        "OPENAI_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/qwen-api-key",
+          "optional": true
+        }
+      }
+    }
+  },
+  "profilesWithoutSshKey": {
+    "gh": {
+      "isolation": "process",
+      "env": {
+        "GH_CONFIG_DIR": "{{idealityHome}}/profiles/sample/gh"
+      }
+    },
+    "railway": {
+      "isolation": "process",
+      "env": {
+        "RAILWAY_API_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/railway-token",
+          "optional": true
+        }
+      }
+    },
+    "cf": {
+      "isolation": "process",
+      "env": {
+        "CLOUDFLARE_API_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/cloudflare-token",
+          "optional": true
+        },
+        "CLOUDFLARE_ACCOUNT_ID": {
+          "from": "file",
+          "path": "{{idealityHome}}/profiles/sample/cloudflare-account-id",
+          "optional": true
+        },
+        "CLOUDFLARE_ZONE_ID": {
+          "from": "file",
+          "path": "{{idealityHome}}/profiles/sample/cloudflare-zone-id",
+          "optional": true
+        }
+      }
+    },
+    "vercel": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/vercel/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/vercel/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/vercel/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/vercel/cache"
+      }
+    },
+    "codex": {
+      "isolation": "process",
+      "env": {
+        "CODEX_HOME": "{{idealityHome}}/profiles/sample/codex"
+      }
+    },
+    "claude": {
+      "isolation": "process",
+      "env": {
+        "CLAUDE_CONFIG_DIR": "{{idealityHome}}/profiles/sample/claude"
+      }
+    },
+    "opencode": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/opencode/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/opencode/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/opencode/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/opencode/cache"
+      }
+    },
+    "chrome": {
+      "isolation": "process",
+      "args": [
+        "--user-data-dir={{idealityHome}}/profiles/sample/browsers/chrome",
+        "--profile-directory=Default"
+      ]
+    },
+    "firefox": {
+      "isolation": "process",
+      "args": [
+        "-profile",
+        "{{idealityHome}}/profiles/sample/browsers/firefox"
+      ]
+    },
+    "aws": {
+      "isolation": "process",
+      "env": {
+        "AWS_CONFIG_FILE": "{{idealityHome}}/profiles/sample/cloud/aws/config",
+        "AWS_SHARED_CREDENTIALS_FILE": "{{idealityHome}}/profiles/sample/cloud/aws/credentials"
+      }
+    },
+    "gcloud": {
+      "isolation": "process",
+      "env": {
+        "CLOUDSDK_CONFIG": "{{idealityHome}}/profiles/sample/cloud/gcloud"
+      }
+    },
+    "az": {
+      "isolation": "process",
+      "env": {
+        "AZURE_CONFIG_DIR": "{{idealityHome}}/profiles/sample/cloud/azure"
+      }
+    },
+    "doctl": {
+      "isolation": "process",
+      "args": [
+        "--config",
+        "{{idealityHome}}/profiles/sample/cloud/doctl/config.yaml"
+      ]
+    },
+    "glab": {
+      "isolation": "process",
+      "env": {
+        "GLAB_CONFIG_DIR": "{{idealityHome}}/profiles/sample/source-control/glab",
+        "GITLAB_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/gitlab-token",
+          "optional": true
+        }
+      }
+    },
+    "tea": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/source-control/tea/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/source-control/tea/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/source-control/tea/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/source-control/tea/cache"
+      }
+    },
+    "bitbucket": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/source-control/bitbucket/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/source-control/bitbucket/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/source-control/bitbucket/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/source-control/bitbucket/cache",
+        "BITBUCKET_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/bitbucket-token",
+          "optional": true
+        }
+      }
+    },
+    "gerrit": {
+      "isolation": "process"
+    },
+    "code": {
+      "isolation": "process",
+      "args": [
+        "--user-data-dir",
+        "{{idealityHome}}/profiles/sample/editors/vscode/user-data",
+        "--extensions-dir",
+        "{{idealityHome}}/profiles/sample/editors/vscode/extensions"
+      ]
+    },
+    "cursor": {
+      "isolation": "process",
+      "args": [
+        "--user-data-dir",
+        "{{idealityHome}}/profiles/sample/editors/cursor/user-data",
+        "--extensions-dir",
+        "{{idealityHome}}/profiles/sample/editors/cursor/extensions"
+      ]
+    },
+    "windsurf": {
+      "isolation": "process",
+      "args": [
+        "--user-data-dir",
+        "{{idealityHome}}/profiles/sample/editors/windsurf/user-data",
+        "--extensions-dir",
+        "{{idealityHome}}/profiles/sample/editors/windsurf/extensions"
+      ]
+    },
+    "zed": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/editors/zed/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/editors/zed/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/editors/zed/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/editors/zed/cache"
+      }
+    },
+    "idea": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/idea/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/idea/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/idea/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/idea/cache"
+      }
+    },
+    "pycharm": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/pycharm/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/pycharm/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/pycharm/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/pycharm/cache"
+      }
+    },
+    "webstorm": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/webstorm/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/webstorm/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/webstorm/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/webstorm/cache"
+      }
+    },
+    "goland": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/goland/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/goland/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/goland/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/goland/cache"
+      }
+    },
+    "rustrover": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/rustrover/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/rustrover/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/rustrover/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/editors/jetbrains/rustrover/cache"
+      }
+    },
+    "slack": {
+      "isolation": "process",
+      "args": [
+        "--user-data-dir={{idealityHome}}/profiles/sample/desktop/slack"
+      ]
+    },
+    "discord": {
+      "isolation": "process",
+      "args": [
+        "--user-data-dir={{idealityHome}}/profiles/sample/desktop/discord"
+      ]
+    },
+    "npm": {
+      "isolation": "process",
+      "env": {
+        "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/sample/registries/npm/npmrc",
+        "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/sample/registries/npm/cache"
+      }
+    },
+    "pnpm": {
+      "isolation": "process",
+      "env": {
+        "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/sample/registries/pnpm/npmrc",
+        "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/sample/registries/pnpm/cache",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/registries/pnpm/data"
+      }
+    },
+    "yarn": {
+      "isolation": "process",
+      "env": {
+        "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/sample/registries/yarn/npmrc",
+        "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/sample/registries/yarn/npm-cache",
+        "YARN_CACHE_FOLDER": "{{idealityHome}}/profiles/sample/registries/yarn/cache"
+      }
+    },
+    "bun": {
+      "isolation": "process",
+      "env": {
+        "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/sample/registries/bun/npmrc",
+        "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/sample/registries/bun/npm-cache",
+        "BUN_INSTALL_CACHE_DIR": "{{idealityHome}}/profiles/sample/registries/bun/cache"
+      }
+    },
+    "cargo": {
+      "isolation": "process",
+      "env": {
+        "CARGO_HOME": "{{idealityHome}}/profiles/sample/registries/cargo"
+      }
+    },
+    "uv": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/registries/uv/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/registries/uv/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/registries/uv/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/registries/uv/cache",
+        "UV_CACHE_DIR": "{{idealityHome}}/profiles/sample/registries/uv/cache"
+      }
+    },
+    "pip": {
+      "isolation": "process",
+      "env": {
+        "PIP_CONFIG_FILE": "{{idealityHome}}/profiles/sample/registries/pip/pip.conf",
+        "PIP_CACHE_DIR": "{{idealityHome}}/profiles/sample/registries/pip/cache"
+      }
+    },
+    "gem": {
+      "isolation": "process",
+      "env": {
+        "GEM_HOME": "{{idealityHome}}/profiles/sample/registries/rubygems/gems",
+        "GEM_PATH": "{{idealityHome}}/profiles/sample/registries/rubygems/gems",
+        "GEMRC": "{{idealityHome}}/profiles/sample/registries/rubygems/gemrc"
+      }
+    },
+    "composer": {
+      "isolation": "process",
+      "env": {
+        "COMPOSER_HOME": "{{idealityHome}}/profiles/sample/registries/composer",
+        "COMPOSER_CACHE_DIR": "{{idealityHome}}/profiles/sample/registries/composer/cache"
+      }
+    },
+    "mvn": {
+      "isolation": "process",
+      "env": {
+        "MAVEN_OPTS": "-Duser.home={{idealityHome}}/profiles/sample/registries/maven/home"
+      }
+    },
+    "gradle": {
+      "isolation": "process",
+      "env": {
+        "GRADLE_USER_HOME": "{{idealityHome}}/profiles/sample/registries/gradle"
+      }
+    },
+    "nuget": {
+      "isolation": "process",
+      "env": {
+        "NUGET_PACKAGES": "{{idealityHome}}/profiles/sample/registries/nuget/packages",
+        "DOTNET_CLI_HOME": "{{idealityHome}}/profiles/sample/registries/nuget/dotnet-home"
+      }
+    },
+    "fly": {
+      "isolation": "process",
+      "env": {
+        "FLY_API_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/fly-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/fly/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/fly/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/fly/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/fly/cache"
+      }
+    },
+    "netlify": {
+      "isolation": "process",
+      "env": {
+        "NETLIFY_AUTH_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/netlify-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/netlify/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/netlify/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/netlify/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/netlify/cache"
+      }
+    },
+    "supabase": {
+      "isolation": "process",
+      "env": {
+        "SUPABASE_ACCESS_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/supabase-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/supabase/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/supabase/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/supabase/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/supabase/cache"
+      }
+    },
+    "firebase": {
+      "isolation": "process",
+      "env": {
+        "FIREBASE_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/firebase-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/firebase/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/firebase/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/firebase/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/firebase/cache"
+      }
+    },
+    "heroku": {
+      "isolation": "process",
+      "env": {
+        "HEROKU_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/heroku-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/heroku/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/heroku/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/heroku/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/heroku/cache"
+      }
+    },
+    "render": {
+      "isolation": "process",
+      "env": {
+        "RENDER_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/render-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/render/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/render/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/render/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/render/cache"
+      }
+    },
+    "sst": {
+      "isolation": "process",
+      "env": {
+        "SST_AUTH_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/sst-token",
+          "optional": true
+        },
+        "AWS_CONFIG_FILE": "{{idealityHome}}/profiles/sample/cloud/aws/config",
+        "AWS_SHARED_CREDENTIALS_FILE": "{{idealityHome}}/profiles/sample/cloud/aws/credentials"
+      }
+    },
+    "pulumi": {
+      "isolation": "process",
+      "env": {
+        "PULUMI_HOME": "{{idealityHome}}/profiles/sample/deployment/pulumi",
+        "PULUMI_ACCESS_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/pulumi-token",
+          "optional": true
+        },
+        "AWS_CONFIG_FILE": "{{idealityHome}}/profiles/sample/cloud/aws/config",
+        "AWS_SHARED_CREDENTIALS_FILE": "{{idealityHome}}/profiles/sample/cloud/aws/credentials",
+        "CLOUDSDK_CONFIG": "{{idealityHome}}/profiles/sample/cloud/gcloud",
+        "AZURE_CONFIG_DIR": "{{idealityHome}}/profiles/sample/cloud/azure"
+      }
+    },
+    "shopify": {
+      "isolation": "process",
+      "env": {
+        "SHOPIFY_CLI_PARTNERS_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/shopify-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/shopify/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/shopify/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/shopify/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/shopify/cache"
+      }
+    },
+    "stripe": {
+      "isolation": "process",
+      "env": {
+        "STRIPE_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/stripe-api-key",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/deployment/stripe/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/deployment/stripe/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/deployment/stripe/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/deployment/stripe/cache"
+      }
+    },
+    "gemini": {
+      "isolation": "process",
+      "env": {
+        "GEMINI_CLI_HOME": "{{idealityHome}}/profiles/sample/ai/gemini",
+        "GEMINI_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/gemini-api-key",
+          "optional": true
+        }
+      }
+    },
+    "copilot": {
+      "isolation": "process",
+      "env": {
+        "COPILOT_HOME": "{{idealityHome}}/profiles/sample/ai/copilot",
+        "COPILOT_CACHE_HOME": "{{idealityHome}}/profiles/sample/ai/copilot/cache",
+        "COPILOT_GITHUB_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/copilot-github-token",
+          "optional": true
+        }
+      }
+    },
+    "aider": {
+      "isolation": "process",
+      "env": {
+        "OPENAI_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/openai-api-key",
+          "optional": true
+        },
+        "ANTHROPIC_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/anthropic-api-key",
+          "optional": true
+        }
+      }
+    },
+    "amp": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/ai/amp/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/ai/amp/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/ai/amp/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/ai/amp/cache",
+        "AMP_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/amp-api-key",
+          "optional": true
+        }
+      }
+    },
+    "goose": {
+      "isolation": "process",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/sample/ai/goose/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/sample/ai/goose/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/sample/ai/goose/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/sample/ai/goose/cache",
+        "GOOSE_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/goose-api-key",
+          "optional": true
+        }
+      }
+    },
+    "cn": {
+      "isolation": "process",
+      "env": {
+        "CONTINUE_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/continue-api-key",
+          "optional": true
+        }
+      }
+    },
+    "kiro-cli": {
+      "isolation": "process",
+      "env": {
+        "KIRO_HOME": "{{idealityHome}}/profiles/sample/ai/kiro"
+      }
+    },
+    "qwen": {
+      "isolation": "process",
+      "env": {
+        "QWEN_HOME": "{{idealityHome}}/profiles/sample/ai/qwen",
+        "QWEN_RUNTIME_DIR": "{{idealityHome}}/profiles/sample/ai/qwen/runtime",
+        "OPENAI_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/qwen-api-key",
+          "optional": true
+        }
+      }
+    }
+  }
+}

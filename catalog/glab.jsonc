@@ -1,0 +1,39 @@
+// GitLab CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "glab",
+  "displayName": "GitLab CLI",
+  "pack": "source-control",
+  "executable": {
+    "primary": "glab"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "auth",
+      "login"
+    ],
+    "status": [
+      "auth",
+      "status"
+    ],
+    "logout": [
+      "auth",
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "GLAB_CONFIG_DIR": "{{idealityHome}}/profiles/{{identity}}/source-control/glab",
+      "GITLAB_TOKEN": {
+        "from": "secret",
+        "key": "{{identity}}/gitlab-token",
+        "optional": true
+      }
+    }
+  }
+}

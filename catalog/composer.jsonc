@@ -1,0 +1,21 @@
+// Composer registry client - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "composer",
+  "displayName": "Composer registry client",
+  "pack": "registries",
+  "executable": {
+    "primary": "composer"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "profile": {
+    "env": {
+      "COMPOSER_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/composer",
+      "COMPOSER_CACHE_DIR": "{{idealityHome}}/profiles/{{identity}}/registries/composer/cache"
+    }
+  }
+}

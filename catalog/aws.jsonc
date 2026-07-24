@@ -1,0 +1,35 @@
+// AWS CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "aws",
+  "displayName": "AWS CLI",
+  "pack": "cloud",
+  "executable": {
+    "primary": "aws"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "sso",
+      "login"
+    ],
+    "status": [
+      "sts",
+      "get-caller-identity"
+    ],
+    "logout": [
+      "sso",
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "AWS_CONFIG_FILE": "{{idealityHome}}/profiles/{{identity}}/cloud/aws/config",
+      "AWS_SHARED_CREDENTIALS_FILE": "{{idealityHome}}/profiles/{{identity}}/cloud/aws/credentials"
+    }
+  }
+}

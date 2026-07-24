@@ -1,0 +1,25 @@
+// Gerrit SSH command transport - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "gerrit",
+  "displayName": "Gerrit SSH command transport",
+  "pack": "source-control",
+  "executable": {
+    "primary": "ssh"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "credentials"
+  },
+  "profile": {
+    "args": [
+      {
+        "fromIdentity": "sshKey",
+        "prefix": [
+          "-i"
+        ]
+      }
+    ]
+  }
+}

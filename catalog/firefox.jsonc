@@ -1,0 +1,21 @@
+// Firefox - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "firefox",
+  "displayName": "Firefox",
+  "pack": "essentials",
+  "executable": {
+    "primary": "firefox"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "profile": {
+    "args": [
+      "-profile",
+      "{{idealityHome}}/profiles/{{identity}}/browsers/firefox"
+    ]
+  }
+}

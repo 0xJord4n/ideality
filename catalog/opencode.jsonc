@@ -1,0 +1,37 @@
+// OpenCode - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "opencode",
+  "displayName": "OpenCode",
+  "pack": "essentials",
+  "executable": {
+    "primary": "opencode"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "auth",
+      "login"
+    ],
+    "status": [
+      "auth",
+      "list"
+    ],
+    "logout": [
+      "auth",
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/opencode/config",
+      "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/opencode/data",
+      "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/opencode/state",
+      "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/opencode/cache"
+    }
+  }
+}

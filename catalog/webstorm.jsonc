@@ -1,0 +1,23 @@
+// WebStorm - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "webstorm",
+  "displayName": "WebStorm",
+  "pack": "editors",
+  "executable": {
+    "primary": "webstorm"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "partial"
+  },
+  "profile": {
+    "env": {
+      "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/webstorm/config",
+      "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/webstorm/data",
+      "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/webstorm/state",
+      "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/webstorm/cache"
+    }
+  }
+}

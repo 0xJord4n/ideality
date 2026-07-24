@@ -1,0 +1,32 @@
+// OpenAI Codex CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "codex",
+  "displayName": "OpenAI Codex CLI",
+  "pack": "essentials",
+  "executable": {
+    "primary": "codex"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "login"
+    ],
+    "status": [
+      "login",
+      "status"
+    ],
+    "logout": [
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "CODEX_HOME": "{{idealityHome}}/profiles/{{identity}}/codex"
+    }
+  }
+}

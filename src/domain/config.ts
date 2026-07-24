@@ -57,6 +57,7 @@ export interface IdentityConfig {
 
 export interface ToolDefinition {
   executable: string;
+  displayName?: string;
   description?: string;
   isolation?: "shell" | "process";
   pack?: string;

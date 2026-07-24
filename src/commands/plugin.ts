@@ -28,9 +28,9 @@ const pluginCommand = defineGroup({
         const idealityHome = getIdealityHome();
         const config = await loadConfig();
         for (const { file, manifest } of await listPluginManifests(idealityHome)) {
-          const state = config.tools[manifest.name] ? colors.green("active") : colors.yellow("detached");
+          const state = config.tools[manifest.id] ? colors.green("active") : colors.yellow("detached");
           console.log(
-            `${manifest.name.padEnd(16)} ${state.padEnd(8)} ${manifest.executable}  ${file}`,
+            `${manifest.id.padEnd(16)} ${state.padEnd(8)} ${manifest.executable.primary}  ${file}`,
           );
         }
       },
@@ -41,7 +41,7 @@ const pluginCommand = defineGroup({
       handler: async ({ positional, colors }) => {
         const file = requirePositional(positional, 0, "manifest path");
         const manifest = parsePluginManifest(await Bun.file(file).text());
-        console.log(colors.green(`Valid plugin '${manifest.name}'`));
+        console.log(colors.green(`Valid plugin '${manifest.id}'`));
       },
     }),
     defineCommand({
@@ -62,9 +62,9 @@ const pluginCommand = defineGroup({
         const file = requirePositional(positional, 0, "manifest path");
         const manifest = parsePluginManifest(await Bun.file(file).text());
         const config = await loadConfig();
-        if (config.tools[manifest.name] && !flags.force) {
+        if (config.tools[manifest.id] && !flags.force) {
           throw new Error(
-            `Tool '${manifest.name}' already exists; use --force to replace it`,
+            `Tool '${manifest.id}' already exists; use --force to replace it`,
           );
         }
         const next = applyPlugin(config, manifest);
@@ -76,7 +76,7 @@ const pluginCommand = defineGroup({
         const installed = await writePluginManifest(manifest, getIdealityHome());
         await installShims(next, getIdealityHome());
         await syncInstalledCompletions(next, getIdealityHome());
-        console.log(colors.green(`Installed plugin '${manifest.name}'`));
+        console.log(colors.green(`Installed plugin '${manifest.id}'`));
         console.log(colors.dim(installed));
       },
     }),
@@ -98,7 +98,7 @@ const pluginCommand = defineGroup({
         const name = requirePositional(positional, 0, "plugin name");
         if (!flags.force) throw new Error("Plugin removal requires --force");
         const installed = await listPluginManifests(getIdealityHome());
-        if (!installed.some((entry) => entry.manifest.name === name)) {
+        if (!installed.some((entry) => entry.manifest.id === name)) {
           throw new Error(`Plugin '${name}' is not installed`);
         }
         const config = await loadConfig();

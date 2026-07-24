@@ -1,0 +1,20 @@
+// Maven registry client - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "mvn",
+  "displayName": "Maven registry client",
+  "pack": "registries",
+  "executable": {
+    "primary": "mvn"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "partial"
+  },
+  "profile": {
+    "env": {
+      "MAVEN_OPTS": "-Duser.home={{idealityHome}}/profiles/{{identity}}/registries/maven/home"
+    }
+  }
+}

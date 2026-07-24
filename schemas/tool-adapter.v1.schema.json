@@ -1,0 +1,170 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ideality tool adapter manifest (v1)",
+  "description": "Declarative catalog entry for one tool adapter. Auth commands and profile arguments are argv arrays only; the manifest cannot express shell hooks or command strings, and unknown fields are rejected.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "kind", "id", "displayName", "pack", "executable"],
+  "properties": {
+    "schemaVersion": {
+      "const": 1,
+      "description": "Manifest schema version. Only 1 is supported."
+    },
+    "kind": {
+      "const": "tool",
+      "description": "Manifest kind discriminator."
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "maxLength": 64,
+      "description": "Catalog key for the adapter."
+    },
+    "displayName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Human-readable tool name, e.g. 'GitHub CLI'."
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Longer help text for the adapter."
+    },
+    "pack": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "maxLength": 64,
+      "description": "Selectable tool pack the adapter belongs to."
+    },
+    "executable": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["primary"],
+      "properties": {
+        "primary": { "$ref": "#/$defs/executableName" },
+        "alternatives": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/executableName" },
+          "uniqueItems": true,
+          "description": "Alternative executable names probed during detection. Must not repeat the primary name."
+        },
+        "shim": {
+          "type": "boolean",
+          "description": "Whether the universal shim directory should cover this executable."
+        }
+      }
+    },
+    "isolation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "scope": {
+          "enum": ["process", "shell"],
+          "default": "process"
+        },
+        "state": {
+          "enum": ["full", "partial", "credentials"],
+          "default": "partial"
+        }
+      }
+    },
+    "auth": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "login": { "$ref": "#/$defs/argvCommand" },
+        "status": { "$ref": "#/$defs/argvCommand" },
+        "logout": { "$ref": "#/$defs/argvCommand" }
+      }
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "env": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[A-Za-z_][A-Za-z0-9_]*$" },
+          "additionalProperties": {
+            "oneOf": [{ "$ref": "#/$defs/valueSource" }, { "type": "null" }]
+          },
+          "description": "Default environment assignments. Values use the existing value source semantics; null unsets a variable."
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "oneOf": [
+              { "type": "string", "minLength": 1 },
+              { "$ref": "#/$defs/identityArg" }
+            ]
+          },
+          "description": "Default argv entries prepended when launching the tool."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "executableName": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+      "maxLength": 128,
+      "description": "Bare executable name resolved on PATH; path separators, spaces, and leading dashes are rejected."
+    },
+    "argvCommand": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "minItems": 1,
+      "description": "Subcommand argv appended to the tool executable; never interpreted by a shell."
+    },
+    "identityArg": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["fromIdentity"],
+      "properties": {
+        "fromIdentity": { "enum": ["sshKey", "signingKey"] },
+        "prefix": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "description": "Emits prefix followed by the identity's value only when the identity provides that field; emits nothing otherwise, so flag/value pairs can never be orphaned."
+    },
+    "valueSource": {
+      "oneOf": [
+        { "type": "string" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from", "path"],
+          "properties": {
+            "from": { "const": "file" },
+            "path": { "type": "string", "minLength": 1 },
+            "optional": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from", "name"],
+          "properties": {
+            "from": { "const": "env" },
+            "name": {
+              "type": "string",
+              "pattern": "^[A-Za-z_][A-Za-z0-9_]*$"
+            },
+            "optional": { "type": "boolean" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["from", "key"],
+          "properties": {
+            "from": { "const": "secret" },
+            "key": { "type": "string", "minLength": 1 },
+            "optional": { "type": "boolean" }
+          }
+        }
+      ]
+    }
+  }
+}

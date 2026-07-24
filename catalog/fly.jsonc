@@ -1,0 +1,45 @@
+// Fly.io CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "fly",
+  "displayName": "Fly.io CLI",
+  "pack": "deployment",
+  "executable": {
+    "primary": "fly",
+    "alternatives": [
+      "flyctl"
+    ]
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "credentials"
+  },
+  "auth": {
+    "login": [
+      "auth",
+      "login"
+    ],
+    "status": [
+      "auth",
+      "whoami"
+    ],
+    "logout": [
+      "auth",
+      "logout"
+    ]
+  },
+  "profile": {
+    "env": {
+      "FLY_API_TOKEN": {
+        "from": "secret",
+        "key": "{{identity}}/fly-token",
+        "optional": true
+      },
+      "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/fly/config",
+      "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/fly/data",
+      "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/fly/state",
+      "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/fly/cache"
+    }
+  }
+}

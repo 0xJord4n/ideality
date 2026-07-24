@@ -1,0 +1,31 @@
+// GitHub Copilot CLI - built-in tool adapter manifest.
+{
+  "schemaVersion": 1,
+  "kind": "tool",
+  "id": "copilot",
+  "displayName": "GitHub Copilot CLI",
+  "pack": "ai",
+  "executable": {
+    "primary": "copilot"
+  },
+  "isolation": {
+    "scope": "process",
+    "state": "full"
+  },
+  "auth": {
+    "login": [
+      "login"
+    ]
+  },
+  "profile": {
+    "env": {
+      "COPILOT_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/copilot",
+      "COPILOT_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/copilot/cache",
+      "COPILOT_GITHUB_TOKEN": {
+        "from": "secret",
+        "key": "{{identity}}/copilot-github-token",
+        "optional": true
+      }
+    }
+  }
+}
