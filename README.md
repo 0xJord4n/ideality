@@ -53,6 +53,8 @@ ideality init --non-interactive \
 
 Interactive mode is selected automatically in a terminal. Use `--interactive`
 to force the wizard or `--non-interactive` to guarantee that no prompt occurs.
+The first identity receives the ID `default` automatically; use `--id` only to
+override it.
 Existing-file steps use an interactive fuzzy finder; SSH private keys are
 discovered from `~/.ssh` and `~/.ideality/ssh`.
 

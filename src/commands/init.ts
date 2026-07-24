@@ -59,7 +59,7 @@ const initCommand = defineCommand({
   description: "Create the identity registry",
   options: {
     id: option(z.string().default("default"), {
-      description: "Initial identity ID",
+      description: "Override the automatic identity ID",
     }),
     label: option(z.string().default("Default"), {
       description: "Display label",
@@ -146,7 +146,8 @@ const initCommand = defineCommand({
       flags["git-name"],
       flags["git-email"],
     );
-    let id = flags.id;
+    const id = flags.id;
+    assertIdentityId(id);
     let label = flags.label;
     let root = flags.root;
     let gitName = discoveredGit.name;
@@ -177,15 +178,6 @@ const initCommand = defineCommand({
         "How it works",
       );
 
-      id = await wizardStep(
-        prompt.text("Identity ID", {
-          default: id,
-          placeholder: "default",
-          validate: (value) =>
-            /^[a-z][a-z0-9_-]*$/.test(value) ||
-            "Use lowercase letters, numbers, _ or -",
-        }),
-      );
       label = await wizardStep(
         prompt.text("Display label", {
           default:
@@ -331,7 +323,6 @@ const initCommand = defineCommand({
       }
     }
 
-    assertIdentityId(id);
     const git = { name: gitName, email: gitEmail };
     if (sshMode === "existing") {
       const expanded = expandHome(sshKey!, home);
