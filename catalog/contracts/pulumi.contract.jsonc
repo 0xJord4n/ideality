@@ -1,0 +1,32 @@
+// Pulumi CLI - adapter behavior contract.
+// catalog:check compiles catalog/pulumi.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "pulumi",
+  "detection": ["pulumi"],
+  "auth": {
+    "login": ["pulumi", "login"],
+    "status": ["pulumi", "whoami"],
+    "logout": ["pulumi", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "PULUMI_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/pulumi",
+        "PULUMI_ACCESS_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/pulumi-token",
+          "optional": true
+        },
+        "AWS_CONFIG_FILE": "{{idealityHome}}/profiles/{{identity}}/cloud/aws/config",
+        "AWS_SHARED_CREDENTIALS_FILE": "{{idealityHome}}/profiles/{{identity}}/cloud/aws/credentials",
+        "CLOUDSDK_CONFIG": "{{idealityHome}}/profiles/{{identity}}/cloud/gcloud",
+        "AZURE_CONFIG_DIR": "{{idealityHome}}/profiles/{{identity}}/cloud/azure"
+      }
+    }
+  ],
+  "redactions": ["PULUMI_ACCESS_TOKEN"]
+}

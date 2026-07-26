@@ -1,0 +1,22 @@
+// uv Python package client - adapter behavior contract.
+// catalog:check compiles catalog/uv.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "uv",
+  "detection": ["uv"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/uv/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/uv/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/uv/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/uv/cache",
+        "UV_CACHE_DIR": "{{idealityHome}}/profiles/{{identity}}/registries/uv/cache"
+      }
+    }
+  ],
+  "redactions": []
+}

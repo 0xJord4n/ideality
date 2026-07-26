@@ -1,0 +1,19 @@
+// pip Python package client - adapter behavior contract.
+// catalog:check compiles catalog/pip.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "pip",
+  "detection": ["pip", "pip3"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "PIP_CONFIG_FILE": "{{idealityHome}}/profiles/{{identity}}/registries/pip/pip.conf",
+        "PIP_CACHE_DIR": "{{idealityHome}}/profiles/{{identity}}/registries/pip/cache"
+      }
+    }
+  ],
+  "redactions": []
+}

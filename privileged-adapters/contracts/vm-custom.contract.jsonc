@@ -1,0 +1,52 @@
+// Custom VM - deterministic privileged behavior contract.
+{
+  "contractVersion": 1,
+  "kind": "privileged-adapter-contract",
+  "adapterKind": "vm",
+  "adapter": "custom",
+  "cases": [
+    {
+      "case": "default",
+      "profile": {
+        "driver": "custom",
+        "start": ["vmctl", "start", "{{vm}}"],
+        "stop": ["vmctl", "stop", "{{vm}}"],
+        "status": ["vmctl", "status", "{{vm}}"],
+        "exec": ["vmctl", "exec", "{{vm}}", "--", "{{command}}"]
+      },
+      "capabilityOptions": {
+        "platform": "linux",
+        "hasKvm": true,
+        "executablePath": "/usr/bin/vmctl"
+      },
+      "expected": {
+        "capability": {
+          "available": true,
+          "executable": "vmctl",
+          "detail": "custom backend is available"
+        },
+        "actions": {
+          "start": {
+            "options": {
+              "configPath": "/runtime/vm.json"
+            },
+            "argv": ["vmctl", "start", "contract"]
+          },
+          "stop": {
+            "argv": ["vmctl", "stop", "contract"]
+          },
+          "status": {
+            "argv": ["vmctl", "status", "contract"]
+          },
+          "exec": {
+            "options": {
+              "workdir": "/workspace/project",
+              "command": ["bun", "test"]
+            },
+            "argv": ["vmctl", "exec", "contract", "--", "bun", "test"]
+          }
+        }
+      }
+    }
+  ]
+}

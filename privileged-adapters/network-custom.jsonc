@@ -1,0 +1,37 @@
+// Custom network - reviewed privileged adapter contribution manifest.
+{
+  "schemaVersion": 1,
+  "kind": "privileged-adapter",
+  "adapterKind": "network",
+  "id": "custom",
+  "displayName": "Custom network",
+  "description": "User-configured argv-only network lifecycle",
+  "capability": {
+    "name": "network-lifecycle",
+    "operations": ["up", "down", "status"]
+  },
+  "platforms": {
+    "os": ["any"],
+    "arch": ["any"],
+    "executables": []
+  },
+  "permissions": {
+    "privileges": ["host-network", "custom-command"],
+    "filesystem": ["runtime-state"],
+    "network": ["host-control"],
+    "secrets": ["read"]
+  },
+  "implementation": {
+    "type": "user-configured"
+  },
+  "provenance": {
+    "repository": "https://github.com/0xJord4n/ideality",
+    "license": "MIT",
+    "maintainers": ["0xJord4n@users.noreply.github.com"]
+  },
+  "signing": {
+    "mode": "release-bundle",
+    "identity": "https://github.com/0xJord4n/ideality/.github/workflows/release.yml@refs/tags/v*",
+    "issuer": "https://token.actions.githubusercontent.com"
+  }
+}

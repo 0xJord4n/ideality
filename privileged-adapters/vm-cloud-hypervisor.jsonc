@@ -1,0 +1,37 @@
+// Cloud Hypervisor - reviewed privileged adapter contribution manifest.
+{
+  "schemaVersion": 1,
+  "kind": "privileged-adapter",
+  "adapterKind": "vm",
+  "id": "cloud-hypervisor",
+  "displayName": "Cloud Hypervisor",
+  "description": "Trusted Cloud Hypervisor helper lifecycle",
+  "capability": {
+    "name": "vm-lifecycle",
+    "operations": ["start", "stop", "status", "exec"]
+  },
+  "platforms": {
+    "os": ["linux"],
+    "arch": ["any"],
+    "executables": ["ideality-cloud-hypervisor-helper"]
+  },
+  "permissions": {
+    "privileges": ["vm-helper", "hardware-virtualization"],
+    "filesystem": ["config-write", "runtime-state"],
+    "network": ["guest-control"],
+    "secrets": []
+  },
+  "implementation": {
+    "type": "trusted-core"
+  },
+  "provenance": {
+    "repository": "https://github.com/0xJord4n/ideality",
+    "license": "MIT",
+    "maintainers": ["0xJord4n@users.noreply.github.com"]
+  },
+  "signing": {
+    "mode": "release-bundle",
+    "identity": "https://github.com/0xJord4n/ideality/.github/workflows/release.yml@refs/tags/v*",
+    "issuer": "https://token.actions.githubusercontent.com"
+  }
+}

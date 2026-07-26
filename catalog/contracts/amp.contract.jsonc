@@ -1,0 +1,26 @@
+// Amp - adapter behavior contract.
+// catalog:check compiles catalog/amp.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "amp",
+  "detection": ["amp"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/amp/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/amp/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/amp/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/amp/cache",
+        "AMP_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/amp-api-key",
+          "optional": true
+        }
+      }
+    }
+  ],
+  "redactions": ["AMP_API_KEY"]
+}

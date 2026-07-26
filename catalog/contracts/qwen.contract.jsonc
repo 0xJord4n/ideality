@@ -1,0 +1,27 @@
+// Qwen Code - adapter behavior contract.
+// catalog:check compiles catalog/qwen.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "qwen",
+  "detection": ["qwen"],
+  "auth": {
+    "login": ["qwen", "auth"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "QWEN_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/qwen",
+        "QWEN_RUNTIME_DIR": "{{idealityHome}}/profiles/{{identity}}/ai/qwen/runtime",
+        "OPENAI_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/qwen-api-key",
+          "optional": true
+        }
+      }
+    }
+  ],
+  "redactions": ["OPENAI_API_KEY"]
+}

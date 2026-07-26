@@ -372,6 +372,17 @@ export function checkContracts(
 ): CatalogIssue[] {
   const issues: CatalogIssue[] = [];
   const byId = new Map(entries.map((entry) => [entry.id, entry]));
+  const contractsById = new Set(contracts.map((entry) => entry.tool));
+  for (const entry of entries) {
+    if (!contractsById.has(entry.id)) {
+      issues.push(
+        issue(
+          entry.file,
+          `${entry.file}: missing catalog/contracts/${entry.id}.contract.jsonc behavior contract`,
+        ),
+      );
+    }
+  }
   for (const contractEntry of contracts) {
     const entry = byId.get(contractEntry.tool);
     if (!entry) {

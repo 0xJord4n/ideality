@@ -1,0 +1,21 @@
+// Zed - adapter behavior contract.
+// catalog:check compiles catalog/zed.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "zed",
+  "detection": ["zed"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/zed/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/zed/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/zed/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/zed/cache"
+      }
+    }
+  ],
+  "redactions": []
+}

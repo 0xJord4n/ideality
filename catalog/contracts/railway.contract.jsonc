@@ -1,0 +1,27 @@
+// Railway CLI - adapter behavior contract.
+// catalog:check compiles catalog/railway.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "railway",
+  "detection": ["railway"],
+  "auth": {
+    "login": ["railway", "login"],
+    "status": ["railway", "whoami"],
+    "logout": ["railway", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "RAILWAY_API_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/railway-token",
+          "optional": true
+        }
+      }
+    }
+  ],
+  "redactions": ["RAILWAY_API_TOKEN"]
+}

@@ -1,0 +1,19 @@
+// Composer registry client - adapter behavior contract.
+// catalog:check compiles catalog/composer.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "composer",
+  "detection": ["composer"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "COMPOSER_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/composer",
+        "COMPOSER_CACHE_DIR": "{{idealityHome}}/profiles/{{identity}}/registries/composer/cache"
+      }
+    }
+  ],
+  "redactions": []
+}

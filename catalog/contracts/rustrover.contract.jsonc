@@ -1,0 +1,21 @@
+// RustRover - adapter behavior contract.
+// catalog:check compiles catalog/rustrover.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "rustrover",
+  "detection": ["rustrover"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/rustrover/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/rustrover/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/rustrover/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/rustrover/cache"
+      }
+    }
+  ],
+  "redactions": []
+}

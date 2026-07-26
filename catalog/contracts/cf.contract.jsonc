@@ -1,0 +1,41 @@
+// Cloudflare CLI - adapter behavior contract.
+// catalog:check compiles catalog/cf.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "cf",
+  "detection": ["cf"],
+  "auth": {
+    "login": ["cf", "auth", "login"],
+    "status": ["cf", "auth", "whoami"],
+    "logout": ["cf", "auth", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "CLOUDFLARE_API_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/cloudflare-token",
+          "optional": true
+        },
+        "CLOUDFLARE_ACCOUNT_ID": {
+          "from": "file",
+          "path": "{{idealityHome}}/profiles/{{identity}}/cloudflare-account-id",
+          "optional": true
+        },
+        "CLOUDFLARE_ZONE_ID": {
+          "from": "file",
+          "path": "{{idealityHome}}/profiles/{{identity}}/cloudflare-zone-id",
+          "optional": true
+        }
+      }
+    }
+  ],
+  "redactions": [
+    "CLOUDFLARE_ACCOUNT_ID",
+    "CLOUDFLARE_API_TOKEN",
+    "CLOUDFLARE_ZONE_ID"
+  ]
+}

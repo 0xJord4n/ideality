@@ -101,7 +101,7 @@ manifest) ever runs the third-party tool. Keep in lockstep with the manifest:
 ### 4. Verify
 
 ```bash
-bun run check        # typecheck + catalog:check + full test suite
+bun run check        # format, lint, typecheck, both adapter harnesses, tests
 ```
 
 `bun run catalog:check` enforces:
@@ -117,6 +117,7 @@ bun run check        # typecheck + catalog:check + full test suite
 - the editor JSON schema has not drifted from the runtime parser,
 - every behavior contract matches the compiled manifest exactly (detection
   order, auth argv, profile env/args per identity shape, redaction set),
+- every catalog manifest has exactly one behavior contract,
 - the versioned adapter registry covers every catalog manifest plus every
   trusted network, VM, and secret backend adapter,
 - catalog-wide safety invariants hold for every manifest: no sensitive-named
@@ -129,19 +130,63 @@ Use the catalog PR template: append `?template=catalog-adapter.md` to the
 compare URL, or copy `.github/PULL_REQUEST_TEMPLATE/catalog-adapter.md` into
 the description. A catalog PR contains your authored manifest and behavior
 contract plus the mechanical changes from step 1 — nothing else. CI runs the
-same `typecheck` / `catalog:check` / `bun test` gate as `bun run check`.
+same `typecheck` / `catalog:check` / `privileged:check` / `bun test` gate as
+`bun run check`.
+
+## Add a privileged adapter
+
+Network, VM, and secret adapters use a separate contribution format because
+they can control host networking, virtualization, or secret stores. They are
+reviewed and statically bundled; Ideality never installs arbitrary privileged
+TypeScript from a plugin.
+
+A privileged adapter PR includes:
+
+- `privileged-adapters/<kind>-<id>.jsonc`, validated against
+  `schemas/privileged-adapter.v1.schema.json`,
+- `privileged-adapters/contracts/<kind>-<id>.contract.jsonc`, validated
+  against `schemas/privileged-adapter-contract.v1.schema.json`,
+- the narrowly scoped trusted-core implementation and any domain schema
+  changes needed to bind `<kind>:<id>`,
+- focused integration tests for side-effecting orchestration.
+
+The manifest must declare its complete capability set, OS/architecture and
+executable requirements, filesystem/network/secret permissions, provenance,
+maintainers, and the repository release-signing identity. `trusted-core`
+implementations cannot request `custom-command`; user-configured argv wrappers
+must.
+The release workflow signature is the distribution trust boundary, so there
+is no unsigned runtime installation path.
+
+Behavior contracts cover every action for the adapter kind:
+
+- network: capability, enforcement, and `up`/`down`/`status` plans,
+- VM: platform/KVM capability and `start`/`stop`/`status`/`exec` argv,
+- secret: executable selection, writability, and every declared
+  `read`/`write`/`list`/`delete` operation, including argv, stdin,
+  environment, results, and platform-specific errors.
+
+The harness invokes only deterministic registry methods with fake platform and
+executable probes, recorded command runners, and isolated temporary storage.
+It never executes provider CLIs or performs privileged host operations.
+
+```bash
+bun run privileged:check
+bun test test/privileged-adapters.test.ts
+bun run check
+```
+
+Use `.github/PULL_REQUEST_TEMPLATE/privileged-adapter.md` for this PR shape.
 
 ## Ground rules
 
 - **Manifests are data.** They are parsed, never executed; auth commands and
   args are argv arrays appended to the tool's own executable. Don't propose
   shell hooks or command strings.
-- **Core owns privileged lifecycle.** Tool manifests and plugins describe
-  behavior, but host network control, VM helpers, and secret backend reads or
-  writes are trusted implementations registered in `src/core/adapters.ts`
-  with explicit platform and privilege metadata. Custom network and VM
-  profiles remain supported as non-trusted argv-array wrappers; they are not
-  contributor code plugins and are never labeled trusted core lifecycle.
+- **Core owns privileged lifecycle.** Privileged contributions are accepted
+  through reviewed PRs and statically bound with `defineNetworkAdapter`,
+  `defineVmAdapter`, or `defineSecretAdapter`. They are never runtime plugins.
+  Custom network and VM profiles remain non-trusted argv-array wrappers.
 - **No new runtime dependencies.** Tooling and adapters must work with the
   existing dependency set.
 - **Secrets stay logical.** `secret:` references resolve through the user's
@@ -160,6 +205,7 @@ bun run lint             # run Biome lint rules
 bun run typecheck        # tsc --noEmit
 bun run catalog:check    # catalog validation (add --write via catalog:docs)
 bun run catalog:docs     # regenerate generated doc blocks
+bun run privileged:check # privileged manifests and behavior harness
 bun test                 # full test suite
 bun run check            # all of the above gates
 bun run audit            # fail on high-severity dependency advisories

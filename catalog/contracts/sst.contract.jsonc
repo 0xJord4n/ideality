@@ -1,0 +1,24 @@
+// SST CLI - adapter behavior contract.
+// catalog:check compiles catalog/sst.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "sst",
+  "detection": ["sst"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "SST_AUTH_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/sst-token",
+          "optional": true
+        },
+        "AWS_CONFIG_FILE": "{{idealityHome}}/profiles/{{identity}}/cloud/aws/config",
+        "AWS_SHARED_CREDENTIALS_FILE": "{{idealityHome}}/profiles/{{identity}}/cloud/aws/credentials"
+      }
+    }
+  ],
+  "redactions": ["SST_AUTH_TOKEN"]
+}

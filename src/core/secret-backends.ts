@@ -156,6 +156,7 @@ export async function readSecretValue(
   home: string,
   idealityHome: string,
   runner: SecretCommandRunner = runCommand,
+  platform: NodeJS.Platform = process.platform,
 ): Promise<string> {
   const selected = backend(config);
   if (selected.type === "file") {
@@ -210,7 +211,7 @@ export async function readSecretValue(
   assertKey(key);
   const service = selected.service ?? "ideality";
   const command =
-    process.platform === "darwin"
+    platform === "darwin"
       ? ["security", "find-generic-password", "-s", service, "-a", key, "-w"]
       : ["secret-tool", "lookup", "service", service, "key", key];
   const result = await runner(command);
@@ -225,6 +226,7 @@ export async function writeSecretValue(
   home: string,
   idealityHome: string,
   runner: SecretCommandRunner = runCommand,
+  platform: NodeJS.Platform = process.platform,
 ): Promise<void> {
   const normalized = value.trim();
   if (!normalized) throw new Error("Secret value cannot be empty");
@@ -277,7 +279,7 @@ export async function writeSecretValue(
       `${name} references are read-only in ideality; create or update the item with its native app or CLI`,
     );
   }
-  if (process.platform === "darwin") {
+  if (platform === "darwin") {
     throw new Error(
       "Keychain writes are disabled on macOS because the security CLI exposes values in process arguments; use age, pass, or 1Password",
     );
@@ -305,13 +307,14 @@ export async function listSecretReferences(
   config: IdealityConfig,
   home: string,
   idealityHome: string,
+  platform: NodeJS.Platform = process.platform,
 ): Promise<SecretReferenceList> {
   const selected = backend(config);
   if (selected.type === "file") {
     return {
       backend: selected.type,
       supported: true,
-      writable: secretBackendWritable(config),
+      writable: secretBackendWritable(config, platform),
       references: await listFilesRecursively(
         directoryFor(selected, home, idealityHome),
       ),
@@ -321,7 +324,7 @@ export async function listSecretReferences(
     return {
       backend: selected.type,
       supported: true,
-      writable: secretBackendWritable(config),
+      writable: secretBackendWritable(config, platform),
       references: await listFilesRecursively(
         directoryFor(selected, home, idealityHome),
         ".age",
@@ -331,7 +334,7 @@ export async function listSecretReferences(
   return {
     backend: selected.type,
     supported: false,
-    writable: secretBackendWritable(config),
+    writable: secretBackendWritable(config, platform),
     references: [],
   };
 }
@@ -343,8 +346,9 @@ export async function deleteSecretValue(
   home: string,
   idealityHome: string,
   runner: SecretCommandRunner = runCommand,
+  platform: NodeJS.Platform = process.platform,
 ): Promise<void> {
-  if (!secretBackendWritable(config)) {
+  if (!secretBackendWritable(config, platform)) {
     throw new Error(
       `${backend(config).type} references are read-only; delete the item with its native app or CLI`,
     );
@@ -365,7 +369,7 @@ export async function deleteSecretValue(
     assertKey(key);
     const service = selected.service ?? "ideality";
     const command =
-      process.platform === "darwin"
+      platform === "darwin"
         ? ["security", "delete-generic-password", "-s", service, "-a", key]
         : ["secret-tool", "clear", "service", service, "key", key];
     const result = await runner(command);
@@ -377,12 +381,15 @@ export async function deleteSecretValue(
   );
 }
 
-export function secretBackendExecutable(config: IdealityConfig): string | null {
+export function secretBackendExecutable(
+  config: IdealityConfig,
+  platform: NodeJS.Platform = process.platform,
+): string | null {
   switch (backend(config).type) {
     case "age":
       return "age";
     case "keychain":
-      return process.platform === "darwin" ? "security" : "secret-tool";
+      return platform === "darwin" ? "security" : "secret-tool";
     case "pass":
       return "pass";
     case "onepassword":
@@ -396,10 +403,13 @@ export function secretBackendExecutable(config: IdealityConfig): string | null {
   }
 }
 
-export function secretBackendWritable(config: IdealityConfig): boolean {
+export function secretBackendWritable(
+  config: IdealityConfig,
+  platform: NodeJS.Platform = process.platform,
+): boolean {
   const type = backend(config).type;
   if (type === "onepassword" || type === "bitwarden" || type === "dashlane") {
     return false;
   }
-  return type !== "keychain" || process.platform !== "darwin";
+  return type !== "keychain" || platform !== "darwin";
 }

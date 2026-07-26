@@ -1,0 +1,24 @@
+// Yarn registry client - adapter behavior contract.
+// catalog:check compiles catalog/yarn.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "yarn",
+  "detection": ["yarn"],
+  "auth": {
+    "login": ["yarn", "npm", "login"],
+    "status": ["yarn", "npm", "whoami"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/{{identity}}/registries/yarn/npmrc",
+        "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/{{identity}}/registries/yarn/npm-cache",
+        "YARN_CACHE_FOLDER": "{{idealityHome}}/profiles/{{identity}}/registries/yarn/cache"
+      }
+    }
+  ],
+  "redactions": []
+}

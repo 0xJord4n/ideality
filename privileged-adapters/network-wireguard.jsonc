@@ -1,0 +1,37 @@
+// WireGuard - reviewed privileged adapter contribution manifest.
+{
+  "schemaVersion": 1,
+  "kind": "privileged-adapter",
+  "adapterKind": "network",
+  "id": "wireguard",
+  "displayName": "WireGuard",
+  "description": "wg-quick network profile lifecycle",
+  "capability": {
+    "name": "network-lifecycle",
+    "operations": ["up", "down", "status"]
+  },
+  "platforms": {
+    "os": ["linux", "darwin"],
+    "arch": ["any"],
+    "executables": ["wg-quick", "wg"]
+  },
+  "permissions": {
+    "privileges": ["host-network", "sudo"],
+    "filesystem": ["config-read", "runtime-state"],
+    "network": ["host-control"],
+    "secrets": ["read"]
+  },
+  "implementation": {
+    "type": "trusted-core"
+  },
+  "provenance": {
+    "repository": "https://github.com/0xJord4n/ideality",
+    "license": "MIT",
+    "maintainers": ["0xJord4n@users.noreply.github.com"]
+  },
+  "signing": {
+    "mode": "release-bundle",
+    "identity": "https://github.com/0xJord4n/ideality/.github/workflows/release.yml@refs/tags/v*",
+    "issuer": "https://token.actions.githubusercontent.com"
+  }
+}

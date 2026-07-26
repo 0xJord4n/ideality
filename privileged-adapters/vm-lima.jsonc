@@ -1,0 +1,37 @@
+// Lima - reviewed privileged adapter contribution manifest.
+{
+  "schemaVersion": 1,
+  "kind": "privileged-adapter",
+  "adapterKind": "vm",
+  "id": "lima",
+  "displayName": "Lima",
+  "description": "Lima VM lifecycle with strict guest environment filtering",
+  "capability": {
+    "name": "vm-lifecycle",
+    "operations": ["start", "stop", "status", "exec"]
+  },
+  "platforms": {
+    "os": ["linux", "darwin"],
+    "arch": ["any"],
+    "executables": ["limactl"]
+  },
+  "permissions": {
+    "privileges": ["external-cli"],
+    "filesystem": ["config-write", "runtime-state"],
+    "network": ["guest-control"],
+    "secrets": []
+  },
+  "implementation": {
+    "type": "trusted-core"
+  },
+  "provenance": {
+    "repository": "https://github.com/0xJord4n/ideality",
+    "license": "MIT",
+    "maintainers": ["0xJord4n@users.noreply.github.com"]
+  },
+  "signing": {
+    "mode": "release-bundle",
+    "identity": "https://github.com/0xJord4n/ideality/.github/workflows/release.yml@refs/tags/v*",
+    "issuer": "https://token.actions.githubusercontent.com"
+  }
+}

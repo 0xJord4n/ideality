@@ -1,0 +1,73 @@
+// Tailscale - deterministic privileged behavior contract.
+{
+  "contractVersion": 1,
+  "kind": "privileged-adapter-contract",
+  "adapterKind": "network",
+  "adapter": "tailscale",
+  "cases": [
+    {
+      "case": "default",
+      "profile": {
+        "driver": "tailscale",
+        "killSwitch": "provider",
+        "exitNode": "100.64.0.10",
+        "allowLanAccess": false,
+        "acceptRoutes": true,
+        "shieldsUp": true
+      },
+      "expected": {
+        "capability": {
+          "executable": "tailscale",
+          "strictKillSwitch": false,
+          "detail": "Tailscale exit-node routing requires provider or OS enforcement"
+        },
+        "enforcement": "provider",
+        "actions": {
+          "up": {
+            "steps": [
+              {
+                "description": "Connect Tailscale through exit node 100.64.0.10",
+                "command": [
+                  "tailscale",
+                  "up",
+                  "--exit-node=100.64.0.10",
+                  "--exit-node-allow-lan-access=false",
+                  "--accept-routes=true",
+                  "--shields-up=true"
+                ]
+              },
+              {
+                "description": "Read Tailscale status",
+                "command": ["tailscale", "status", "--json"],
+                "verifyConnection": {
+                  "provider": "tailscale",
+                  "exitNode": "100.64.0.10"
+                }
+              }
+            ]
+          },
+          "down": {
+            "steps": [
+              {
+                "description": "Disconnect Tailscale",
+                "command": ["tailscale", "down"]
+              }
+            ]
+          },
+          "status": {
+            "steps": [
+              {
+                "description": "Read Tailscale status",
+                "command": ["tailscale", "status", "--json"],
+                "verifyConnection": {
+                  "provider": "tailscale",
+                  "exitNode": "100.64.0.10"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

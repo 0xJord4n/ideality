@@ -1,0 +1,27 @@
+// GitHub Copilot CLI - adapter behavior contract.
+// catalog:check compiles catalog/copilot.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "copilot",
+  "detection": ["copilot"],
+  "auth": {
+    "login": ["copilot", "login"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "COPILOT_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/copilot",
+        "COPILOT_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/copilot/cache",
+        "COPILOT_GITHUB_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/copilot-github-token",
+          "optional": true
+        }
+      }
+    }
+  ],
+  "redactions": ["COPILOT_GITHUB_TOKEN"]
+}

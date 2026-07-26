@@ -1,0 +1,23 @@
+// OpenAI Codex CLI - adapter behavior contract.
+// catalog:check compiles catalog/codex.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "codex",
+  "detection": ["codex"],
+  "auth": {
+    "login": ["codex", "login"],
+    "status": ["codex", "login", "status"],
+    "logout": ["codex", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "CODEX_HOME": "{{idealityHome}}/profiles/{{identity}}/codex"
+      }
+    }
+  ],
+  "redactions": []
+}

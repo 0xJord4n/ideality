@@ -1,0 +1,24 @@
+// npm registry client - adapter behavior contract.
+// catalog:check compiles catalog/npm.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "npm",
+  "detection": ["npm"],
+  "auth": {
+    "login": ["npm", "login"],
+    "status": ["npm", "whoami"],
+    "logout": ["npm", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/{{identity}}/registries/npm/npmrc",
+        "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/{{identity}}/registries/npm/cache"
+      }
+    }
+  ],
+  "redactions": []
+}

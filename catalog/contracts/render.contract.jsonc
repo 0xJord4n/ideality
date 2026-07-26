@@ -1,0 +1,26 @@
+// Render CLI - adapter behavior contract.
+// catalog:check compiles catalog/render.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "render",
+  "detection": ["render"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "RENDER_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/render-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/render/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/render/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/render/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/render/cache"
+      }
+    }
+  ],
+  "redactions": ["RENDER_API_KEY"]
+}

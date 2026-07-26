@@ -1,0 +1,21 @@
+// Cursor - adapter behavior contract.
+// catalog:check compiles catalog/cursor.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "cursor",
+  "detection": ["cursor"],
+  "profiles": [
+    {
+      "case": "default",
+      "args": [
+        "--user-data-dir",
+        "{{idealityHome}}/profiles/{{identity}}/editors/cursor/user-data",
+        "--extensions-dir",
+        "{{idealityHome}}/profiles/{{identity}}/editors/cursor/extensions"
+      ]
+    }
+  ],
+  "redactions": []
+}

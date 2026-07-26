@@ -1,0 +1,20 @@
+// Bun package registry client - adapter behavior contract.
+// catalog:check compiles catalog/bun.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "bun",
+  "detection": ["bun"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/{{identity}}/registries/bun/npmrc",
+        "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/{{identity}}/registries/bun/npm-cache",
+        "BUN_INSTALL_CACHE_DIR": "{{idealityHome}}/profiles/{{identity}}/registries/bun/cache"
+      }
+    }
+  ],
+  "redactions": []
+}

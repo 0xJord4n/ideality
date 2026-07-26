@@ -1,0 +1,18 @@
+// Maven registry client - adapter behavior contract.
+// catalog:check compiles catalog/mvn.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "mvn",
+  "detection": ["mvn"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "MAVEN_OPTS": "-Duser.home={{idealityHome}}/profiles/{{identity}}/registries/maven/home"
+      }
+    }
+  ],
+  "redactions": []
+}

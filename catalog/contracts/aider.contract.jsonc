@@ -1,0 +1,27 @@
+// Aider - adapter behavior contract.
+// catalog:check compiles catalog/aider.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "aider",
+  "detection": ["aider"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "OPENAI_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/openai-api-key",
+          "optional": true
+        },
+        "ANTHROPIC_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/anthropic-api-key",
+          "optional": true
+        }
+      }
+    }
+  ],
+  "redactions": ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"]
+}

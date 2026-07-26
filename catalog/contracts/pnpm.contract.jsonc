@@ -1,0 +1,25 @@
+// pnpm registry client - adapter behavior contract.
+// catalog:check compiles catalog/pnpm.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "pnpm",
+  "detection": ["pnpm"],
+  "auth": {
+    "login": ["pnpm", "login"],
+    "status": ["pnpm", "whoami"],
+    "logout": ["pnpm", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "NPM_CONFIG_USERCONFIG": "{{idealityHome}}/profiles/{{identity}}/registries/pnpm/npmrc",
+        "NPM_CONFIG_CACHE": "{{idealityHome}}/profiles/{{identity}}/registries/pnpm/cache",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/pnpm/data"
+      }
+    }
+  ],
+  "redactions": []
+}

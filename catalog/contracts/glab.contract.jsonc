@@ -1,0 +1,28 @@
+// GitLab CLI - adapter behavior contract.
+// catalog:check compiles catalog/glab.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "glab",
+  "detection": ["glab"],
+  "auth": {
+    "login": ["glab", "auth", "login"],
+    "status": ["glab", "auth", "status"],
+    "logout": ["glab", "auth", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "GLAB_CONFIG_DIR": "{{idealityHome}}/profiles/{{identity}}/source-control/glab",
+        "GITLAB_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/gitlab-token",
+          "optional": true
+        }
+      }
+    }
+  ],
+  "redactions": ["GITLAB_TOKEN"]
+}

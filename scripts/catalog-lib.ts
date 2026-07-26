@@ -379,6 +379,14 @@ const EDITOR_SCHEMA_MAPPINGS = [
     fileMatch: "/catalog/contracts/*.contract.jsonc",
     url: "./schemas/tool-adapter-contract.v1.schema.json",
   },
+  {
+    fileMatch: "/privileged-adapters/*.jsonc",
+    url: "./schemas/privileged-adapter.v1.schema.json",
+  },
+  {
+    fileMatch: "/privileged-adapters/contracts/*.contract.jsonc",
+    url: "./schemas/privileged-adapter-contract.v1.schema.json",
+  },
 ] as const;
 
 /** Verify contributors receive schema validation for every catalog document. */

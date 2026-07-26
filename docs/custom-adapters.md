@@ -72,27 +72,33 @@ executable names, process isolation, known fields only, and no shell hooks.
 ## Unified adapter registry
 
 Ideality has one versioned core adapter envelope for all integration classes:
-tool, network, VM, and secret. Custom tool plugins still use the same
-manifest formats and install commands; during install the manifest is wrapped
-as a declarative tool adapter with no contributor executable code. Privileged
-network, VM, and secret lifecycle work is not plugin-extensible: those
-implementations are trusted core adapters registered with platform and
-privilege metadata. Custom network and VM profiles are represented in that
-registry too, but as non-trusted user-configured argv wrappers because the
-configured commands come from the user's registry.
+tool, network, VM, and secret. Custom tool plugins still use the same manifest
+formats and install commands; during install the manifest is wrapped as a
+declarative tool adapter with no contributor executable code.
 
-Migration notes:
+Privileged network, VM, and secret adapters use a separate reviewed
+contribution format under `privileged-adapters/`. Their manifests declare
+capabilities, permissions, platform constraints, provenance, implementation
+type, and the release-signing identity. They are validated and bundled at
+build time; a project file or installed plugin cannot dynamically load or
+replace privileged implementation code. Custom network and VM profiles are
+represented in that registry too, but as non-trusted user-configured argv
+wrappers because the configured commands come from the user's registry.
 
-- Registry config stays at `version: 1`; existing configs and stored plugin
-  manifests do not need a migration.
-- Legacy plugin manifests with `"version": 1` are translated to the canonical
-  tool manifest shape before registration.
+Format boundaries:
+
 - `catalog/<id>.jsonc` and plugin manifests describe observable behavior only.
   They cannot add hooks, dynamic imports, shell command strings, or arbitrary
   lifecycle code.
-- `bun run catalog:check` fails if a built-in manifest is missing from the
-  adapter registry, or if the registry omits a built-in network, VM, or secret
-  backend.
+- `privileged-adapters/<kind>-<id>.jsonc` can only bind to a reviewed
+  implementation already present in the source tree. The manifest itself is
+  not executable.
+- `bun run catalog:check` requires a behavior contract for every built-in tool
+  adapter.
+- `bun run privileged:check` requires a privileged manifest and behavior
+  contract for every built-in network, VM, and secret adapter, verifies the
+  runtime registry, and exercises deterministic lifecycle plans without
+  running host commands.
 
 ## Contributing a built-in adapter
 
@@ -106,7 +112,7 @@ changing its `pack`.
 
 ### Behavior contracts
 
-Each catalog adapter can ship a behavior contract at
+Each catalog adapter must ship a behavior contract at
 `catalog/contracts/<id>.contract.jsonc` (`bun run catalog:new` scaffolds one
 for every new adapter, and `schemas/tool-adapter-contract.v1.schema.json`
 describes the format for editors). A contract is versioned, declarative data —
@@ -128,3 +134,20 @@ enforces catalog-wide safety invariants for every manifest: sensitive-named
 env vars must use secret/env/file sources rather than literals, shell-scoped
 adapters cannot resolve secrets, and secret keys must be identity-scoped with
 `{{identity}}`.
+
+### Privileged behavior contracts
+
+Every privileged adapter must also ship
+`privileged-adapters/contracts/<kind>-<id>.contract.jsonc`, validated by
+`schemas/privileged-adapter-contract.v1.schema.json`. The contract pins the
+observable lifecycle plans and enforcement decisions for each declared
+capability. The harness uses synthetic profiles and platform inputs, so it
+checks exact argv, executable requirements, kill-switch enforcement, and
+every declared secret operation without starting a VPN, VM, or credential
+process.
+
+See [CONTRIBUTING.md](../CONTRIBUTING.md) for the required provenance,
+permissions, signing, and test checklist. New privileged implementations are
+accepted only as reviewed source changes and must use the narrow
+`defineNetworkAdapter`, `defineVmAdapter`, or `defineSecretAdapter` SDK
+boundary.

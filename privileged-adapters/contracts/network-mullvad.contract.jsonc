@@ -1,0 +1,93 @@
+// Mullvad - deterministic privileged behavior contract.
+{
+  "contractVersion": 1,
+  "kind": "privileged-adapter-contract",
+  "adapterKind": "network",
+  "adapter": "mullvad",
+  "cases": [
+    {
+      "case": "default",
+      "profile": {
+        "driver": "mullvad",
+        "killSwitch": "required",
+        "location": {
+          "country": "se"
+        },
+        "lan": "deny",
+        "ipv6": "block",
+        "dns": "provider"
+      },
+      "expected": {
+        "capability": {
+          "executable": "mullvad",
+          "strictKillSwitch": true,
+          "detail": "Mullvad lockdown mode"
+        },
+        "enforcement": "strict",
+        "actions": {
+          "up": {
+            "steps": [
+              {
+                "description": "Enable Mullvad lockdown mode",
+                "command": ["mullvad", "lockdown-mode", "set", "on"]
+              },
+              {
+                "description": "Block LAN access",
+                "command": ["mullvad", "lan", "set", "block"]
+              },
+              {
+                "description": "Disable in-tunnel IPv6",
+                "command": ["mullvad", "tunnel", "set", "ipv6", "off"]
+              },
+              {
+                "description": "Use Mullvad DNS",
+                "command": ["mullvad", "dns", "set", "default"]
+              },
+              {
+                "description": "Select Mullvad relay location",
+                "command": ["mullvad", "relay", "set", "location", "se"]
+              },
+              {
+                "description": "Connect Mullvad",
+                "command": ["mullvad", "connect"]
+              },
+              {
+                "description": "Read Mullvad status",
+                "command": ["mullvad", "status"],
+                "verifyConnection": {
+                  "provider": "mullvad"
+                }
+              }
+            ]
+          },
+          "down": {
+            "options": {
+              "release": true
+            },
+            "steps": [
+              {
+                "description": "Disconnect Mullvad",
+                "command": ["mullvad", "disconnect"]
+              },
+              {
+                "description": "Release Mullvad lockdown mode",
+                "command": ["mullvad", "lockdown-mode", "set", "off"]
+              }
+            ]
+          },
+          "status": {
+            "steps": [
+              {
+                "description": "Read Mullvad status",
+                "command": ["mullvad", "status"],
+                "verifyConnection": {
+                  "provider": "mullvad"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

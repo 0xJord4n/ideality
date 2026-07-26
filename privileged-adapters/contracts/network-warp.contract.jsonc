@@ -1,0 +1,60 @@
+// Cloudflare WARP - deterministic privileged behavior contract.
+{
+  "contractVersion": 1,
+  "kind": "privileged-adapter-contract",
+  "adapterKind": "network",
+  "adapter": "warp",
+  "cases": [
+    {
+      "case": "default",
+      "profile": {
+        "driver": "warp",
+        "killSwitch": "provider"
+      },
+      "expected": {
+        "capability": {
+          "executable": "warp-cli",
+          "strictKillSwitch": false,
+          "detail": "WARP requires managed Always On and Switch Locked for enforcement"
+        },
+        "enforcement": "provider",
+        "actions": {
+          "up": {
+            "steps": [
+              {
+                "description": "Connect Cloudflare WARP",
+                "command": ["warp-cli", "connect"]
+              },
+              {
+                "description": "Read Cloudflare WARP status",
+                "command": ["warp-cli", "status"],
+                "verifyConnection": {
+                  "provider": "warp"
+                }
+              }
+            ]
+          },
+          "down": {
+            "steps": [
+              {
+                "description": "Disconnect Cloudflare WARP",
+                "command": ["warp-cli", "disconnect"]
+              }
+            ]
+          },
+          "status": {
+            "steps": [
+              {
+                "description": "Read Cloudflare WARP status",
+                "command": ["warp-cli", "status"],
+                "verifyConnection": {
+                  "provider": "warp"
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

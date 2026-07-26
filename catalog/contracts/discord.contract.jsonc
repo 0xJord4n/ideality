@@ -1,0 +1,18 @@
+// Discord desktop - adapter behavior contract.
+// catalog:check compiles catalog/discord.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "discord",
+  "detection": ["discord"],
+  "profiles": [
+    {
+      "case": "default",
+      "args": [
+        "--user-data-dir={{idealityHome}}/profiles/{{identity}}/desktop/discord"
+      ]
+    }
+  ],
+  "redactions": []
+}

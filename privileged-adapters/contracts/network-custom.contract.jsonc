@@ -1,0 +1,53 @@
+// Custom network - deterministic privileged behavior contract.
+{
+  "contractVersion": 1,
+  "kind": "privileged-adapter-contract",
+  "adapterKind": "network",
+  "adapter": "custom",
+  "cases": [
+    {
+      "case": "default",
+      "profile": {
+        "driver": "custom",
+        "killSwitch": "off",
+        "connect": ["vpnctl", "connect"],
+        "disconnect": ["vpnctl", "disconnect"],
+        "status": ["vpnctl", "status"]
+      },
+      "expected": {
+        "capability": {
+          "executable": "vpnctl",
+          "strictKillSwitch": false,
+          "detail": "custom adapter enforcement is unverified"
+        },
+        "enforcement": "off",
+        "actions": {
+          "up": {
+            "steps": [
+              {
+                "description": "Connect custom network",
+                "command": ["vpnctl", "connect"]
+              }
+            ]
+          },
+          "down": {
+            "steps": [
+              {
+                "description": "Disconnect custom network",
+                "command": ["vpnctl", "disconnect"]
+              }
+            ]
+          },
+          "status": {
+            "steps": [
+              {
+                "description": "Read custom network status",
+                "command": ["vpnctl", "status"]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

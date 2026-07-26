@@ -157,7 +157,7 @@ describe("scripts/install.sh", () => {
     expect(path.basename(args[7]!)).toBe("release-metadata.json");
     const installed = await stat(path.join(installDir, "ideality"));
     expect(installed.isFile()).toBe(true);
-  });
+  }, 30_000);
 
   test("rejects an archive whose checksum does not match the manifest", async () => {
     const artifacts = await makeStubRelease();

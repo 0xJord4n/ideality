@@ -1,0 +1,277 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ideality privileged adapter behavior contract (v1)",
+  "description": "Deterministic, side-effect-free expectations for a reviewed privileged adapter. Every declared lifecycle action is mandatory.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["contractVersion", "kind", "adapterKind", "adapter", "cases"],
+  "properties": {
+    "contractVersion": { "const": 1 },
+    "kind": { "const": "privileged-adapter-contract" },
+    "adapterKind": { "enum": ["network", "vm", "secret"] },
+    "adapter": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "maxLength": 64
+    },
+    "cases": {
+      "type": "array",
+      "minItems": 1
+    }
+  },
+  "oneOf": [
+    {
+      "properties": {
+        "adapterKind": { "const": "network" },
+        "cases": {
+          "items": { "$ref": "#/$defs/networkCase" }
+        }
+      }
+    },
+    {
+      "properties": {
+        "adapterKind": { "const": "vm" },
+        "cases": {
+          "items": { "$ref": "#/$defs/vmCase" }
+        }
+      }
+    },
+    {
+      "properties": {
+        "adapterKind": { "const": "secret" },
+        "cases": {
+          "items": { "$ref": "#/$defs/secretCase" }
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "caseName": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "maxLength": 64
+    },
+    "planAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["steps"],
+      "properties": {
+        "options": { "type": "object" },
+        "steps": { "type": "array" }
+      }
+    },
+    "argvAction": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["argv"],
+      "properties": {
+        "options": { "type": "object" },
+        "argv": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "secretRunnerCall": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["command"],
+      "properties": {
+        "command": {
+          "type": "array",
+          "items": { "type": "string" },
+          "minItems": 1
+        },
+        "input": { "type": "string" },
+        "environment": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        }
+      }
+    },
+    "secretRead": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "calls"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "result": { "type": "string" },
+        "error": { "type": "string", "minLength": 1 },
+        "calls": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/secretRunnerCall" }
+        }
+      },
+      "oneOf": [{ "required": ["result"] }, { "required": ["error"] }]
+    },
+    "secretWrite": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "value", "calls"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "value": { "type": "string", "minLength": 1 },
+        "error": { "type": "string", "minLength": 1 },
+        "calls": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/secretRunnerCall" }
+        }
+      }
+    },
+    "secretList": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["result", "calls"],
+      "properties": {
+        "result": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["backend", "supported", "writable", "references"],
+          "properties": {
+            "backend": {
+              "enum": [
+                "file",
+                "age",
+                "keychain",
+                "pass",
+                "onepassword",
+                "bitwarden",
+                "dashlane"
+              ]
+            },
+            "supported": { "type": "boolean" },
+            "writable": { "type": "boolean" },
+            "references": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "calls": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/secretRunnerCall" }
+        }
+      }
+    },
+    "secretDelete": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["key", "calls"],
+      "properties": {
+        "key": { "type": "string", "minLength": 1 },
+        "error": { "type": "string", "minLength": 1 },
+        "calls": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/secretRunnerCall" }
+        }
+      }
+    },
+    "secretOperations": {
+      "type": "object",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "read": { "$ref": "#/$defs/secretRead" },
+        "write": { "$ref": "#/$defs/secretWrite" },
+        "list": { "$ref": "#/$defs/secretList" },
+        "delete": { "$ref": "#/$defs/secretDelete" }
+      }
+    },
+    "networkCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case", "profile", "expected"],
+      "properties": {
+        "case": { "$ref": "#/$defs/caseName" },
+        "profile": { "type": "object" },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["capability", "enforcement", "actions"],
+          "properties": {
+            "capability": {},
+            "enforcement": {},
+            "actions": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["up", "down", "status"],
+              "properties": {
+                "up": { "$ref": "#/$defs/planAction" },
+                "down": { "$ref": "#/$defs/planAction" },
+                "status": { "$ref": "#/$defs/planAction" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "vmCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case", "profile", "capabilityOptions", "expected"],
+      "properties": {
+        "case": { "$ref": "#/$defs/caseName" },
+        "profile": { "type": "object" },
+        "capabilityOptions": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["platform", "hasKvm", "executablePath"],
+          "properties": {
+            "platform": { "enum": ["darwin", "linux", "win32"] },
+            "hasKvm": { "type": "boolean" },
+            "executablePath": {
+              "oneOf": [
+                { "type": "string", "minLength": 1 },
+                { "type": "null" }
+              ]
+            }
+          }
+        },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["capability", "actions"],
+          "properties": {
+            "capability": {},
+            "actions": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["start", "stop", "status", "exec"],
+              "properties": {
+                "start": { "$ref": "#/$defs/argvAction" },
+                "stop": { "$ref": "#/$defs/argvAction" },
+                "status": { "$ref": "#/$defs/argvAction" },
+                "exec": { "$ref": "#/$defs/argvAction" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "secretCase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["case", "platform", "config", "expected"],
+      "properties": {
+        "case": { "$ref": "#/$defs/caseName" },
+        "platform": { "enum": ["darwin", "linux", "win32"] },
+        "config": { "type": "object" },
+        "expected": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["executable", "writable", "operations"],
+          "properties": {
+            "executable": {
+              "oneOf": [
+                { "type": "string", "minLength": 1 },
+                { "type": "null" }
+              ]
+            },
+            "writable": { "type": "boolean" },
+            "operations": { "$ref": "#/$defs/secretOperations" }
+          }
+        }
+      }
+    }
+  }
+}

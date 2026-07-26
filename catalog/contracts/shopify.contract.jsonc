@@ -1,0 +1,29 @@
+// Shopify CLI - adapter behavior contract.
+// catalog:check compiles catalog/shopify.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "shopify",
+  "detection": ["shopify"],
+  "auth": {
+    "logout": ["shopify", "auth", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "SHOPIFY_CLI_PARTNERS_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/shopify-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/shopify/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/shopify/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/shopify/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/shopify/cache"
+      }
+    }
+  ],
+  "redactions": ["SHOPIFY_CLI_PARTNERS_TOKEN"]
+}

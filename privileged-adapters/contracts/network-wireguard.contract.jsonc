@@ -1,0 +1,57 @@
+// WireGuard - deterministic privileged behavior contract.
+{
+  "contractVersion": 1,
+  "kind": "privileged-adapter-contract",
+  "adapterKind": "network",
+  "adapter": "wireguard",
+  "cases": [
+    {
+      "case": "default",
+      "profile": {
+        "driver": "wireguard",
+        "config": "/contract/wg.conf",
+        "killSwitch": "off"
+      },
+      "expected": {
+        "capability": {
+          "executable": "wg-quick",
+          "strictKillSwitch": false,
+          "detail": "wg-quick does not provide independently verified host enforcement"
+        },
+        "enforcement": "off",
+        "actions": {
+          "up": {
+            "options": {
+              "configPath": "/runtime/wg.conf"
+            },
+            "steps": [
+              {
+                "description": "Start WireGuard profile contract",
+                "command": ["wg-quick", "up", "/runtime/wg.conf"]
+              }
+            ]
+          },
+          "down": {
+            "options": {
+              "configPath": "/runtime/wg.conf"
+            },
+            "steps": [
+              {
+                "description": "Stop WireGuard profile contract",
+                "command": ["wg-quick", "down", "/runtime/wg.conf"]
+              }
+            ]
+          },
+          "status": {
+            "steps": [
+              {
+                "description": "Read WireGuard profile contract",
+                "command": ["wg", "show", "all"]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

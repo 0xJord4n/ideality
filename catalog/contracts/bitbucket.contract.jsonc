@@ -1,0 +1,26 @@
+// Bitbucket community CLI - adapter behavior contract.
+// catalog:check compiles catalog/bitbucket.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "bitbucket",
+  "detection": ["bitbucket", "bb"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/source-control/bitbucket/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/source-control/bitbucket/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/source-control/bitbucket/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/source-control/bitbucket/cache",
+        "BITBUCKET_TOKEN": {
+          "from": "secret",
+          "key": "{{identity}}/bitbucket-token",
+          "optional": true
+        }
+      }
+    }
+  ],
+  "redactions": ["BITBUCKET_TOKEN"]
+}

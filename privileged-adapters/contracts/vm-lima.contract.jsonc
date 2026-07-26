@@ -1,0 +1,71 @@
+// Lima - deterministic privileged behavior contract.
+{
+  "contractVersion": 1,
+  "kind": "privileged-adapter-contract",
+  "adapterKind": "vm",
+  "adapter": "lima",
+  "cases": [
+    {
+      "case": "default",
+      "profile": {
+        "driver": "lima"
+      },
+      "capabilityOptions": {
+        "platform": "linux",
+        "hasKvm": true,
+        "executablePath": "/usr/bin/limactl"
+      },
+      "expected": {
+        "capability": {
+          "available": true,
+          "executable": "limactl",
+          "detail": "lima backend is available"
+        },
+        "actions": {
+          "start": {
+            "options": {
+              "configPath": "/runtime/vm.json"
+            },
+            "argv": [
+              "limactl",
+              "start",
+              "--tty=false",
+              "--name",
+              "ideality-contract",
+              "/runtime/vm.json"
+            ]
+          },
+          "stop": {
+            "argv": ["limactl", "stop", "ideality-contract"]
+          },
+          "status": {
+            "argv": [
+              "limactl",
+              "list",
+              "ideality-contract",
+              "--format",
+              "{{.Status}}"
+            ]
+          },
+          "exec": {
+            "options": {
+              "workdir": "/workspace/project",
+              "command": ["bun", "test"]
+            },
+            "argv": [
+              "limactl",
+              "shell",
+              "--start",
+              "--preserve-env",
+              "--workdir",
+              "/workspace/project",
+              "ideality-contract",
+              "bun",
+              "test"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

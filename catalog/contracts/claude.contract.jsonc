@@ -1,0 +1,23 @@
+// Claude Code - adapter behavior contract.
+// catalog:check compiles catalog/claude.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "claude",
+  "detection": ["claude"],
+  "auth": {
+    "login": ["claude", "auth", "login"],
+    "status": ["claude", "auth", "status"],
+    "logout": ["claude", "auth", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "CLAUDE_CONFIG_DIR": "{{idealityHome}}/profiles/{{identity}}/claude"
+      }
+    }
+  ],
+  "redactions": []
+}

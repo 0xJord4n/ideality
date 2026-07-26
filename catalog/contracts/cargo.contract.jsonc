@@ -1,0 +1,22 @@
+// Cargo registry client - adapter behavior contract.
+// catalog:check compiles catalog/cargo.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "cargo",
+  "detection": ["cargo"],
+  "auth": {
+    "login": ["cargo", "login"],
+    "logout": ["cargo", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "CARGO_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/cargo"
+      }
+    }
+  ],
+  "redactions": []
+}

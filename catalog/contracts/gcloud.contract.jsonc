@@ -1,0 +1,23 @@
+// Google Cloud CLI - adapter behavior contract.
+// catalog:check compiles catalog/gcloud.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "gcloud",
+  "detection": ["gcloud"],
+  "auth": {
+    "login": ["gcloud", "auth", "login"],
+    "status": ["gcloud", "auth", "list"],
+    "logout": ["gcloud", "auth", "revoke", "--all"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "CLOUDSDK_CONFIG": "{{idealityHome}}/profiles/{{identity}}/cloud/gcloud"
+      }
+    }
+  ],
+  "redactions": []
+}

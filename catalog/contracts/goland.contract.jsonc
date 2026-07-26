@@ -1,0 +1,21 @@
+// GoLand - adapter behavior contract.
+// catalog:check compiles catalog/goland.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "goland",
+  "detection": ["goland"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/goland/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/goland/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/goland/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/goland/cache"
+      }
+    }
+  ],
+  "redactions": []
+}

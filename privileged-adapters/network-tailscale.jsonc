@@ -1,0 +1,37 @@
+// Tailscale - reviewed privileged adapter contribution manifest.
+{
+  "schemaVersion": 1,
+  "kind": "privileged-adapter",
+  "adapterKind": "network",
+  "id": "tailscale",
+  "displayName": "Tailscale",
+  "description": "Tailscale exit-node lifecycle",
+  "capability": {
+    "name": "network-lifecycle",
+    "operations": ["up", "down", "status"]
+  },
+  "platforms": {
+    "os": ["linux", "darwin", "win32"],
+    "arch": ["any"],
+    "executables": ["tailscale"]
+  },
+  "permissions": {
+    "privileges": ["host-network"],
+    "filesystem": ["runtime-state"],
+    "network": ["host-control", "provider-api"],
+    "secrets": []
+  },
+  "implementation": {
+    "type": "trusted-core"
+  },
+  "provenance": {
+    "repository": "https://github.com/0xJord4n/ideality",
+    "license": "MIT",
+    "maintainers": ["0xJord4n@users.noreply.github.com"]
+  },
+  "signing": {
+    "mode": "release-bundle",
+    "identity": "https://github.com/0xJord4n/ideality/.github/workflows/release.yml@refs/tags/v*",
+    "issuer": "https://token.actions.githubusercontent.com"
+  }
+}

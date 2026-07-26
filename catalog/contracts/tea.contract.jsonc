@@ -1,0 +1,24 @@
+// Gitea and Forgejo CLI - adapter behavior contract.
+// catalog:check compiles catalog/tea.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "tea",
+  "detection": ["tea"],
+  "auth": {
+    "status": ["tea", "login", "list"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/source-control/tea/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/source-control/tea/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/source-control/tea/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/source-control/tea/cache"
+      }
+    }
+  ],
+  "redactions": []
+}

@@ -1,0 +1,23 @@
+// Azure CLI - adapter behavior contract.
+// catalog:check compiles catalog/az.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "az",
+  "detection": ["az"],
+  "auth": {
+    "login": ["az", "login"],
+    "status": ["az", "account", "show"],
+    "logout": ["az", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "AZURE_CONFIG_DIR": "{{idealityHome}}/profiles/{{identity}}/cloud/azure"
+      }
+    }
+  ],
+  "redactions": []
+}

@@ -1,0 +1,18 @@
+// Slack desktop - adapter behavior contract.
+// catalog:check compiles catalog/slack.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "slack",
+  "detection": ["slack"],
+  "profiles": [
+    {
+      "case": "default",
+      "args": [
+        "--user-data-dir={{idealityHome}}/profiles/{{identity}}/desktop/slack"
+      ]
+    }
+  ],
+  "redactions": []
+}

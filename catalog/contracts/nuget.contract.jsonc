@@ -1,0 +1,19 @@
+// NuGet client - adapter behavior contract.
+// catalog:check compiles catalog/nuget.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "nuget",
+  "detection": ["nuget"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "NUGET_PACKAGES": "{{idealityHome}}/profiles/{{identity}}/registries/nuget/packages",
+        "DOTNET_CLI_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/nuget/dotnet-home"
+      }
+    }
+  ],
+  "redactions": []
+}

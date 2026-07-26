@@ -1,0 +1,481 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Ideality privileged adapter contribution manifest (v1)",
+  "description": "Declarative metadata for a statically reviewed network, VM, or secret adapter. The manifest declares capabilities and permissions but cannot load contributor code at runtime.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "kind",
+    "adapterKind",
+    "id",
+    "displayName",
+    "description",
+    "capability",
+    "platforms",
+    "permissions",
+    "implementation",
+    "provenance",
+    "signing"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "kind": { "const": "privileged-adapter" },
+    "adapterKind": { "enum": ["network", "vm", "secret"] },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9_-]*$",
+      "maxLength": 64
+    },
+    "displayName": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "description": { "type": "string", "minLength": 1, "maxLength": 512 },
+    "capability": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "operations"],
+          "properties": {
+            "name": { "const": "network-lifecycle" },
+            "operations": {
+              "type": "array",
+              "prefixItems": [
+                { "const": "up" },
+                { "const": "down" },
+                { "const": "status" }
+              ],
+              "items": false,
+              "minItems": 3,
+              "maxItems": 3
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "operations"],
+          "properties": {
+            "name": { "const": "vm-lifecycle" },
+            "operations": {
+              "type": "array",
+              "prefixItems": [
+                { "const": "start" },
+                { "const": "stop" },
+                { "const": "status" },
+                { "const": "exec" }
+              ],
+              "items": false,
+              "minItems": 4,
+              "maxItems": 4
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "operations"],
+          "properties": {
+            "name": { "const": "secret-backend" },
+            "operations": {
+              "type": "array",
+              "items": { "enum": ["read", "write", "list", "delete"] },
+              "minItems": 1,
+              "uniqueItems": true
+            }
+          }
+        }
+      ]
+    },
+    "platforms": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["os", "arch", "executables"],
+      "properties": {
+        "os": {
+          "type": "array",
+          "items": { "enum": ["any", "darwin", "linux", "win32"] },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "arch": {
+          "type": "array",
+          "items": { "enum": ["any", "x64", "arm64"] },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "executables": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9][A-Za-z0-9._+-]*$",
+            "maxLength": 128
+          },
+          "uniqueItems": true
+        }
+      }
+    },
+    "permissions": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["privileges", "filesystem", "network", "secrets"],
+      "properties": {
+        "privileges": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "external-cli",
+              "host-network",
+              "provider-killswitch",
+              "sudo",
+              "vm-helper",
+              "hardware-virtualization",
+              "secret-store",
+              "read-only-secret-store",
+              "custom-command"
+            ]
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "filesystem": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "config-read",
+              "config-write",
+              "runtime-state",
+              "secret-read",
+              "secret-write"
+            ]
+          },
+          "uniqueItems": true
+        },
+        "network": {
+          "type": "array",
+          "items": {
+            "enum": ["host-control", "provider-api", "guest-control"]
+          },
+          "uniqueItems": true
+        },
+        "secrets": {
+          "type": "array",
+          "items": { "enum": ["read", "write", "list", "delete"] },
+          "uniqueItems": true
+        }
+      }
+    },
+    "implementation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["type"],
+      "properties": {
+        "type": { "enum": ["trusted-core", "user-configured"] }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "license", "maintainers"],
+      "properties": {
+        "repository": { "type": "string", "format": "uri" },
+        "license": { "type": "string", "minLength": 1, "maxLength": 64 },
+        "maintainers": {
+          "type": "array",
+          "items": { "type": "string", "format": "email" },
+          "minItems": 1
+        }
+      }
+    },
+    "signing": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "identity", "issuer"],
+      "properties": {
+        "mode": { "const": "release-bundle" },
+        "identity": {
+          "const": "https://github.com/0xJord4n/ideality/.github/workflows/release.yml@refs/tags/v*"
+        },
+        "issuer": {
+          "const": "https://token.actions.githubusercontent.com"
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "adapterKind": { "const": "network" } },
+        "required": ["adapterKind"]
+      },
+      "then": {
+        "properties": {
+          "capability": {
+            "properties": { "name": { "const": "network-lifecycle" } }
+          },
+          "permissions": {
+            "properties": {
+              "network": { "contains": { "const": "host-control" } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "adapterKind": { "const": "vm" } },
+        "required": ["adapterKind"]
+      },
+      "then": {
+        "properties": {
+          "capability": {
+            "properties": { "name": { "const": "vm-lifecycle" } }
+          },
+          "permissions": {
+            "properties": {
+              "network": { "contains": { "const": "guest-control" } }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": { "adapterKind": { "const": "secret" } },
+        "required": ["adapterKind"]
+      },
+      "then": {
+        "properties": {
+          "capability": {
+            "properties": { "name": { "const": "secret-backend" } }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "implementation": {
+            "properties": { "type": { "const": "user-configured" } },
+            "required": ["type"]
+          }
+        },
+        "required": ["implementation"]
+      },
+      "then": {
+        "properties": {
+          "permissions": {
+            "properties": {
+              "privileges": { "contains": { "const": "custom-command" } }
+            }
+          }
+        }
+      },
+      "else": {
+        "properties": {
+          "permissions": {
+            "properties": {
+              "privileges": {
+                "not": { "contains": { "const": "custom-command" } }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "implementation": {
+            "properties": { "type": { "const": "trusted-core" } },
+            "required": ["type"]
+          },
+          "adapterKind": { "enum": ["network", "vm"] }
+        },
+        "required": ["implementation", "adapterKind"]
+      },
+      "then": {
+        "properties": {
+          "platforms": {
+            "properties": {
+              "executables": { "minItems": 1 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "implementation": {
+            "properties": { "type": { "const": "trusted-core" } },
+            "required": ["type"]
+          },
+          "adapterKind": { "const": "secret" },
+          "permissions": {
+            "properties": {
+              "privileges": { "contains": { "const": "external-cli" } }
+            }
+          }
+        },
+        "required": ["implementation", "adapterKind", "permissions"]
+      },
+      "then": {
+        "properties": {
+          "platforms": {
+            "properties": {
+              "executables": { "minItems": 1 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapterKind": { "const": "secret" }
+        },
+        "required": ["adapterKind"]
+      },
+      "then": {
+        "if": {
+          "properties": {
+            "capability": {
+              "properties": {
+                "operations": { "contains": { "const": "read" } }
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "permissions": {
+              "properties": {
+                "secrets": { "contains": { "const": "read" } }
+              }
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "permissions": {
+              "properties": {
+                "secrets": { "not": { "contains": { "const": "read" } } }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapterKind": { "const": "secret" }
+        },
+        "required": ["adapterKind"]
+      },
+      "then": {
+        "if": {
+          "properties": {
+            "capability": {
+              "properties": {
+                "operations": { "contains": { "const": "write" } }
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "permissions": {
+              "properties": {
+                "secrets": { "contains": { "const": "write" } }
+              }
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "permissions": {
+              "properties": {
+                "secrets": { "not": { "contains": { "const": "write" } } }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapterKind": { "const": "secret" }
+        },
+        "required": ["adapterKind"]
+      },
+      "then": {
+        "if": {
+          "properties": {
+            "capability": {
+              "properties": {
+                "operations": { "contains": { "const": "list" } }
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "permissions": {
+              "properties": {
+                "secrets": { "contains": { "const": "list" } }
+              }
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "permissions": {
+              "properties": {
+                "secrets": { "not": { "contains": { "const": "list" } } }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapterKind": { "const": "secret" }
+        },
+        "required": ["adapterKind"]
+      },
+      "then": {
+        "if": {
+          "properties": {
+            "capability": {
+              "properties": {
+                "operations": { "contains": { "const": "delete" } }
+              }
+            }
+          }
+        },
+        "then": {
+          "properties": {
+            "permissions": {
+              "properties": {
+                "secrets": { "contains": { "const": "delete" } }
+              }
+            }
+          }
+        },
+        "else": {
+          "properties": {
+            "permissions": {
+              "properties": {
+                "secrets": { "not": { "contains": { "const": "delete" } } }
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

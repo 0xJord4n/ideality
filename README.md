@@ -194,10 +194,11 @@ controls exposed by the upstream application. See the
 All built-in integrations are represented in the versioned core adapter
 registry: 58 tool manifests, 6 network drivers, 5 VM drivers, and 7 secret
 backends. Tool adapters remain declarative manifests; built-in network, VM,
-and secret lifecycle actions route through registered core contracts with
-platform and privilege metadata. Custom network and VM drivers are registered
-as non-trusted user-configured argv wrappers, not privileged core lifecycle
-code.
+and secret lifecycle actions are described by 18 strict privileged manifests
+plus mandatory behavior contracts. Those implementations are reviewed,
+statically bundled, and distributed under the signed release bundle; runtime
+plugins cannot inject privileged code. Custom network and VM drivers remain
+non-trusted user-configured argv wrappers.
 
 ## Automatic Dispatch
 
@@ -476,9 +477,10 @@ bun run build
 ```
 
 Adding a built-in tool adapter is fully tooled: `bun run catalog:new`
-scaffolds the one manifest you author, and `bun run catalog:check` validates
-the catalog, registry, docs, and editor schema. See
-[CONTRIBUTING.md](CONTRIBUTING.md).
+scaffolds its manifest and mandatory behavior contract. Privileged network,
+VM, and secret contributions use their own capability, permission,
+provenance, signing, and behavior schemas under `privileged-adapters/`.
+`bun run check` validates both systems. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 

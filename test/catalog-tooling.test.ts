@@ -237,6 +237,16 @@ describe("catalog checks", () => {
         message:
           ".vscode/settings.json: missing JSON schema mapping './schemas/tool-adapter-contract.v1.schema.json' for '/catalog/contracts/*.contract.jsonc'",
       },
+      {
+        file: ".vscode/settings.json",
+        message:
+          ".vscode/settings.json: missing JSON schema mapping './schemas/privileged-adapter.v1.schema.json' for '/privileged-adapters/*.jsonc'",
+      },
+      {
+        file: ".vscode/settings.json",
+        message:
+          ".vscode/settings.json: missing JSON schema mapping './schemas/privileged-adapter-contract.v1.schema.json' for '/privileged-adapters/contracts/*.contract.jsonc'",
+      },
     ]);
   });
 
@@ -571,6 +581,17 @@ describe("adapter behavior contracts", () => {
     expect(issueMessages(issues)).toContain("no catalog");
   });
 
+  test("requires a behavior contract for every catalog manifest", () => {
+    const issues = checkContracts([catalogEntry("missing")], []);
+    expect(issues).toEqual([
+      {
+        file: "missing.jsonc",
+        message:
+          "missing.jsonc: missing catalog/contracts/missing.contract.jsonc behavior contract",
+      },
+    ]);
+  });
+
   test("enforces universal safety invariants across all manifests", () => {
     expect(checkCatalogSafety([catalogEntry("clean")])).toEqual([]);
 
@@ -716,7 +737,9 @@ describe("adapter behavior contracts", () => {
     expect(catalogIssues).toEqual([]);
     const { contracts, issues } = await loadContracts();
     expect(issues).toEqual([]);
-    expect(contracts.length).toBeGreaterThanOrEqual(5);
+    expect(contracts.map((entry) => entry.tool).sort()).toEqual(
+      entries.map((entry) => entry.id).sort(),
+    );
     expect(checkContracts(entries, contracts)).toEqual([]);
     expect(checkCatalogSafety(entries)).toEqual([]);
   });

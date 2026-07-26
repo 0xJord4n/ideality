@@ -1,0 +1,18 @@
+// Kiro CLI - adapter behavior contract.
+// catalog:check compiles catalog/kiro-cli.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "kiro-cli",
+  "detection": ["kiro-cli"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "KIRO_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/kiro"
+      }
+    }
+  ],
+  "redactions": []
+}

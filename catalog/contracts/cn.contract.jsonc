@@ -1,0 +1,25 @@
+// Continue CLI - adapter behavior contract.
+// catalog:check compiles catalog/cn.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "cn",
+  "detection": ["cn"],
+  "auth": {
+    "login": ["cn", "login"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "CONTINUE_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/continue-api-key",
+          "optional": true
+        }
+      }
+    }
+  ],
+  "redactions": ["CONTINUE_API_KEY"]
+}

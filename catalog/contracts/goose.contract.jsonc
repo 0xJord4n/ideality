@@ -1,0 +1,26 @@
+// Goose - adapter behavior contract.
+// catalog:check compiles catalog/goose.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "goose",
+  "detection": ["goose"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/goose/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/goose/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/goose/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/ai/goose/cache",
+        "GOOSE_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/goose-api-key",
+          "optional": true
+        }
+      }
+    }
+  ],
+  "redactions": ["GOOSE_API_KEY"]
+}

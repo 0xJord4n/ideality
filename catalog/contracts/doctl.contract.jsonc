@@ -1,0 +1,23 @@
+// DigitalOcean CLI - adapter behavior contract.
+// catalog:check compiles catalog/doctl.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "doctl",
+  "detection": ["doctl"],
+  "auth": {
+    "login": ["doctl", "auth", "init"],
+    "status": ["doctl", "account", "get"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "args": [
+        "--config",
+        "{{idealityHome}}/profiles/{{identity}}/cloud/doctl/config.yaml"
+      ]
+    }
+  ],
+  "redactions": []
+}

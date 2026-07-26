@@ -1,0 +1,18 @@
+// Gradle registry client - adapter behavior contract.
+// catalog:check compiles catalog/gradle.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "gradle",
+  "detection": ["gradle", "gradlew"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "GRADLE_USER_HOME": "{{idealityHome}}/profiles/{{identity}}/registries/gradle"
+      }
+    }
+  ],
+  "redactions": []
+}

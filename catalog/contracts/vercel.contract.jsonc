@@ -1,0 +1,26 @@
+// Vercel CLI - adapter behavior contract.
+// catalog:check compiles catalog/vercel.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "vercel",
+  "detection": ["vercel"],
+  "auth": {
+    "login": ["vercel", "login"],
+    "status": ["vercel", "whoami"],
+    "logout": ["vercel", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/vercel/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/vercel/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/vercel/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/vercel/cache"
+      }
+    }
+  ],
+  "redactions": []
+}

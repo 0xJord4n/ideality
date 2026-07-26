@@ -1,4 +1,5 @@
 import { BUILTIN_TOOL_MANIFESTS, BUILTIN_TOOLS } from "../adapters/builtins.js";
+import { BUILTIN_PRIVILEGED_ADAPTER_MANIFESTS } from "../adapters/privileged-builtins.js";
 import type {
   IdealityConfig,
   NetworkProfile,
@@ -16,10 +17,24 @@ import {
   networkEnforcement,
 } from "./network.js";
 import {
+  deleteSecretValue,
+  listSecretReferences,
+  readSecretValue,
   type SecretBackendType,
+  type SecretCommandRunner,
+  type SecretReferenceList,
   secretBackendExecutable,
   secretBackendWritable,
+  writeSecretValue,
 } from "./secret-backends.js";
+import type {
+  AdapterPlatform,
+  AdapterPrivilege as PrivilegedAdapterPrivilege,
+  NetworkAdapterManifest,
+  PrivilegedAdapterManifest,
+  SecretAdapterManifest,
+  VmAdapterManifest,
+} from "./privileged-adapters.js";
 import {
   compileToolDefinition,
   compileToolProfile,
@@ -39,22 +54,12 @@ import {
 export const ADAPTER_ENVELOPE_VERSION = 1;
 
 export type AdapterKind = "tool" | "network" | "vm" | "secret";
-export type AdapterPlatform = "any" | "darwin" | "linux" | "win32";
 export type AdapterLifecycle =
   | "declarative"
   | "trusted-core"
   | "user-configured";
-export type AdapterPrivilege =
-  | "none"
-  | "external-cli"
-  | "host-network"
-  | "provider-killswitch"
-  | "sudo"
-  | "vm-helper"
-  | "hardware-virtualization"
-  | "secret-store"
-  | "read-only-secret-store"
-  | "custom-command";
+export type { AdapterPlatform };
+export type AdapterPrivilege = "none" | PrivilegedAdapterPrivilege;
 
 export interface AdapterMetadata {
   displayName: string;
@@ -99,6 +104,7 @@ export type ToolAdapterEnvelope = AdapterEnvelope<
 export interface NetworkAdapterContract {
   schemaVersion: 1;
   driver: NetworkProfile["driver"];
+  manifest: NetworkAdapterManifest;
   capability(profile: NetworkProfile): NetworkCapability;
   enforcement(
     profile: NetworkProfile,
@@ -121,6 +127,7 @@ export type NetworkAdapterEnvelope = AdapterEnvelope<
 export interface VmAdapterContract {
   schemaVersion: 1;
   driver: VmProfile["driver"];
+  manifest: VmAdapterManifest;
   capability(profile: VmProfile, options?: VmCapabilityOptions): VmCapability;
   command(
     vmId: string,
@@ -139,8 +146,40 @@ export type VmAdapterEnvelope = AdapterEnvelope<
 export interface SecretAdapterContract {
   schemaVersion: 1;
   type: SecretBackendType;
-  executable(config: IdealityConfig): string | null;
-  writable(config: IdealityConfig): boolean;
+  manifest: SecretAdapterManifest;
+  executable(config: IdealityConfig, platform?: NodeJS.Platform): string | null;
+  writable(config: IdealityConfig, platform?: NodeJS.Platform): boolean;
+  read(
+    config: IdealityConfig,
+    key: string,
+    home: string,
+    idealityHome: string,
+    runner?: SecretCommandRunner,
+    platform?: NodeJS.Platform,
+  ): Promise<string>;
+  write(
+    config: IdealityConfig,
+    key: string,
+    value: string,
+    home: string,
+    idealityHome: string,
+    runner?: SecretCommandRunner,
+    platform?: NodeJS.Platform,
+  ): Promise<void>;
+  list(
+    config: IdealityConfig,
+    home: string,
+    idealityHome: string,
+    platform?: NodeJS.Platform,
+  ): Promise<SecretReferenceList>;
+  delete(
+    config: IdealityConfig,
+    key: string,
+    home: string,
+    idealityHome: string,
+    runner?: SecretCommandRunner,
+    platform?: NodeJS.Platform,
+  ): Promise<void>;
 }
 
 export type SecretAdapterEnvelope = AdapterEnvelope<
@@ -200,42 +239,45 @@ export function createToolAdapterEnvelope(
   };
 }
 
-function createNetworkAdapterEnvelope(options: {
-  id: NetworkProfile["driver"];
-  displayName: string;
-  description: string;
-  platforms: readonly AdapterPlatform[];
-  privileges: readonly AdapterPrivilege[];
-  trusted?: boolean;
-  lifecycle?: AdapterLifecycle;
-}): NetworkAdapterEnvelope {
+function metadataFromPrivilegedManifest(
+  manifest: PrivilegedAdapterManifest,
+): AdapterMetadata {
+  const trusted = manifest.implementation.type === "trusted-core";
+  return {
+    displayName: manifest.displayName,
+    description: manifest.description,
+    platforms: manifest.platforms.os,
+    privileges: manifest.permissions.privileges,
+    builtIn: true,
+    trusted,
+    lifecycle: trusted ? "trusted-core" : "user-configured",
+    contributorExecutable: false,
+  };
+}
+
+/** Bind a reviewed network manifest to Ideality's trusted core implementation. */
+export function defineNetworkAdapter(
+  manifest: NetworkAdapterManifest,
+): NetworkAdapterEnvelope {
   return {
     envelopeVersion: ADAPTER_ENVELOPE_VERSION,
     kind: "network",
-    id: options.id,
+    id: manifest.id,
     capability: "network-lifecycle",
-    metadata: {
-      displayName: options.displayName,
-      description: options.description,
-      platforms: options.platforms,
-      privileges: options.privileges,
-      builtIn: true,
-      trusted: options.trusted ?? true,
-      lifecycle: options.lifecycle ?? "trusted-core",
-      contributorExecutable: false,
-    },
+    metadata: metadataFromPrivilegedManifest(manifest),
     contract: {
       schemaVersion: 1,
-      driver: options.id,
+      driver: manifest.id as NetworkProfile["driver"],
+      manifest,
       capability(profile: NetworkProfile): NetworkCapability {
-        assertNetworkDriver(options.id, profile);
+        assertNetworkDriver(manifest.id as NetworkProfile["driver"], profile);
         return networkCapability(profile);
       },
       enforcement(
         profile: NetworkProfile,
         allowUnverified?: boolean,
       ): "strict" | "provider" | "off" | "unverified" {
-        assertNetworkDriver(options.id, profile);
+        assertNetworkDriver(manifest.id as NetworkProfile["driver"], profile);
         return networkEnforcement(profile, allowUnverified);
       },
       plan(
@@ -244,42 +286,29 @@ function createNetworkAdapterEnvelope(options: {
         action: NetworkAction,
         planOptions: NetworkPlanOptions = {},
       ): NetworkCommandStep[] {
-        assertNetworkDriver(options.id, profile);
+        assertNetworkDriver(manifest.id as NetworkProfile["driver"], profile);
         return buildNetworkPlan(profileId, profile, action, planOptions);
       },
     },
   };
 }
 
-function createVmAdapterEnvelope(options: {
-  id: VmProfile["driver"];
-  displayName: string;
-  description: string;
-  platforms: readonly AdapterPlatform[];
-  privileges: readonly AdapterPrivilege[];
-  trusted?: boolean;
-  lifecycle?: AdapterLifecycle;
-}): VmAdapterEnvelope {
+/** Bind a reviewed VM manifest to Ideality's trusted core implementation. */
+export function defineVmAdapter(
+  manifest: VmAdapterManifest,
+): VmAdapterEnvelope {
   return {
     envelopeVersion: ADAPTER_ENVELOPE_VERSION,
     kind: "vm",
-    id: options.id,
+    id: manifest.id,
     capability: "vm-lifecycle",
-    metadata: {
-      displayName: options.displayName,
-      description: options.description,
-      platforms: options.platforms,
-      privileges: options.privileges,
-      builtIn: true,
-      trusted: options.trusted ?? true,
-      lifecycle: options.lifecycle ?? "trusted-core",
-      contributorExecutable: false,
-    },
+    metadata: metadataFromPrivilegedManifest(manifest),
     contract: {
       schemaVersion: 1,
-      driver: options.id,
+      driver: manifest.id as VmProfile["driver"],
+      manifest,
       capability(profile: VmProfile, capabilityOptions?: VmCapabilityOptions) {
-        assertVmDriver(options.id, profile);
+        assertVmDriver(manifest.id as VmProfile["driver"], profile);
         return vmCapability(profile, capabilityOptions);
       },
       command(
@@ -288,45 +317,102 @@ function createVmAdapterEnvelope(options: {
         action: VmAction,
         commandOptions: VmCommandOptions = {},
       ) {
-        assertVmDriver(options.id, profile);
+        assertVmDriver(manifest.id as VmProfile["driver"], profile);
         return vmCommand(vmId, profile, action, commandOptions);
       },
     },
   };
 }
 
-function createSecretAdapterEnvelope(options: {
-  id: SecretBackendType;
-  displayName: string;
-  description: string;
-  platforms: readonly AdapterPlatform[];
-  privileges: readonly AdapterPrivilege[];
-}): SecretAdapterEnvelope {
+/** Bind a reviewed secret manifest to Ideality's trusted core implementation. */
+export function defineSecretAdapter(
+  manifest: SecretAdapterManifest,
+): SecretAdapterEnvelope {
   return {
     envelopeVersion: ADAPTER_ENVELOPE_VERSION,
     kind: "secret",
-    id: options.id,
+    id: manifest.id,
     capability: "secret-backend",
-    metadata: {
-      displayName: options.displayName,
-      description: options.description,
-      platforms: options.platforms,
-      privileges: options.privileges,
-      builtIn: true,
-      trusted: true,
-      lifecycle: "trusted-core",
-      contributorExecutable: false,
-    },
+    metadata: metadataFromPrivilegedManifest(manifest),
     contract: {
       schemaVersion: 1,
-      type: options.id,
-      executable(config: IdealityConfig): string | null {
-        assertSecretBackend(options.id, config);
-        return secretBackendExecutable(config);
+      type: manifest.id as SecretBackendType,
+      manifest,
+      executable(
+        config: IdealityConfig,
+        platform?: NodeJS.Platform,
+      ): string | null {
+        assertSecretBackend(manifest.id as SecretBackendType, config);
+        return secretBackendExecutable(config, platform);
       },
-      writable(config: IdealityConfig): boolean {
-        assertSecretBackend(options.id, config);
-        return secretBackendWritable(config);
+      writable(config: IdealityConfig, platform?: NodeJS.Platform): boolean {
+        assertSecretBackend(manifest.id as SecretBackendType, config);
+        return secretBackendWritable(config, platform);
+      },
+      read(
+        config: IdealityConfig,
+        key: string,
+        home: string,
+        idealityHome: string,
+        runner?: SecretCommandRunner,
+        platform?: NodeJS.Platform,
+      ): Promise<string> {
+        assertSecretBackend(manifest.id as SecretBackendType, config);
+        return readSecretValue(
+          config,
+          key,
+          home,
+          idealityHome,
+          runner,
+          platform,
+        );
+      },
+      write(
+        config: IdealityConfig,
+        key: string,
+        value: string,
+        home: string,
+        idealityHome: string,
+        runner?: SecretCommandRunner,
+        platform?: NodeJS.Platform,
+      ): Promise<void> {
+        assertSecretBackend(manifest.id as SecretBackendType, config);
+        return writeSecretValue(
+          config,
+          key,
+          value,
+          home,
+          idealityHome,
+          runner,
+          platform,
+        );
+      },
+      list(
+        config: IdealityConfig,
+        home: string,
+        idealityHome: string,
+        platform?: NodeJS.Platform,
+      ): Promise<SecretReferenceList> {
+        assertSecretBackend(manifest.id as SecretBackendType, config);
+        return listSecretReferences(config, home, idealityHome, platform);
+      },
+      delete(
+        config: IdealityConfig,
+        key: string,
+        home: string,
+        idealityHome: string,
+        runner?: SecretCommandRunner,
+        platform?: NodeJS.Platform,
+      ): Promise<void> {
+        assertSecretBackend(manifest.id as SecretBackendType, config);
+        return deleteSecretValue(
+          config,
+          key,
+          home,
+          idealityHome,
+          runner,
+          platform,
+        );
       },
     },
   };
@@ -363,30 +449,21 @@ export function validateAdapterRegistryCompleteness(
     );
   }
   assertSameSet("tool", Object.keys(registry.tools), expected.toolIds);
-  assertSameSet("network", Object.keys(registry.networks), [
-    "wireguard",
-    "openvpn",
-    "mullvad",
-    "tailscale",
-    "warp",
-    "custom",
-  ]);
-  assertSameSet("VM", Object.keys(registry.vms), [
-    "lima",
-    "apple-vz",
-    "cloud-hypervisor",
-    "firecracker",
-    "custom",
-  ]);
-  assertSameSet("secret", Object.keys(registry.secrets), [
-    "file",
-    "age",
-    "keychain",
-    "pass",
-    "onepassword",
-    "bitwarden",
-    "dashlane",
-  ]);
+  assertSameSet(
+    "network",
+    Object.keys(registry.networks),
+    Object.keys(BUILTIN_PRIVILEGED_ADAPTER_MANIFESTS.network),
+  );
+  assertSameSet(
+    "VM",
+    Object.keys(registry.vms),
+    Object.keys(BUILTIN_PRIVILEGED_ADAPTER_MANIFESTS.vm),
+  );
+  assertSameSet(
+    "secret",
+    Object.keys(registry.secrets),
+    Object.keys(BUILTIN_PRIVILEGED_ADAPTER_MANIFESTS.secret),
+  );
 }
 
 export function toolAdapterForId(
@@ -496,136 +573,15 @@ export const ADAPTER_REGISTRY = createAdapterRegistry([
       definition: BUILTIN_TOOLS[manifest.id],
     }),
   ),
-  createNetworkAdapterEnvelope({
-    id: "wireguard",
-    displayName: "WireGuard",
-    description: "wg-quick network profile lifecycle",
-    platforms: ["linux", "darwin"],
-    privileges: ["host-network", "sudo"],
-  }),
-  createNetworkAdapterEnvelope({
-    id: "openvpn",
-    displayName: "OpenVPN",
-    description: "OpenVPN daemon network profile lifecycle",
-    platforms: ["linux", "darwin"],
-    privileges: ["host-network", "sudo"],
-  }),
-  createNetworkAdapterEnvelope({
-    id: "mullvad",
-    displayName: "Mullvad",
-    description: "Mullvad CLI lifecycle with lockdown-mode support",
-    platforms: ["linux", "darwin", "win32"],
-    privileges: ["host-network", "provider-killswitch"],
-  }),
-  createNetworkAdapterEnvelope({
-    id: "tailscale",
-    displayName: "Tailscale",
-    description: "Tailscale exit-node lifecycle",
-    platforms: ["linux", "darwin", "win32"],
-    privileges: ["host-network"],
-  }),
-  createNetworkAdapterEnvelope({
-    id: "warp",
-    displayName: "Cloudflare WARP",
-    description: "Cloudflare WARP CLI lifecycle",
-    platforms: ["linux", "darwin", "win32"],
-    privileges: ["host-network"],
-  }),
-  createNetworkAdapterEnvelope({
-    id: "custom",
-    displayName: "Custom network",
-    description: "User-configured argv-only network lifecycle",
-    platforms: ["any"],
-    privileges: ["host-network", "custom-command"],
-    trusted: false,
-    lifecycle: "user-configured",
-  }),
-  createVmAdapterEnvelope({
-    id: "lima",
-    displayName: "Lima",
-    description: "Lima VM lifecycle with strict guest environment filtering",
-    platforms: ["linux", "darwin"],
-    privileges: ["external-cli"],
-  }),
-  createVmAdapterEnvelope({
-    id: "apple-vz",
-    displayName: "Apple Virtualization",
-    description: "Trusted Apple Virtualization helper lifecycle",
-    platforms: ["darwin"],
-    privileges: ["vm-helper"],
-  }),
-  createVmAdapterEnvelope({
-    id: "cloud-hypervisor",
-    displayName: "Cloud Hypervisor",
-    description: "Trusted Cloud Hypervisor helper lifecycle",
-    platforms: ["linux"],
-    privileges: ["vm-helper", "hardware-virtualization"],
-  }),
-  createVmAdapterEnvelope({
-    id: "firecracker",
-    displayName: "Firecracker",
-    description: "Trusted Firecracker helper lifecycle",
-    platforms: ["linux"],
-    privileges: ["vm-helper", "hardware-virtualization"],
-  }),
-  createVmAdapterEnvelope({
-    id: "custom",
-    displayName: "Custom VM",
-    description: "User-configured argv-only VM lifecycle",
-    platforms: ["any"],
-    privileges: ["custom-command"],
-    trusted: false,
-    lifecycle: "user-configured",
-  }),
-  createSecretAdapterEnvelope({
-    id: "file",
-    displayName: "File secrets",
-    description: "Local encrypted-at-rest-by-permissions file backend",
-    platforms: ["any"],
-    privileges: ["secret-store"],
-  }),
-  createSecretAdapterEnvelope({
-    id: "age",
-    displayName: "age",
-    description: "age-encrypted file secret backend",
-    platforms: ["any"],
-    privileges: ["secret-store", "external-cli"],
-  }),
-  createSecretAdapterEnvelope({
-    id: "keychain",
-    displayName: "OS keychain",
-    description: "macOS Keychain or libsecret backend",
-    platforms: ["linux", "darwin"],
-    privileges: ["secret-store"],
-  }),
-  createSecretAdapterEnvelope({
-    id: "pass",
-    displayName: "pass",
-    description: "pass password-store backend",
-    platforms: ["any"],
-    privileges: ["secret-store", "external-cli"],
-  }),
-  createSecretAdapterEnvelope({
-    id: "onepassword",
-    displayName: "1Password",
-    description: "1Password CLI read-only reference backend",
-    platforms: ["any"],
-    privileges: ["read-only-secret-store", "external-cli"],
-  }),
-  createSecretAdapterEnvelope({
-    id: "bitwarden",
-    displayName: "Bitwarden",
-    description: "Bitwarden CLI read-only reference backend",
-    platforms: ["any"],
-    privileges: ["read-only-secret-store", "external-cli"],
-  }),
-  createSecretAdapterEnvelope({
-    id: "dashlane",
-    displayName: "Dashlane",
-    description: "Dashlane CLI read-only reference backend",
-    platforms: ["any"],
-    privileges: ["read-only-secret-store", "external-cli"],
-  }),
+  ...Object.values(BUILTIN_PRIVILEGED_ADAPTER_MANIFESTS.network).map(
+    defineNetworkAdapter,
+  ),
+  ...Object.values(BUILTIN_PRIVILEGED_ADAPTER_MANIFESTS.vm).map(
+    defineVmAdapter,
+  ),
+  ...Object.values(BUILTIN_PRIVILEGED_ADAPTER_MANIFESTS.secret).map(
+    defineSecretAdapter,
+  ),
 ]);
 
 validateAdapterRegistryCompleteness(ADAPTER_REGISTRY, {
@@ -676,7 +632,9 @@ function validateAdapterEnvelope(envelope: AnyAdapterEnvelope): void {
     (!["trusted-core", "user-configured"].includes(
       envelope.metadata.lifecycle,
     ) ||
-      envelope.contract.driver !== envelope.id)
+      envelope.contract.driver !== envelope.id ||
+      envelope.contract.manifest.adapterKind !== "network" ||
+      envelope.contract.manifest.id !== envelope.id)
   ) {
     throw new Error(`Network adapter '${envelope.id}' has an invalid contract`);
   }
@@ -685,14 +643,18 @@ function validateAdapterEnvelope(envelope: AnyAdapterEnvelope): void {
     (!["trusted-core", "user-configured"].includes(
       envelope.metadata.lifecycle,
     ) ||
-      envelope.contract.driver !== envelope.id)
+      envelope.contract.driver !== envelope.id ||
+      envelope.contract.manifest.adapterKind !== "vm" ||
+      envelope.contract.manifest.id !== envelope.id)
   ) {
     throw new Error(`VM adapter '${envelope.id}' has an invalid contract`);
   }
   if (
     envelope.kind === "secret" &&
     (envelope.metadata.lifecycle !== "trusted-core" ||
-      envelope.contract.type !== envelope.id)
+      envelope.contract.type !== envelope.id ||
+      envelope.contract.manifest.adapterKind !== "secret" ||
+      envelope.contract.manifest.id !== envelope.id)
   ) {
     throw new Error(`Secret adapter '${envelope.id}' has an invalid contract`);
   }

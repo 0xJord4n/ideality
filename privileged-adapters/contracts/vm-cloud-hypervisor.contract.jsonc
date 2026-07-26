@@ -1,0 +1,75 @@
+// Cloud Hypervisor - deterministic privileged behavior contract.
+{
+  "contractVersion": 1,
+  "kind": "privileged-adapter-contract",
+  "adapterKind": "vm",
+  "adapter": "cloud-hypervisor",
+  "cases": [
+    {
+      "case": "default",
+      "profile": {
+        "driver": "cloud-hypervisor"
+      },
+      "capabilityOptions": {
+        "platform": "linux",
+        "hasKvm": true,
+        "executablePath": "/usr/bin/ideality-cloud-hypervisor-helper"
+      },
+      "expected": {
+        "capability": {
+          "available": true,
+          "executable": "ideality-cloud-hypervisor-helper",
+          "detail": "cloud-hypervisor backend is available"
+        },
+        "actions": {
+          "start": {
+            "options": {
+              "configPath": "/runtime/vm.json"
+            },
+            "argv": [
+              "ideality-cloud-hypervisor-helper",
+              "start",
+              "--vm",
+              "contract",
+              "--config",
+              "/runtime/vm.json"
+            ]
+          },
+          "stop": {
+            "argv": [
+              "ideality-cloud-hypervisor-helper",
+              "stop",
+              "--vm",
+              "contract"
+            ]
+          },
+          "status": {
+            "argv": [
+              "ideality-cloud-hypervisor-helper",
+              "status",
+              "--vm",
+              "contract"
+            ]
+          },
+          "exec": {
+            "options": {
+              "workdir": "/workspace/project",
+              "command": ["bun", "test"]
+            },
+            "argv": [
+              "ideality-cloud-hypervisor-helper",
+              "exec",
+              "--vm",
+              "contract",
+              "--workdir",
+              "/workspace/project",
+              "--",
+              "bun",
+              "test"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

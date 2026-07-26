@@ -1,0 +1,19 @@
+// Firefox - adapter behavior contract.
+// catalog:check compiles catalog/firefox.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "firefox",
+  "detection": ["firefox"],
+  "profiles": [
+    {
+      "case": "default",
+      "args": [
+        "-profile",
+        "{{idealityHome}}/profiles/{{identity}}/browsers/firefox"
+      ]
+    }
+  ],
+  "redactions": []
+}

@@ -1,0 +1,65 @@
+// Apple Virtualization - deterministic privileged behavior contract.
+{
+  "contractVersion": 1,
+  "kind": "privileged-adapter-contract",
+  "adapterKind": "vm",
+  "adapter": "apple-vz",
+  "cases": [
+    {
+      "case": "default",
+      "profile": {
+        "driver": "apple-vz"
+      },
+      "capabilityOptions": {
+        "platform": "darwin",
+        "hasKvm": false,
+        "executablePath": "/usr/bin/ideality-vz-helper"
+      },
+      "expected": {
+        "capability": {
+          "available": true,
+          "executable": "ideality-vz-helper",
+          "detail": "apple-vz backend is available"
+        },
+        "actions": {
+          "start": {
+            "options": {
+              "configPath": "/runtime/vm.json"
+            },
+            "argv": [
+              "ideality-vz-helper",
+              "start",
+              "--vm",
+              "contract",
+              "--config",
+              "/runtime/vm.json"
+            ]
+          },
+          "stop": {
+            "argv": ["ideality-vz-helper", "stop", "--vm", "contract"]
+          },
+          "status": {
+            "argv": ["ideality-vz-helper", "status", "--vm", "contract"]
+          },
+          "exec": {
+            "options": {
+              "workdir": "/workspace/project",
+              "command": ["bun", "test"]
+            },
+            "argv": [
+              "ideality-vz-helper",
+              "exec",
+              "--vm",
+              "contract",
+              "--workdir",
+              "/workspace/project",
+              "--",
+              "bun",
+              "test"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

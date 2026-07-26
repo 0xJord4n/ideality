@@ -1,0 +1,31 @@
+// Heroku CLI - adapter behavior contract.
+// catalog:check compiles catalog/heroku.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "heroku",
+  "detection": ["heroku"],
+  "auth": {
+    "login": ["heroku", "login"],
+    "status": ["heroku", "auth:whoami"],
+    "logout": ["heroku", "logout"]
+  },
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "HEROKU_API_KEY": {
+          "from": "secret",
+          "key": "{{identity}}/heroku-token",
+          "optional": true
+        },
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/heroku/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/heroku/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/heroku/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/deployment/heroku/cache"
+      }
+    }
+  ],
+  "redactions": ["HEROKU_API_KEY"]
+}

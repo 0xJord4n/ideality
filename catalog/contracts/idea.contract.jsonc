@@ -1,0 +1,21 @@
+// IntelliJ IDEA - adapter behavior contract.
+// catalog:check compiles catalog/idea.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "idea",
+  "detection": ["idea"],
+  "profiles": [
+    {
+      "case": "default",
+      "env": {
+        "XDG_CONFIG_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/idea/config",
+        "XDG_DATA_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/idea/data",
+        "XDG_STATE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/idea/state",
+        "XDG_CACHE_HOME": "{{idealityHome}}/profiles/{{identity}}/editors/jetbrains/idea/cache"
+      }
+    }
+  ],
+  "redactions": []
+}

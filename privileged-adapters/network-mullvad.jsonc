@@ -1,0 +1,37 @@
+// Mullvad - reviewed privileged adapter contribution manifest.
+{
+  "schemaVersion": 1,
+  "kind": "privileged-adapter",
+  "adapterKind": "network",
+  "id": "mullvad",
+  "displayName": "Mullvad",
+  "description": "Mullvad CLI lifecycle with lockdown-mode support",
+  "capability": {
+    "name": "network-lifecycle",
+    "operations": ["up", "down", "status"]
+  },
+  "platforms": {
+    "os": ["linux", "darwin", "win32"],
+    "arch": ["any"],
+    "executables": ["mullvad"]
+  },
+  "permissions": {
+    "privileges": ["host-network", "provider-killswitch"],
+    "filesystem": ["runtime-state"],
+    "network": ["host-control", "provider-api"],
+    "secrets": []
+  },
+  "implementation": {
+    "type": "trusted-core"
+  },
+  "provenance": {
+    "repository": "https://github.com/0xJord4n/ideality",
+    "license": "MIT",
+    "maintainers": ["0xJord4n@users.noreply.github.com"]
+  },
+  "signing": {
+    "mode": "release-bundle",
+    "identity": "https://github.com/0xJord4n/ideality/.github/workflows/release.yml@refs/tags/v*",
+    "issuer": "https://token.actions.githubusercontent.com"
+  }
+}

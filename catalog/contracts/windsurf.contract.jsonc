@@ -1,0 +1,21 @@
+// Windsurf - adapter behavior contract.
+// catalog:check compiles catalog/windsurf.jsonc and fails when these
+// expectations drift; keep the contract in lockstep with the manifest.
+{
+  "contractVersion": 1,
+  "kind": "tool-contract",
+  "tool": "windsurf",
+  "detection": ["windsurf"],
+  "profiles": [
+    {
+      "case": "default",
+      "args": [
+        "--user-data-dir",
+        "{{idealityHome}}/profiles/{{identity}}/editors/windsurf/user-data",
+        "--extensions-dir",
+        "{{idealityHome}}/profiles/{{identity}}/editors/windsurf/extensions"
+      ]
+    }
+  ],
+  "redactions": []
+}

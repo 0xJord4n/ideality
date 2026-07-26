@@ -1,0 +1,81 @@
+// OpenVPN - deterministic privileged behavior contract.
+{
+  "contractVersion": 1,
+  "kind": "privileged-adapter-contract",
+  "adapterKind": "network",
+  "adapter": "openvpn",
+  "cases": [
+    {
+      "case": "default",
+      "profile": {
+        "driver": "openvpn",
+        "config": "/contract/openvpn.conf",
+        "killSwitch": "off"
+      },
+      "expected": {
+        "capability": {
+          "executable": "openvpn",
+          "strictKillSwitch": false,
+          "detail": "OpenVPN requires an operating-system kill-switch helper"
+        },
+        "enforcement": "off",
+        "actions": {
+          "up": {
+            "options": {
+              "configPath": "/runtime/openvpn.conf",
+              "pidPath": "/runtime/openvpn.pid",
+              "authPath": "/runtime/openvpn.auth"
+            },
+            "steps": [
+              {
+                "description": "Start OpenVPN profile contract",
+                "command": [
+                  "openvpn",
+                  "--config",
+                  "/runtime/openvpn.conf",
+                  "--writepid",
+                  "/runtime/openvpn.pid",
+                  "--daemon",
+                  "ideality-contract",
+                  "--auth-nocache",
+                  "--auth-user-pass",
+                  "/runtime/openvpn.auth"
+                ]
+              }
+            ]
+          },
+          "down": {
+            "options": {
+              "pidPath": "/runtime/openvpn.pid"
+            },
+            "steps": [
+              {
+                "description": "Stop OpenVPN profile contract",
+                "command": [
+                  "sh",
+                  "-c",
+                  "test -s '/runtime/openvpn.pid' && kill \"$(cat '/runtime/openvpn.pid')\""
+                ]
+              }
+            ]
+          },
+          "status": {
+            "options": {
+              "pidPath": "/runtime/openvpn.pid"
+            },
+            "steps": [
+              {
+                "description": "Read OpenVPN profile contract status",
+                "command": [
+                  "sh",
+                  "-c",
+                  "test -s '/runtime/openvpn.pid' && kill -0 \"$(cat '/runtime/openvpn.pid')\""
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}
