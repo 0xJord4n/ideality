@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. Release Please updates this file
 from Conventional Commit messages when it prepares a release pull request.
 
+## [0.2.5](https://github.com/0xJord4n/ideality/compare/v0.2.4...v0.2.5) (2026-07-27)
+
+
+### Bug Fixes
+
+* harden launcher and release supply chain ([7c39619](https://github.com/0xJord4n/ideality/commit/7c3961990f1bf17685d9ab9f593d4bb027e2cab7))
+
 ## [0.2.4](https://github.com/0xJord4n/ideality/compare/v0.2.3...v0.2.4) (2026-07-27)
 
 
