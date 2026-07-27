@@ -85,11 +85,16 @@ that exact version once from an authenticated maintainer checkout, configure
 the trusted publisher immediately, then rerun the release workflow:
 
 ```bash
-npm publish --access public
-gh workflow run release.yml --ref "v$(node -p 'require(\"./package.json\").version')"
+version="$(node -p 'require("./package.json").version')"
+git fetch --tags origin
+git switch --detach "v$version"
+NPM_CONFIG_PROVENANCE=false npm publish --access public
+gh workflow run release.yml --ref "v$version"
 ```
 
-All later releases publish only through OIDC in the workflow.
+The one-time terminal publish disables provenance because it has no CI OIDC
+provider. Keep `publishConfig.provenance` enabled: all later releases publish
+only through OIDC in the workflow and receive npm provenance automatically.
 
 ## Verifying a release
 

@@ -79,6 +79,9 @@ describe("release distribution", () => {
     }
     expect(releaseDocs).toContain("npm trusted publishing");
     expect(releaseDocs).toContain("@0xjord4n/ideality");
+    expect(releaseDocs).toContain(
+      "NPM_CONFIG_PROVENANCE=false npm publish --access public",
+    );
     expect(contributorWorkflow).toContain("npm publish --access public");
     expect(contributorWorkflow).toContain("npm pack --dry-run");
     expect(readme).toContain("yarn dlx @0xjord4n/ideality@latest");
