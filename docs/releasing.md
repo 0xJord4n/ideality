@@ -98,13 +98,21 @@ the trusted publisher immediately, then rerun the release workflow:
 version="$(node -p 'require("./package.json").version')"
 git fetch --tags origin
 git switch --detach "v$version"
-NPM_CONFIG_PROVENANCE=false npm publish --access public
+npm publish --access public --provenance=false --otp="<current npm 2FA code>"
+npx --yes npm@latest trust github @0xjordan/ideality \
+  --repo 0xJord4n/ideality \
+  --file release.yml \
+  --allow-publish \
+  --yes
 gh workflow run release.yml --ref "v$version"
 ```
 
 The one-time terminal publish disables provenance because it has no CI OIDC
-provider. Keep `publishConfig.provenance` enabled: all later releases publish
-only through OIDC in the workflow and receive npm provenance automatically.
+provider. The explicit CLI flag overrides the repository's
+`publishConfig.provenance` setting. Complete npm's 2FA prompt when the
+`npm trust` command creates the publisher relationship. Keep
+`publishConfig.provenance` enabled: all later releases publish only through
+OIDC in the workflow and receive npm provenance automatically.
 
 ## Verifying a release
 

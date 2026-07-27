@@ -80,8 +80,12 @@ describe("release distribution", () => {
     expect(releaseDocs).toContain("npm trusted publishing");
     expect(releaseDocs).toContain("@0xjordan/ideality");
     expect(releaseDocs).toContain(
-      "NPM_CONFIG_PROVENANCE=false npm publish --access public",
+      'npm publish --access public --provenance=false --otp="<current npm 2FA code>"',
     );
+    expect(releaseDocs).toContain(
+      "npx --yes npm@latest trust github @0xjordan/ideality",
+    );
+    expect(releaseDocs).toContain("--allow-publish");
     expect(contributorWorkflow).toContain("npm publish --access public");
     expect(contributorWorkflow).toContain("npm pack --dry-run");
     expect(readme).toContain("yarn dlx @0xjordan/ideality@latest");
