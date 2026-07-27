@@ -16,6 +16,12 @@ const releaseWorkflow = path.join(
   "workflows",
   "release.yml",
 );
+const securityWorkflow = path.join(
+  repoRoot,
+  ".github",
+  "workflows",
+  "security.yml",
+);
 
 const hostTarget = `${process.platform === "darwin" ? "darwin" : "linux"}-${
   process.arch === "arm64" ? "arm64" : "x64"
@@ -278,6 +284,14 @@ describe(".github/workflows/release.yml", () => {
     expect(workflow).toContain(
       "dist/release/release-metadata.json.sigstore.json",
     );
+  });
+});
+
+describe(".github/workflows/security.yml", () => {
+  test("audits dependencies without requiring GitHub Advanced Security", async () => {
+    const workflow = await readFile(securityWorkflow, "utf8");
+    expect(workflow).toContain("bun run audit");
+    expect(workflow).not.toContain("actions/dependency-review-action");
   });
 });
 

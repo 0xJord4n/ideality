@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { chmod, mkdir, mkdtemp } from "node:fs/promises";
+import { chmod, mkdir, mkdtemp, realpath, symlink } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -78,7 +78,13 @@ describe("doctor", () => {
   });
 
   test("fails when canonical roots owned by different identities overlap", async () => {
-    const home = await mkdtemp(path.join(os.tmpdir(), "ideality-overlap-"));
+    const temporaryDirectory = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-overlap-"),
+    );
+    const canonicalHome = path.join(temporaryDirectory, "canonical-home");
+    const home = path.join(temporaryDirectory, "linked-home");
+    await mkdir(canonicalHome);
+    await symlink(canonicalHome, home, "dir");
     const parent = path.join(home, "code", "sample");
     const child = path.join(parent, "nested");
     await mkdir(child, { recursive: true });
@@ -92,10 +98,12 @@ describe("doctor", () => {
       tools: {},
     };
     const checks = await runDoctor(config, home, path.join(home, ".ideality"));
+    const canonicalParent = await realpath(parent);
+    const canonicalChild = await realpath(child);
     expect(checks).toContainEqual({
       status: "fail",
       subject: "first/second:roots",
-      message: `canonical roots overlap: ${parent} and ${child}`,
+      message: `canonical roots overlap: ${canonicalParent} and ${canonicalChild}`,
     });
   });
 });
