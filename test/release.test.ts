@@ -204,6 +204,43 @@ describe("scripts/install.sh", () => {
     expect(existsSync(path.join(installDir, "ideality"))).toBe(false);
   });
 
+  test("downloads and installs a pinned cosign verifier when requested", async () => {
+    const artifacts = await makeStubRelease();
+    const fakeCosign = await makeFakeCosign();
+    const verifierDir = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-cosign-release-"),
+    );
+    const cosignAsset = `cosign-${
+      process.platform === "darwin" ? "darwin" : "linux"
+    }-${process.arch === "arm64" ? "arm64" : "amd64"}`;
+    const verifierBytes = await readFile(fakeCosign.bin);
+    const verifierPath = path.join(verifierDir, cosignAsset);
+    await writeFile(verifierPath, verifierBytes, { mode: 0o755 });
+    const verifierSha = new Bun.CryptoHasher("sha256")
+      .update(verifierBytes)
+      .digest("hex");
+    const home = await mkdtemp(path.join(os.tmpdir(), "ideality-home-"));
+    const installDir = path.join(home, "bin");
+
+    const result = run(["bash", installScript], {
+      HOME: home,
+      IDEALITY_BASE_URL: `file://${artifacts}`,
+      IDEALITY_COSIGN: "auto",
+      IDEALITY_COSIGN_BASE_URL: `file://${verifierDir}`,
+      IDEALITY_COSIGN_SHA256: verifierSha,
+      IDEALITY_INSTALL_DIR: installDir,
+      IDEALITY_REPO: UNREACHABLE_REPO,
+    });
+
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("Downloading pinned cosign");
+    expect(result.stdout).toContain(
+      `Installing pinned verifier to ${installDir}/cosign`,
+    );
+    expect((await stat(path.join(installDir, "cosign"))).isFile()).toBe(true);
+    expect((await stat(path.join(installDir, "ideality"))).isFile()).toBe(true);
+  });
+
   test("fails closed when cosign cannot verify release metadata", async () => {
     const artifacts = await makeStubRelease();
     const home = await mkdtemp(path.join(os.tmpdir(), "ideality-home-"));
