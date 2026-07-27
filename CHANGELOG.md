@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. Release Please updates this file
 from Conventional Commit messages when it prepares a release pull request.
 
+## [0.2.1](https://github.com/0xJord4n/ideality/compare/v0.2.0...v0.2.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* isolate atomic network state writes ([edc5917](https://github.com/0xJord4n/ideality/commit/edc59177fb495992a23fbc322ebc2b323830465e))
+* recover private repository releases ([3a3ea3c](https://github.com/0xJord4n/ideality/commit/3a3ea3c829605ca2ef70f481a992a0694a6f49ba))
+* use owned npm package scope ([d697bff](https://github.com/0xJord4n/ideality/commit/d697bfff00a97f8383e2dda051b94b2d5e6444ff))
+
 ## [0.2.0](https://github.com/0xJord4n/ideality/compare/v0.1.0...v0.2.0) (2026-07-27)
 
 
