@@ -1,42 +1,106 @@
-# ideality
+# Ideality
 
-Folder-based identity orchestration for developer tools, built with
-[Bunli](https://bunli.dev/docs) and
-[OpenTUI](https://opentui.com/docs/getting-started/).
+### One machine. Many developer identities. No account bleed.
 
-Ideality selects an identity from the current directory and starts each tool
-with only that identity's process environment. It supports Git plus
-identity-aware packs for cloud accounts, source-control CLIs, editors and
-desktop apps, package registries, deployment platforms, AI tools, browsers,
-VPNs, VMs, and declarative custom plugins.
+[![CI](https://github.com/0xJord4n/ideality/actions/workflows/ci.yml/badge.svg)](https://github.com/0xJord4n/ideality/actions/workflows/ci.yml)
+[![GitHub release](https://img.shields.io/github/v/release/0xJord4n/ideality?style=flat&logo=github)](https://github.com/0xJord4n/ideality/releases)
+[![GitHub stars](https://img.shields.io/github/stars/0xJord4n/ideality?style=flat&logo=github)](https://github.com/0xJord4n/ideality/stargazers)
+[![License: MIT](https://img.shields.io/badge/license-MIT-2f855a)](LICENSE)
+[![Bun 1.3](https://img.shields.io/badge/Bun-1.3-black?logo=bun)](.bun-version)
+
+Ideality maps folders to developer identities, then starts each tool with the
+right Git author, SSH key, account environment, profile directory, secrets,
+network policy, and execution target.
+
+Keep using `git`, `gh`, `aws`, `vercel`, `codex`, browsers, editors, and the
+rest of your normal toolchain. Ideality's managed shims select and isolate the
+matching identity automatically from `$PWD`.
+
+[**Install**](#install) · [Quick start](#quick-start) ·
+[Supported tools](#supported-tools) · [Security](#security-model) ·
+[Documentation](#documentation) · [Contributing](CONTRIBUTING.md)
+
+## Why Ideality
+
+Developer tools store identity in different places: global Git config, shell
+variables, dotfiles, browser profiles, vendor-specific directories, native
+credential stores, or an active CLI session. Switching projects can silently
+leave the wrong account active.
+
+Ideality gives those tools one folder-aware identity boundary:
+
+```text
+~/code/work/       -> work identity       -> git, gh, aws, vercel, codex
+~/code/personal/   -> personal identity   -> git, gh, npm, railway, chrome
+~/clients/acme/    -> acme identity       -> git, glab, gcloud, cursor
+```
+
+The longest matching folder root wins. Outside configured roots, Ideality uses
+the default identity. You can always override the selection explicitly.
+
+## Features
+
+| Feature | What it provides |
+|:--|:--|
+| **Folder-based selection** | Resolve an identity from the current directory without manually switching accounts |
+| **Automatic dispatch** | Run normal tool commands through generated shims in `~/.ideality/bin` |
+| **Process isolation** | Remove variables managed by other identities before injecting the selected profile |
+| **Git and SSH identity** | Generate conditional Git configuration for authoring, signing, and SSH |
+| **Project handovers** | Share reviewed tool and identity requirements in `.ideality/project.jsonc` |
+| **Secret references** | Resolve credentials only when a process starts; keep values out of the registry and diagnostics |
+| **Network enforcement** | Bind identities or individual tools to VPN and network profiles |
+| **VM execution** | Route selected tools through folder-aware isolated machines |
+| **Explainability** | Inspect identity selection, environment sources, redactions, and execution targets before launch |
+| **Transactional changes** | Preview writes, retain snapshots, and roll back registry changes |
+| **Declarative adapters** | Use 58 built-in tools or install portable JSONC tool manifests |
+| **Verified distribution** | Install and update from authenticated metadata and checksum-verified release archives |
+
+## How It Works
+
+1. **Bind roots to identities.** Each identity owns one or more folder roots and
+   may define Git, SSH, tool, network, and VM settings.
+2. **Enable only the tools it needs.** Ideality creates isolated profiles and
+   managed shims for the selected adapters.
+3. **Run commands normally.** A shim resolves the identity from `$PWD`, builds a
+   clean process environment, and executes the real binary.
+4. **Inspect any decision.** `ideality status` shows the active identity;
+   `ideality explain <tool>` shows how a launch will be isolated.
+
+```text
+command
+  -> managed shim
+  -> longest matching folder root
+  -> identity + tool profile
+  -> secrets / network / VM requirements
+  -> real executable
+```
+
+Ideality does not make a repository execute commands when it is opened.
+Project handovers are parsed, reviewed, checked against team policy, and
+applied explicitly with `ideality setup`.
 
 ## Install
 
-### Install script
+Prebuilt binaries support Linux and macOS on x64 and arm64.
 
-Downloads the signed release metadata, verifies its Sigstore bundle with
-`cosign`, verifies the platform archive checksum from that metadata, and
-installs the binary to `~/.local/bin`:
+### Install Script
+
+The installer authenticates the release metadata, verifies the selected
+archive checksum, and installs the binary to `~/.local/bin`. Verification is
+automatic and requires no separate setup.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/install.sh | bash
 ```
 
-Set `IDEALITY_VERSION` to pin a version and `IDEALITY_INSTALL_DIR` to change
-the destination.
-
-Direct binary installs can update themselves safely:
+Pin a version or change the destination with `IDEALITY_VERSION` and
+`IDEALITY_INSTALL_DIR`:
 
 ```bash
-ideality update --check
-ideality update --dry-run
-ideality update
+IDEALITY_VERSION=0.1.0 \
+IDEALITY_INSTALL_DIR="$HOME/bin" \
+  bash -c "$(curl -fsSL https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/install.sh)"
 ```
-
-`ideality update --version <version>` installs a specific release when its
-metadata is available. Package-manager installs are not overwritten. Remove a
-legacy managed installation first, then use the signed installer so only one
-`ideality` remains on `PATH`.
 
 ### Agent Skills
 
@@ -68,44 +132,71 @@ skill selection, project or global scope, symlink or copy installation, and
 non-interactive `--yes`/`--all` modes. See the
 [Agent Skills guide](skills/README.md) for the complete roster and options.
 
-### Prebuilt binaries
+### Build From Source
 
-Every release ships `ideality-<os>-<arch>.tar.gz` archives for Linux and
-macOS (x64 and arm64) with a `SHA256SUMS.txt` manifest, Sigstore keyless
-signatures (`*.sigstore.json`), GitHub build provenance attestations,
-`release-metadata.json`, and `release-metadata.json.sigstore.json` used by
-the installer and `ideality update`.
-Download from the [releases page](https://github.com/0xJord4n/ideality/releases),
-then verify and unpack:
+Source builds require the Bun version in [`.bun-version`](.bun-version).
 
 ```bash
-sha256sum -c --ignore-missing SHA256SUMS.txt
-cosign verify-blob \
-  --bundle ideality-linux-x64.tar.gz.sigstore.json \
-  --certificate-identity-regexp 'https://github.com/0xJord4n/ideality/\.github/workflows/release\.yml.*' \
-  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
-  ideality-linux-x64.tar.gz
-gh attestation verify ideality-linux-x64.tar.gz --repo 0xJord4n/ideality
-tar -xzf ideality-linux-x64.tar.gz
-```
-
-### From source
-
-Requires Bun 1.3 or newer.
-
-```bash
-bun install
+git clone https://github.com/0xJord4n/ideality.git
+cd ideality
+bun install --frozen-lockfile
 bun run check
 bun run build
 bun link
+```
+
+<details>
+<summary><strong>Release verification</strong></summary>
+
+Every release includes archives for all four supported targets, checksums,
+GitHub build provenance, and authenticated release metadata.
+
+```bash
+sha256sum -c --ignore-missing SHA256SUMS.txt
+gh attestation verify ideality-linux-x64.tar.gz --repo 0xJord4n/ideality
+```
+
+See [release verification](docs/releasing.md#verifying-a-release) for the full
+artifact contract.
+
+</details>
+
+## Quick Start
+
+Create the registry and your first identity:
+
+```bash
 ideality init
 ```
 
-Interactive mode is automatic in a terminal. The wizard fuzzy-searches folders
-and SSH private keys, derives the identity ID from the display label, and can
-generate an Ed25519 key. `--id` is only an explicit override.
+The interactive wizard:
 
-For provisioning:
+- discovers likely folder roots and existing SSH keys,
+- derives a stable ID from the identity label,
+- can generate an Ed25519 key,
+- lets you choose tool packs and individual tools,
+- offers preselected shell, completion, and conditional Git integrations.
+
+Open a new shell, enter a configured folder, and inspect the result:
+
+```bash
+exec "$SHELL" -l
+cd ~/code/work
+
+ideality status
+ideality explain gh
+gh auth status
+```
+
+Add another identity whenever you need one:
+
+```bash
+ideality identity add
+ideality identity bind personal ~/code/personal
+ideality identity default personal
+```
+
+For unattended provisioning:
 
 ```bash
 ideality init --non-interactive \
@@ -120,16 +211,6 @@ ideality init --non-interactive \
   --shell zsh
 ```
 
-All managed state lives under `~/.ideality`:
-
-```text
-bin/  completions/  config.jsonc  git/  history/  plugins/
-profiles/  secrets/  shell/  ssh/
-```
-
-Set `IDEALITY_HOME` to relocate the state directory or `IDEALITY_CONFIG` to
-select a registry.
-
 ## Project Setup
 
 Run the project wizard anywhere inside a repository:
@@ -138,66 +219,49 @@ Run the project wizard anywhere inside a repository:
 ideality setup
 ```
 
-The normal arrow-key flow has five decisions:
+The wizard can activate an existing local identity, import a shared project
+identity, or create a new one. It then selects tools and optional network or VM
+requirements before showing the exact files and integrations it will change.
 
-1. Store a complete handover in `.ideality/project.jsonc`, or activate locally.
-2. Fuzzy-select an existing identity, import the project identity, or create one.
-3. Select project tools with Up/Down, Space, and Enter.
-4. Optionally select a host VPN or VM execution profile.
-5. Review the exact identity, tools, files, and integrations before applying.
+Choose between:
 
-Only relevant branches appear. Creating an identity asks for Git details.
-`--advanced` also exposes SSH key selection, full versus requirements-only
-handover, and integration controls. Existing handovers preselect their tools
-and can import their identity on a new machine.
-
-The project file uses the complete Ideality configuration schema. It may carry
-Git and SSH settings, built-in or custom tool definitions, isolated profiles,
-arguments, environment sources, secret backend settings, and literal values.
-Credential-like literals require an explicit interactive confirmation. The
-same review covers custom adapter commands and VM provisioning scripts.
-Non-interactive trust requires `--yes`. The file never executes commands
-merely because a repository was opened; a teammate reviews and applies it with
-`ideality setup`.
+- **Local activation**: keep the binding only in your user registry.
+- **Complete handover**: write a portable `.ideality/project.jsonc` containing
+  the project identity and tool profiles.
+- **Requirements-only handover**: share required tools without identity
+  profiles or credential references.
 
 Automation uses the same operation without prompts:
 
 ```bash
 ideality setup --non-interactive \
-  --identity sample \
+  --identity work \
   --tools gh,cf,vercel,codex \
   --project \
   --yes
 
 ideality setup --non-interactive \
-  --identity sample \
+  --identity work \
   --tools gh,codex \
   --project \
   --requirements-only \
   --dry-run
 ```
 
-The user registry under `~/.ideality` remains intact. Applying a project adds
-the project root and selected profiles to its local identity without deleting
-unrelated identities or tools.
-
-Teams can pin what a handover may contain with a policy contract in
-`.ideality/policy.jsonc` and validate it with `ideality policy check` (also
-suitable as a CI gate). See [team policy contracts](docs/policy.md).
-
-## Tool Packs
-
-`ideality init` and `ideality identity add` first select packs with arrow keys
-and Space, then allow fine-grained tool selection. Only selected tools receive
-identity profiles and managed shims.
+Teams can constrain handovers with `.ideality/policy.jsonc` and enforce the
+contract in CI:
 
 ```bash
-ideality tool packs
-ideality tool enable-pack <identity> cloud
-ideality tool disable-pack <identity> editors
-ideality tool enable <identity> stripe
-ideality tool list
+ideality policy check
 ```
+
+See [team policy contracts](docs/policy.md) for the schema and CI patterns.
+
+## Supported Tools
+
+`ideality init` and `ideality identity add` offer packs first, followed by
+fine-grained tool selection. Only enabled tools receive identity profiles and
+managed shims.
 
 <!-- generated:catalog-summary:begin -->
 The built-in catalog ships 58 adapters across 7 selectable packs:
@@ -212,107 +276,60 @@ The built-in catalog ships 58 adapters across 7 selectable packs:
 <!-- generated:catalog-summary:end -->
 
 Adapters report `full`, `partial`, or `credentials` isolation based on the
-controls exposed by the upstream application. See the
-[tool-pack and isolation matrix](docs/tool-packs.md).
+controls exposed by the upstream application. The
+[tool pack and isolation matrix](docs/tool-packs.md) documents the exact
+mechanism for every built-in adapter.
 
-All built-in integrations are represented in the versioned core adapter
-registry: 58 tool manifests, 6 network drivers, 5 VM drivers, and 7 secret
-backends. Tool adapters remain declarative manifests; built-in network, VM,
-and secret lifecycle actions are described by 18 strict privileged manifests
-plus mandatory behavior contracts. Those implementations are reviewed,
-statically bundled, and distributed under the signed release bundle; runtime
-plugins cannot inject privileged code. Custom network and VM drivers remain
-non-trusted user-configured argv wrappers.
+Manage packs and tools after setup:
 
-## Automatic Dispatch
-
-`ideality install` adds `~/.ideality/bin` to `PATH`. Managed shims in that
-directory intercept every configured tool, resolve the identity from `$PWD`,
-strip variables managed by other identities, inject the selected tool profile,
-and execute the real binary. Running `vercel`, `gh`, `railway`, `cf`, an AI
-CLI, or a browser needs no explicit wrapper.
+```bash
+ideality tool packs
+ideality tool enable-pack work cloud
+ideality tool disable-pack work editors
+ideality tool enable work stripe
+ideality tool list
+```
 
 Bun is intentionally not shimmed because it may be the runtime starting
-Ideality itself. Use `ideality run bun -- <args>` when registry isolation is
-required.
+Ideality. Use `ideality run bun -- <args>` when registry isolation is required.
+
+## Everyday Workflows
+
+### Inspect And Run
 
 ```bash
 ideality status
 ideality explain vercel
 ideality explain cf --path ~/code/work/project --json
+
+ideality run gh --identity work -- auth status
+ideality run chrome --identity personal -- https://github.com
+```
+
+### Authentication
+
+```bash
 ideality auth gh status
 ideality auth railway login --identity work
 ideality auth status --all
-ideality tui
 ```
 
-The dashboard (`ideality tui`) manages the registry directly: it stages
-identity, folder-binding, tool-enablement, network, VM, and secret-backend edits
-in memory, previews a readable diff, and only writes on an explicit save through
-the transactional history. It also previews and applies rollback snapshots,
-surfaces redacted auth health (`a`) and the team policy summary (`p`), lists and
-installs local plugin manifests (`g`), and administers value-free secret
-references (`k`). Plugin removal and secret deletion both require an explicit
-confirmation; secret entry is masked and values are never shown in TUI state,
-diffs, logs, or command arguments. Plugin install/remove requires a clean staged
-draft, and secret list/write/delete requires any staged secret-backend change to
-be saved or discarded before side effects run.
-
-## VPN And VM Isolation
-
-Network and VM profiles are folder-aware execution requirements. The shim
-enforces the selected host VPN before it starts a native tool or VM. Mullvad
-Lockdown mode is the built-in strict adapter; raw WireGuard and OpenVPN refuse
-`required` mode until an operating-system kill-switch helper is configured.
-Tailscale exit nodes and Cloudflare WARP are supported as provider-enforced
-profiles.
+### Git And SSH
 
 ```bash
-ideality network add
-ideality vm add
-ideality vm bind <identity> <vm-profile>
-ideality network bind <identity> <network-profile> --tool chrome
-ideality network up <network-profile>
-ideality vm exec <vm-profile> -- bun test
-ideality doctor --strict
-```
-
-Lima is the executable macOS/Linux VM backend. Apple VZ, Cloud Hypervisor, and
-Firecracker are capability-checked helper backends. Full configuration,
-wizard steps, secret handling, and leak-prevention boundaries are in
-[Network and VM isolation](docs/network-vm.md).
-
-The longest matching folder root wins. Outside all roots, the configured
-default identity is used. An explicit invocation remains available:
-
-```bash
-ideality run gh --identity work -- auth status
-ideality run chrome --identity work -- https://github.com
-```
-
-## Identities
-
-```bash
-ideality identity add
-ideality identity add --non-interactive --id work \
-  --label Work \
-  --root ~/code/work \
-  --git-name "Work Developer" \
-  --git-email developer@company.example \
-  --generate-ssh
 ideality identity ssh-public work
 ideality identity bind work ~/projects/client
-ideality identity default work
+ideality identity unbind work ~/projects/legacy
 ```
 
-Git uses generated `includeIf` configuration, including author, signing, and
-`core.sshCommand`. Other tools use process-only shims and identity-specific
+Git integration uses generated `includeIf` configuration, including author,
+signing, and `core.sshCommand`. Other tools use process-only shims and isolated
 profile directories.
 
-## Secrets
+### Secrets
 
-Starter profiles use logical secret references, never literal tokens. The
-default backend stores locked local files:
+Starter profiles use logical references instead of literal tokens. The default
+backend stores locked local files:
 
 ```bash
 ideality secret set work railway RAILWAY_API_TOKEN
@@ -321,40 +338,62 @@ printf '%s' "$TOKEN" |
 ideality secret list
 ```
 
-Choose an encrypted or external backend:
+Available backends include local files, age, macOS Keychain, `pass`,
+1Password, Bitwarden, and Dashlane:
 
 ```bash
 ideality secret backend age \
   --recipient age1... \
   --identity-file ~/.config/age/keys.txt
+
 ideality secret backend keychain
 ideality secret backend pass --prefix developer/ideality
 ideality secret backend onepassword
-ideality secret backend bitwarden \
-  --app-data-directory ~/.config/bitwarden-work
-ideality secret backend dashlane
 ```
 
-For 1Password, configure `secret:op://Vault/Item/credential`; Ideality reads it
-with `op read`. Bitwarden uses `secret:bw://<item-id-or-name>` and retrieves the
-login password with `bw get password`; an optional app-data directory isolates
-the logged-in account. Dashlane uses its native
-`secret:dl://<secret-id>/<field>` references with `dcli read`.
+Secret values are resolved only while starting the selected tool. Status,
+doctor, explain, config output, audit history, and the TUI remain redacted.
+Run `ideality env --reveal` only when you intentionally need resolved values.
 
-The 1Password, Bitwarden, and Dashlane backends are read-only in Ideality:
-create or update their items using the native application or CLI. Secret values
-are resolved only while starting the selected tool. Logical secrets are
-forbidden in shell-scoped profiles. `status`, `doctor`, `explain`, config
-output, and the TUI stay redacted. In `ideality tui`, press `k` to inspect the
-selected backend, stage backend settings, list backend-owned logical references
-where safe listing is supported, create or update writable backend secrets
-through masked input, and delete references only after confirming.
+### Network And VM Isolation
 
-Local secret directories are mode `700`; secret files and age ciphertext are
-atomically written with mode `600`. The age and `pass` backends receive values
-through stdin rather than command arguments.
+Network and VM profiles are folder-aware execution requirements. A selected
+host VPN is enforced before Ideality starts a native tool or VM.
 
-## Custom Tools
+```bash
+ideality network add
+ideality vm add
+ideality vm bind work dev-vm
+ideality network bind work corp-vpn --tool chrome
+ideality network up corp-vpn
+ideality vm exec dev-vm -- bun test
+ideality doctor --strict
+```
+
+Lima is the executable macOS/Linux VM backend. Apple VZ, Cloud Hypervisor, and
+Firecracker are capability-checked helper backends. Mullvad, WireGuard,
+OpenVPN, Tailscale exit nodes, Cloudflare WARP, and custom network wrappers are
+supported with provider-specific enforcement boundaries.
+
+See [network and VM isolation](docs/network-vm.md) for setup, enforcement
+levels, secret handling, and leak-prevention guarantees.
+
+### Terminal Dashboard
+
+```bash
+ideality tui
+```
+
+The dashboard stages identity, folder, tool, network, VM, plugin, and secret
+backend changes in memory. It previews a readable diff and writes only after an
+explicit save through transactional history. Press `g` for plugin manifest
+administration and `k` for secret-backend administration. Plugin installation
+or removal requires a clean staged draft; destructive actions require explicit
+confirmation.
+
+## Custom Adapters
+
+Add a local tool directly:
 
 ```bash
 ideality tool add acme --executable acme
@@ -364,7 +403,7 @@ ideality tool env work acme ACME_TOKEN secret:{{identity}}/acme-token
 ideality tool args work acme -- --region eu
 ```
 
-Portable plugin manifest:
+Or distribute a portable declarative manifest:
 
 ```jsonc
 {
@@ -381,7 +420,9 @@ Portable plugin manifest:
     "scope": "process",
     "state": "credentials"
   },
-  "auth": { "status": ["account", "show"] },
+  "auth": {
+    "status": ["account", "show"]
+  },
   "profile": {
     "env": {
       "ACME_TOKEN": {
@@ -398,101 +439,137 @@ ideality plugin validate acme.ideality.jsonc
 ideality plugin install acme.ideality.jsonc
 ```
 
-Templates support `{{identity}}`, `{{home}}`, `{{idealityHome}}`, and
-`{{root}}`. Existing version-1 plugin manifests are translated into this
-canonical format during validation and installation. See
-[custom adapters](docs/custom-adapters.md).
+Tool manifests are data, not executable plugins. Commands and arguments are
+strict argv arrays. Runtime plugins cannot inject privileged network, VM, or
+secret-backend code. See [custom adapters](docs/custom-adapters.md).
 
-## Safety
+## Security Model
 
-Registry writes are atomic and retain the newest 50 previous valid configs in
-`~/.ideality/history`.
+| Boundary | Protection |
+|:--|:--|
+| **Registry** | Atomic writes, strict schemas, mode-restricted state, and the newest 50 valid snapshots |
+| **Environment** | Variables owned by other identities are removed before the selected profile is applied |
+| **Secrets** | Logical references resolve at launch; values stay out of config, diffs, logs, audit events, and argv |
+| **Project files** | Opening a repository executes nothing; setup requires review and explicit application |
+| **Tool adapters** | Declarative manifests are strictly parsed and cannot contain shell command strings |
+| **Privileged adapters** | Network, VM, and secret lifecycle code is reviewed, statically bundled, and covered by behavior contracts |
+| **Releases** | Metadata is authenticated, archives are checksum-verified, and updates validate migration readiness |
+| **Recovery** | Dry runs, config snapshots, transactional rollback, and binary rollback protect mutations |
+
+Useful checks:
 
 ```bash
 ideality identity bind work ~/projects/client --dry-run
 ideality plugin install acme.ideality.jsonc --dry-run
-ideality install --dry-run
 ideality rollback --list
 ideality rollback latest --dry-run
-ideality rollback latest
-ideality config migrate --dry-run
 ideality doctor --strict
 ```
 
 Structured audit history is local and explicitly opt-in. By default Ideality
-does not create `~/.ideality/audit/history.jsonl` and records no audit events.
-Enable it when you want a redacted, append-only JSONL trail of security and
-lifecycle outcomes:
+does not create an audit file or record events.
 
 ```bash
-ideality audit status
 ideality audit enable --max-events 1000 --max-bytes 5242880
 ideality audit list
 ideality audit list --type secret.set --json
 ideality audit prune --confirm
-ideality audit clear --confirm
 ideality audit disable
 ```
 
-Audit storage is locked to mode `700` for `~/.ideality/audit` and `600` for
-`history.jsonl`. Events use schema version `1`, monotonically increasing local
-sequence numbers, and deterministic sequence ordering; malformed JSONL lines
-are reported and ignored during listing. Retention defaults to 1000 events and
-5 MiB unless overridden with `auditHistory.maxEvents`,
-`auditHistory.maxBytes`, or `auditHistory.retentionDays` in the v1 registry.
-Audit writes are best-effort after successful operations: a storage failure is
-reported by audit administration/status but does not store raw command output
-or roll back the original operation.
+Audit payloads are allowlisted and redacted. They never include executable
+paths, secret values, resolved environments, raw stdout or stderr, token-like
+strings, or full argv. See [SECURITY.md](SECURITY.md) for operational guidance.
 
-Recorded payloads are allowlisted. Ideality records outcomes such as registry
-changes, setup decisions, policy checks, plugin installs/removals, secret
-reference writes without values, secret backend changes, auth actions, tool
-dispatch identity after successful execution, completed binary updates, network
-and VM lifecycle actions, and rollback/migration. It never records executable
-paths, secret values, resolved environment values, raw stdout/stderr, token-like
-strings, or full argv.
+## Configuration
 
-Shell support:
-
-```bash
-ideality completion zsh --install
-ideality prompt
-ideality prompt --format '{label}:{identity}'
-```
-
-## Command Map
+Managed state defaults to `~/.ideality`:
 
 ```text
-ideality init
-ideality setup
-ideality status|whoami|current
-ideality env
-ideality run|x
-ideality explain
-ideality audit status|enable|disable|list|prune|clear
-ideality prompt
-ideality auth <tool> login|status|logout
-ideality auth status --all
-ideality identity list|show|add|remove|bind|unbind|default|ssh-public
-ideality tool list|packs|enable-pack|disable-pack|add|remove|env|args|enable|disable
-ideality network list|show|add|bind|up|down|status|remove
-ideality vm list|show|add|bind|unbind|start|stop|status|exec|remove
-ideality plugin list|validate|install|remove
-ideality policy check
-ideality secret set|list|backend
-ideality install
-ideality update
-ideality hook
-ideality completion zsh|bash|fish
-ideality rollback
-ideality doctor
-ideality config path|validate|show|migrate|edit
-ideality tui
+~/.ideality/
+├── audit/          # optional redacted JSONL history
+├── bin/            # managed tool shims
+├── completions/    # generated shell completions
+├── config.jsonc    # identity and adapter registry
+├── git/            # generated conditional Git configuration
+├── history/        # transactional registry snapshots
+├── plugins/        # installed declarative manifests
+├── profiles/       # identity-specific tool state
+├── secrets/        # local secret backend storage
+├── shell/          # generated shell integration
+└── ssh/            # generated SSH keys
 ```
+
+| Variable | Purpose |
+|:--|:--|
+| `IDEALITY_HOME` | Relocate all managed state |
+| `IDEALITY_CONFIG` | Select a registry file explicitly |
+| `IDEALITY_IDENTITY` | Expose the resolved identity to child processes |
+
+Inspect or edit the registry through the CLI:
+
+```bash
+ideality config path
+ideality config validate
+ideality config show
+ideality config edit
+ideality config migrate --dry-run
+```
+
+## Updates
+
+Direct binary installs update in place. Package-manager installs are detected
+and never overwritten.
+
+```bash
+ideality update --check
+ideality update --dry-run
+ideality update
+ideality update --version 0.1.0
+```
+
+An update verifies signed metadata and the archive checksum, proves the staged
+binary version, checks migration readiness, snapshots config bytes, and rolls
+back both the binary and config if migration fails. Legacy managed
+installations are never overwritten; remove the old managed installation
+first, then use the signed installer so only one `ideality` remains on `PATH`.
+
+## Command Reference
+
+| Area | Commands |
+|:--|:--|
+| **Start** | `init`, `setup`, `install`, `tui` |
+| **Inspect** | `status`, `explain`, `env`, `doctor`, `prompt` |
+| **Execute** | `run`, `auth` |
+| **Identities** | `identity list|show|add|remove|bind|unbind|default|ssh-public` |
+| **Tools** | `tool list|packs|enable-pack|disable-pack|add|remove|env|args|enable|disable` |
+| **Networks** | `network list|show|add|bind|up|down|status|remove` |
+| **Machines** | `vm list|show|add|bind|unbind|start|stop|status|exec|remove` |
+| **Secrets** | `secret set|list|backend` |
+| **Extensions** | `plugin list|validate|install|remove`, `skills install` |
+| **Governance** | `policy check`, `audit status|enable|disable|list|prune|clear` |
+| **Recovery** | `rollback`, `config path|validate|show|migrate|edit`, `update` |
+| **Shell** | `hook`, `completion zsh|bash|fish` |
+
+Run `ideality --help` or `ideality <command> --help` for flags and examples.
+
+## Documentation
+
+| Guide | Covers |
+|:--|:--|
+| [Tool packs and isolation](docs/tool-packs.md) | Built-in adapters, isolation grades, mechanisms, and upstream controls |
+| [Network and VM isolation](docs/network-vm.md) | VPN enforcement, VM backends, requirements, and security boundaries |
+| [Custom adapters](docs/custom-adapters.md) | Portable tool manifests, templates, value sources, and contracts |
+| [Team policy contracts](docs/policy.md) | Handover constraints, findings, and CI enforcement |
+| [Releasing](docs/releasing.md) | Signed artifacts, provenance, and local rehearsal |
+| [Agent skills](skills/README.md) | Vercel Skills installation and skills for operating or contributing to Ideality |
+| [Security](SECURITY.md) | Credential handling and local operational guidance |
+| [Changelog](CHANGELOG.md) | Release history |
 
 ## Development
 
 ```bash
+bun install --frozen-lockfile
 bun run dev -- --help
 bun run check
 bun run audit
@@ -500,12 +577,21 @@ bun run perf:check
 bun run build
 ```
 
-Adding a built-in tool adapter is fully tooled: `bun run catalog:new`
-scaffolds its manifest and mandatory behavior contract. Privileged network,
-VM, and secret contributions use their own capability, permission,
-provenance, signing, and behavior schemas under `privileged-adapters/`.
-`bun run check` validates both systems. See [CONTRIBUTING.md](CONTRIBUTING.md).
+`bun run check` verifies formatting, lint, TypeScript, the built-in catalog,
+privileged adapter contracts, generated documentation, and the full test suite.
+
+Adding a built-in tool adapter is a two-file contribution: one manifest and one
+behavior contract. The repository scaffolder registers it and regenerates the
+catalog documentation:
+
+```bash
+bun run catalog:new acme --display-name "Acme CLI" --pack deployment
+bun run check
+```
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for adapter contracts, privileged
+contribution rules, tests, and pull request templates.
 
 ## License
 
-MIT
+Ideality is available under the [MIT License](LICENSE).
