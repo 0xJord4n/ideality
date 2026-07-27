@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. Release Please updates this file
 from Conventional Commit messages when it prepares a release pull request.
 
+## [0.2.3](https://github.com/0xJord4n/ideality/compare/v0.2.2...v0.2.3) (2026-07-27)
+
+
+### Bug Fixes
+
+* publish private repository packages without provenance ([16cf815](https://github.com/0xJord4n/ideality/commit/16cf815cacc006ecaea86c30a5b36f33030581e9))
+
 ## [0.2.2](https://github.com/0xJord4n/ideality/compare/v0.2.1...v0.2.2) (2026-07-27)
 
 
