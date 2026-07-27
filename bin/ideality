@@ -3,14 +3,21 @@
 ':' <<'__IDEALITY_JS__'
 
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { accessSync, constants } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const packageRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const binary = path.join(packageRoot, "vendor", "ideality");
 
-if (!existsSync(binary)) {
+let executable = true;
+try {
+  accessSync(binary, constants.X_OK);
+} catch {
+  executable = false;
+}
+
+if (!executable) {
   const install = spawnSync(
     "bash",
     [path.join(packageRoot, "scripts", "install-package.sh")],

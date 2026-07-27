@@ -293,15 +293,16 @@ describe("scripts/install.sh", () => {
     expect(directNodeCommand.exitCode).toBe(0);
     expect(directNodeCommand.stdout).toContain(`ideality ${PACKAGE_VERSION}`);
 
+    const vendoredBinary = path.join(packageRoot, "vendor", "ideality");
+    await chmod(vendoredBinary, 0o644);
     const command = run(
       [path.join(prefix, "bin", "ideality"), "--version"],
       bootstrapEnv,
     );
     expect(command.exitCode).toBe(0);
     expect(command.stdout).toContain(`ideality ${PACKAGE_VERSION}`);
-    expect(
-      (await stat(path.join(packageRoot, "vendor", "ideality"))).isFile(),
-    ).toBe(true);
+    expect((await stat(vendoredBinary)).isFile()).toBe(true);
+    expect((await stat(vendoredBinary)).mode & 0o111).not.toBe(0);
   }, 60_000);
 
   test("fails closed when cosign cannot verify release metadata", async () => {
