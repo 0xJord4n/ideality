@@ -45,10 +45,21 @@ export function discoverGitIdentity(
   name?: string,
   email?: string,
 ): GitIdentity {
+  const configured = discoverConfiguredGitIdentity(name, email);
   const user = process.env.USER || "developer";
   return {
-    name: name || gitConfig("user.name") || "Example Developer",
-    email: email || gitConfig("user.email") || `${user}@example.invalid`,
+    name: configured.name ?? "Example Developer",
+    email: configured.email ?? `${user}@example.invalid`,
+  };
+}
+
+export function discoverConfiguredGitIdentity(
+  name?: string,
+  email?: string,
+): { name?: string; email?: string } {
+  return {
+    name: name || gitConfig("user.name") || undefined,
+    email: email || gitConfig("user.email") || undefined,
   };
 }
 

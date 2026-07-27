@@ -51,9 +51,19 @@ ideality init
 
 ## First identity: `ideality init`
 
-Interactive mode is automatic in a terminal. The wizard fuzzy-searches folders
-and SSH private keys, derives the identity ID from the display label, and can
-generate an Ed25519 key. `--id` is only an explicit override.
+Run the command from the folder that should use the identity:
+
+```bash
+cd ~/code/work
+ideality init
+```
+
+Interactive mode is automatic in a terminal, and the current directory is the
+default folder. Recommended setup uses the detected Git identity (or asks for
+it once), the default SSH agent, essential developer tools, and automatic
+shell and Git switching. Choose Advanced setup to generate or discover an SSH
+key, choose tool packs individually, or customize integrations. `--id` remains
+an explicit override.
 
 Non-interactive provisioning:
 

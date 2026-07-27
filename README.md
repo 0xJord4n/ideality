@@ -187,25 +187,25 @@ artifact contract.
 
 ## Quick Start
 
-Create the registry and your first identity:
+Enter the folder that should use an account, then initialize it:
 
 ```bash
+cd ~/code/work
 ideality init
 ```
 
-The interactive wizard:
+The current folder is selected automatically. The recommended setup asks for
+an identity name, uses your existing Git identity (or asks for it once) and
+SSH agent, enables the essential developer tools, and installs automatic shell
+and Git switching. Review the summary and you are ready.
 
-- discovers likely folder roots and existing SSH keys,
-- derives a stable ID from the identity label,
-- can generate an Ed25519 key,
-- lets you choose tool packs and individual tools,
-- offers preselected shell, completion, and conditional Git integrations.
+Choose **Advanced setup** only when you want to generate or discover an SSH
+key, choose tool packs individually, or customize shell and Git integrations.
 
-Open a new shell, enter a configured folder, and inspect the result:
+Open a new shell and inspect the result:
 
 ```bash
 exec "$SHELL" -l
-cd ~/code/work
 
 ideality status
 ideality explain gh
@@ -283,7 +283,8 @@ See [team policy contracts](docs/policy.md) for the schema and CI patterns.
 
 ## Supported Tools
 
-`ideality init` and `ideality identity add` offer packs first, followed by
+Recommended `ideality init` enables Developer essentials automatically.
+Advanced setup and `ideality identity add` offer packs first, followed by
 fine-grained tool selection. Only enabled tools receive identity profiles and
 managed shims.
 
