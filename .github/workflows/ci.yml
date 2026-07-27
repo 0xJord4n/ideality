@@ -40,7 +40,7 @@ jobs:
         run: bun test --coverage --coverage-reporter=text --coverage-reporter=lcov
 
       - name: Upload coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: coverage-${{ matrix.os }}
           path: coverage/lcov.info
@@ -53,7 +53,7 @@ jobs:
         run: bash scripts/smoke.sh dist/ideality
 
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: ideality-${{ matrix.os }}
           path: dist/ideality
