@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, test } from "bun:test";
-import { mkdtemp, readFile, rm, stat } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm, stat } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -9,6 +9,7 @@ import {
   loadActiveNetwork,
   networkCapability,
   saveActiveNetwork,
+  type ActiveNetworkState,
 } from "../src/core/network.js";
 import type { NetworkProfile } from "../src/domain/config.js";
 
@@ -200,5 +201,30 @@ describe("active network lease", () => {
 
     await clearActiveNetwork(home);
     expect(await loadActiveNetwork(home)).toBeNull();
+  });
+
+  test("keeps concurrent atomic writes isolated", async () => {
+    const home = await mkdtemp(path.join(os.tmpdir(), "ideality-network-"));
+    temporaryDirectories.push(home);
+    const states: ActiveNetworkState[] = Array.from(
+      { length: 32 },
+      (_, index) => ({
+        version: 1 as const,
+        profile: `private-${index}`,
+        identity: "sample",
+        driver: "wireguard" as const,
+        enforcement: "unverified" as const,
+        activatedAt: `2026-07-24T10:00:${String(index).padStart(2, "0")}.000Z`,
+      }),
+    );
+
+    await Promise.all(states.map((state) => saveActiveNetwork(home, state)));
+
+    const active = await loadActiveNetwork(home);
+    expect(active).not.toBeNull();
+    expect(states).toContainEqual(active!);
+    expect(await readdir(path.join(home, "runtime"))).toEqual([
+      "network-state.json",
+    ]);
   });
 });

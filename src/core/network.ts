@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { chmod, mkdir, rename, rm } from "node:fs/promises";
 import path from "node:path";
 
@@ -426,10 +427,14 @@ export async function saveActiveNetwork(
 ): Promise<void> {
   const file = getActiveNetworkPath(idealityHome);
   await mkdir(path.dirname(file), { recursive: true, mode: 0o700 });
-  const temporary = `${file}.${process.pid}.tmp`;
-  await Bun.write(temporary, `${JSON.stringify(state, null, 2)}\n`);
-  await chmod(temporary, 0o600);
-  await rename(temporary, file);
+  const temporary = `${file}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    await Bun.write(temporary, `${JSON.stringify(state, null, 2)}\n`);
+    await chmod(temporary, 0o600);
+    await rename(temporary, file);
+  } finally {
+    await rm(temporary, { force: true });
+  }
 }
 
 export async function clearActiveNetwork(idealityHome: string): Promise<void> {
