@@ -1,10 +1,55 @@
-import { chmod, copyFile, mkdir } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import {
+  chmod,
+  copyFile,
+  lstat,
+  mkdir,
+  realpath,
+  rename,
+  rm,
+} from "node:fs/promises";
 import path from "node:path";
 import type { IdealityConfig } from "../domain/config.js";
 
 export type SupportedShell = "bash" | "zsh" | "fish";
 
 const VARIABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const MANAGED_BLOCK_BEGIN = "# >>> ideality >>>";
+const MANAGED_BLOCK_END = "# <<< ideality <<<";
+
+function managedBlockMatcher(): RegExp {
+  return new RegExp(
+    `${MANAGED_BLOCK_BEGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${MANAGED_BLOCK_END.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
+  );
+}
+
+async function writeShellRc(rcPath: string, content: string): Promise<void> {
+  let writePath = rcPath;
+  try {
+    if ((await lstat(rcPath)).isSymbolicLink()) {
+      writePath = await realpath(rcPath);
+    }
+  } catch (error) {
+    if (
+      !(error instanceof Error && "code" in error && error.code === "ENOENT")
+    ) {
+      throw error;
+    }
+  }
+
+  const rcFile = Bun.file(writePath);
+  const mode = (await rcFile.exists())
+    ? (await rcFile.stat()).mode & 0o777
+    : 0o600;
+  const temporary = `${writePath}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    await Bun.write(temporary, content);
+    await chmod(temporary, mode);
+    await rename(temporary, writePath);
+  } finally {
+    await rm(temporary, { force: true });
+  }
+}
 
 function assertVariableName(name: string): void {
   if (!VARIABLE_NAME.test(name)) {
@@ -134,16 +179,12 @@ export async function installShellIntegration(
 
   const rcFile = Bun.file(rcPath);
   const existing = (await rcFile.exists()) ? await rcFile.text() : "";
-  const begin = "# >>> ideality >>>";
-  const end = "# <<< ideality <<<";
   const source =
     shell === "fish"
       ? `source ${fishQuote(hookPath)}`
       : `source ${singleQuote(hookPath)}`;
-  const block = `${begin}\n${source}\n${end}`;
-  const matcher = new RegExp(
-    `${begin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${end.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
-  );
+  const block = `${MANAGED_BLOCK_BEGIN}\n${source}\n${MANAGED_BLOCK_END}`;
+  const matcher = managedBlockMatcher();
   const next = matcher.test(existing)
     ? existing.replace(matcher, block)
     : `${existing.trimEnd()}${existing ? "\n\n" : ""}${block}\n`;
@@ -157,6 +198,24 @@ export async function installShellIntegration(
   } else {
     await mkdir(path.dirname(rcPath), { recursive: true });
   }
-  await Bun.write(rcPath, next);
+  await writeShellRc(rcPath, next);
   return { hookPath, rcPath, backupPath };
+}
+
+export async function disableShellIntegration(
+  rcPath: string,
+): Promise<{ rcPath: string; removed: boolean }> {
+  const rcFile = Bun.file(rcPath);
+  if (!(await rcFile.exists())) {
+    return { rcPath, removed: false };
+  }
+
+  const existing = await rcFile.text();
+  const matcher = managedBlockMatcher();
+  if (!matcher.test(existing)) {
+    return { rcPath, removed: false };
+  }
+
+  await writeShellRc(rcPath, existing.replace(matcher, ""));
+  return { rcPath, removed: true };
 }

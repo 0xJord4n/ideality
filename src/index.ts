@@ -7,6 +7,8 @@ import authCommand from "./commands/auth.js";
 import completionCommand from "./commands/completion.js";
 import configCommand from "./commands/config.js";
 import doctorCommand from "./commands/doctor.js";
+import disableCommand from "./commands/disable.js";
+import enableCommand from "./commands/enable.js";
 import envCommand from "./commands/env.js";
 import explainCommand from "./commands/explain.js";
 import hookCommand from "./commands/hook.js";
@@ -38,6 +40,8 @@ const cli = await createCLI({
 const commands = [
   initCommand,
   setupCommand,
+  enableCommand,
+  disableCommand,
   skillsCommand,
   statusCommand,
   envCommand,

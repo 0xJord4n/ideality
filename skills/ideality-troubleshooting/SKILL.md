@@ -109,3 +109,17 @@ ideality config migrate --dry-run
 Troubleshooting is complete when `status` and `explain` agree with the
 intended dispatch, `config validate` succeeds, and `doctor --strict` has no
 unresolved finding relevant to the incident.
+
+## Temporarily stop automatic dispatch
+
+To detach shell and Git integrations while preserving the complete registry
+and all managed state:
+
+```bash
+ideality disable --dry-run
+ideality disable
+```
+
+Open a new terminal so it does not retain the hook and shim path already
+loaded by the current shell. Run `ideality enable` to restore the integrations.
+Use `--no-shell` or `--no-git` when only one integration should be disabled.

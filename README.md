@@ -235,6 +235,27 @@ ideality init --non-interactive \
   --shell zsh
 ```
 
+### Pause or disable Ideality
+
+Disable automatic shell dispatch and Git identity routing without deleting
+identities, credentials, plugins, or other state:
+
+```bash
+ideality disable --dry-run
+ideality disable
+```
+
+The current terminal has already loaded its shell hook, so open a new terminal
+after disabling. Restore the integrations at any time with:
+
+```bash
+ideality enable
+```
+
+Both commands accept `--shell zsh|bash|fish`, `--rc <path>`, `--no-shell`, and
+`--no-git`. `ideality install` remains an equivalent way to enable and
+regenerate all integrations.
+
 ## Project Setup
 
 Run the project wizard anywhere inside a repository:
@@ -520,6 +541,7 @@ Managed state defaults to `~/.ideality`:
 ├── history/        # transactional registry snapshots
 ├── plugins/        # installed declarative manifests
 ├── profiles/       # identity-specific tool state
+├── runtime/        # active network and VM runtime state
 ├── secrets/        # local secret backend storage
 ├── shell/          # generated shell integration
 └── ssh/            # generated SSH keys
@@ -575,7 +597,7 @@ first, then use the signed installer so only one `ideality` remains on `PATH`.
 
 | Area | Commands |
 |:--|:--|
-| **Start** | `init`, `setup`, `install`, `tui` |
+| **Start** | `init`, `setup`, `install`, `enable`, `disable`, `tui` |
 | **Inspect** | `status`, `explain`, `env`, `doctor`, `prompt` |
 | **Execute** | `run`, `auth` |
 | **Identities** | `identity list|show|add|remove|bind|unbind|default|ssh-public` |

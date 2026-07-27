@@ -1,6 +1,8 @@
 export const IDEALITY_COMMAND_NAMES = [
   "init",
   "setup",
+  "enable",
+  "disable",
   "skills",
   "status",
   "env",

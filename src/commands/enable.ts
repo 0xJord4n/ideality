@@ -3,12 +3,12 @@ import { z } from "zod";
 
 import { detectedShell, enableIntegrations } from "./integration-lifecycle.js";
 
-const installCommand = defineCommand({
-  name: "install",
-  description: "Install shell and Git integrations",
+const enableCommand = defineCommand({
+  name: "enable",
+  description: "Enable shell shims and Git identity routing",
   options: {
     shell: option(z.enum(["zsh", "bash", "fish"]).default(detectedShell()), {
-      description: "Shell integration to install",
+      description: "Shell integration to enable",
     }),
     rc: option(z.string().optional(), {
       description: "Override shell rc file",
@@ -22,7 +22,7 @@ const installCommand = defineCommand({
       argumentKind: "flag",
     }),
     "dry-run": option(z.boolean().default(false), {
-      description: "Show installation targets without writing files",
+      description: "Show integrations that would be enabled",
       argumentKind: "flag",
     }),
   },
@@ -31,4 +31,4 @@ const installCommand = defineCommand({
   },
 });
 
-export default installCommand;
+export default enableCommand;

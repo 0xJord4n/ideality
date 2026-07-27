@@ -93,6 +93,27 @@ Use `ideality run bun -- <args>` when registry isolation is required.
 
 Preview before applying: `ideality install --dry-run`.
 
+## Disable or re-enable automatic dispatch
+
+Detach Ideality from future shell sessions and Git without deleting anything
+under `~/.ideality`:
+
+```bash
+ideality disable --dry-run
+ideality disable
+```
+
+Open a new terminal after disabling because a process cannot rewrite its
+parent shell. Restore shell shims, completions, and Git routing with:
+
+```bash
+ideality enable
+```
+
+Use `--no-shell` or `--no-git` to keep that integration active. Both commands
+also accept `--shell zsh|bash|fish` and `--rc <path>` for a non-default shell
+configuration file.
+
 ## Shell integration
 
 ```bash
@@ -107,7 +128,7 @@ All managed state lives under `~/.ideality`:
 
 ```text
 audit/  bin/  completions/  config.jsonc  git/  history/  plugins/
-profiles/  secrets/  shell/  ssh/
+profiles/  runtime/  secrets/  shell/  ssh/
 ```
 
 (`audit/` appears only when the opt-in audit history is enabled.)

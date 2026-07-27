@@ -3,7 +3,10 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { IdealityConfig } from "../src/domain/config.js";
-import { renderGitIncludes } from "../src/integrations/git.js";
+import {
+  disableGitIntegration,
+  renderGitIncludes,
+} from "../src/integrations/git.js";
 
 const config: IdealityConfig = {
   version: 1,
@@ -82,5 +85,56 @@ describe("renderGitIncludes", () => {
     expect(ssh.stdout.toString().trim()).toBe(
       "ssh -i '/tmp/key with space' -o IdentitiesOnly=yes",
     );
+  });
+});
+
+describe("disableGitIntegration", () => {
+  test("unregisters only Ideality's global include and is idempotent", async () => {
+    const directory = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-git-disable-"),
+    );
+    const idealityHome = path.join(directory, ".ideality");
+    const globalConfig = path.join(directory, ".gitconfig");
+    const managed = path.join(idealityHome, "git", "includes.gitconfig");
+    const unrelated = path.join(directory, "team.gitconfig");
+    const environment = {
+      ...process.env,
+      GIT_CONFIG_GLOBAL: globalConfig,
+    };
+    await Bun.write(
+      globalConfig,
+      [
+        "[include]",
+        `\tpath = ${managed}`,
+        "[include]",
+        `\tpath = ${unrelated}`,
+        "",
+      ].join("\n"),
+    );
+
+    expect(await disableGitIntegration(idealityHome, { environment })).toEqual({
+      configPath: managed,
+      removed: true,
+    });
+    expect(await disableGitIntegration(idealityHome, { environment })).toEqual({
+      configPath: managed,
+      removed: false,
+    });
+
+    const remaining = Bun.spawnSync({
+      cmd: ["git", "config", "--global", "--get-all", "include.path"],
+      env: environment,
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(remaining.stdout.toString().trim()).toBe(unrelated);
+  });
+
+  test("fails instead of treating Git inspection errors as disabled", async () => {
+    await expect(
+      disableGitIntegration("/home/dev/.ideality", {
+        executable: "/bin/sh",
+      }),
+    ).rejects.toThrow("Failed to inspect global Git config");
   });
 });
