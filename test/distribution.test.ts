@@ -9,7 +9,7 @@ const repoRoot = path.resolve(import.meta.dir, "..");
 
 describe("release distribution", () => {
   test("publishes a portable scoped CLI package", async () => {
-    expect(pkg.name).toBe("@0xjord4n/ideality");
+    expect(pkg.name).toBe("@0xjordan/ideality");
     expect(pkg.bin).toEqual({ ideality: "bin/ideality" });
     expect(pkg.files).toEqual([
       "bin/ideality",
@@ -66,11 +66,11 @@ describe("release distribution", () => {
         readRepoFile("skills/ideality-contributor-workflow/SKILL.md"),
       ]);
     const installCommands = [
-      "npm install --global @0xjord4n/ideality",
-      "pnpm add --global @0xjord4n/ideality",
-      "bun add --global @0xjord4n/ideality",
-      "yarn global add @0xjord4n/ideality",
-      "yarn dlx @0xjord4n/ideality",
+      "npm install --global @0xjordan/ideality",
+      "pnpm add --global @0xjordan/ideality",
+      "bun add --global @0xjordan/ideality",
+      "yarn global add @0xjordan/ideality",
+      "yarn dlx @0xjordan/ideality",
     ];
 
     for (const command of installCommands) {
@@ -78,13 +78,13 @@ describe("release distribution", () => {
       expect(gettingStarted).toContain(command);
     }
     expect(releaseDocs).toContain("npm trusted publishing");
-    expect(releaseDocs).toContain("@0xjord4n/ideality");
+    expect(releaseDocs).toContain("@0xjordan/ideality");
     expect(releaseDocs).toContain(
       "NPM_CONFIG_PROVENANCE=false npm publish --access public",
     );
     expect(contributorWorkflow).toContain("npm publish --access public");
     expect(contributorWorkflow).toContain("npm pack --dry-run");
-    expect(readme).toContain("yarn dlx @0xjord4n/ideality@latest");
-    expect(gettingStarted).toContain("yarn dlx @0xjord4n/ideality@latest");
+    expect(readme).toContain("yarn dlx @0xjordan/ideality@latest");
+    expect(gettingStarted).toContain("yarn dlx @0xjordan/ideality@latest");
   });
 });

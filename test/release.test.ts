@@ -277,7 +277,7 @@ describe("scripts/install.sh", () => {
       prefix,
       "lib",
       "node_modules",
-      "@0xjord4n",
+      "@0xjordan",
       "ideality",
     );
     const bootstrapEnv = {

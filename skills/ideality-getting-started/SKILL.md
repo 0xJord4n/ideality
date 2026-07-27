@@ -14,15 +14,15 @@ Install the scoped package globally; every manager exposes the command as
 `ideality`:
 
 ```bash
-npm install --global @0xjord4n/ideality
-pnpm add --global @0xjord4n/ideality
-bun add --global @0xjord4n/ideality
+npm install --global @0xjordan/ideality
+pnpm add --global @0xjordan/ideality
+bun add --global @0xjordan/ideality
 
 # Yarn Classic
-yarn global add @0xjord4n/ideality
+yarn global add @0xjordan/ideality
 
 # Modern Yarn runs CLIs on demand instead of installing them globally
-yarn dlx @0xjord4n/ideality
+yarn dlx @0xjordan/ideality
 ```
 
 The package downloads the matching signed native release. When lifecycle
@@ -119,9 +119,9 @@ ideality update --version 0.2.0   # when its metadata is available
 
 Package-manager installs are not overwritten. Use the manager-specific update
 command printed by `ideality update`, such as
-`npm update --global @0xjord4n/ideality` or
-`bun update --global @0xjord4n/ideality`. Modern Yarn's `yarn dlx` mode is
-ephemeral; run `yarn dlx @0xjord4n/ideality@latest` for the latest release.
+`npm update --global @0xjordan/ideality` or
+`bun update --global @0xjordan/ideality`. Modern Yarn's `yarn dlx` mode is
+ephemeral; run `yarn dlx @0xjordan/ideality@latest` for the latest release.
 
 ## Verify it works
 

@@ -262,14 +262,14 @@ describe("runUpdate", () => {
           "install",
           "global",
           "node_modules",
-          "@0xjord4n",
+          "@0xjordan",
           "ideality",
         ],
-        command: "bun update -g @0xjord4n/ideality",
+        command: "bun update -g @0xjordan/ideality",
       },
       {
-        pathParts: ["lib", "node_modules", "@0xjord4n", "ideality"],
-        command: "npm update -g @0xjord4n/ideality",
+        pathParts: ["lib", "node_modules", "@0xjordan", "ideality"],
+        command: "npm update -g @0xjordan/ideality",
       },
       {
         pathParts: [
@@ -277,10 +277,10 @@ describe("runUpdate", () => {
           "global",
           "5",
           "node_modules",
-          "@0xjord4n",
+          "@0xjordan",
           "ideality",
         ],
-        command: "pnpm update -g @0xjord4n/ideality",
+        command: "pnpm update -g @0xjordan/ideality",
       },
       {
         pathParts: [
@@ -289,12 +289,12 @@ describe("runUpdate", () => {
           "5",
           "node_modules",
           ".pnpm",
-          "@0xjord4n+ideality@0.1.0",
+          "@0xjordan+ideality@0.1.0",
           "node_modules",
-          "@0xjord4n",
+          "@0xjordan",
           "ideality",
         ],
-        command: "pnpm update -g @0xjord4n/ideality",
+        command: "pnpm update -g @0xjordan/ideality",
       },
       {
         pathParts: [
@@ -302,10 +302,10 @@ describe("runUpdate", () => {
           "yarn",
           "global",
           "node_modules",
-          "@0xjord4n",
+          "@0xjordan",
           "ideality",
         ],
-        command: "yarn global upgrade @0xjord4n/ideality",
+        command: "yarn global upgrade @0xjordan/ideality",
       },
     ];
     for (const entry of cases) {
@@ -326,13 +326,13 @@ describe("runUpdate", () => {
 
   test("refuses project-local package installs without recommending a global update", async () => {
     const cases = [
-      ["node_modules", "@0xjord4n", "ideality"],
+      ["node_modules", "@0xjordan", "ideality"],
       [
         "node_modules",
         ".pnpm",
-        "@0xjord4n+ideality@0.1.0",
+        "@0xjordan+ideality@0.1.0",
         "node_modules",
-        "@0xjord4n",
+        "@0xjordan",
         "ideality",
       ],
     ];

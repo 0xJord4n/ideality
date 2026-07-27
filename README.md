@@ -85,19 +85,19 @@ Prebuilt binaries support Linux and macOS on x64 and arm64.
 
 ### Package Managers
 
-The registry package is scoped as `@0xjord4n/ideality`, but it installs the
+The registry package is scoped as `@0xjordan/ideality`, but it installs the
 normal `ideality` command:
 
 ```bash
-npm install --global @0xjord4n/ideality
-pnpm add --global @0xjord4n/ideality
-bun add --global @0xjord4n/ideality
+npm install --global @0xjordan/ideality
+pnpm add --global @0xjordan/ideality
+bun add --global @0xjordan/ideality
 
 # Yarn Classic
-yarn global add @0xjord4n/ideality
+yarn global add @0xjordan/ideality
 
 # Modern Yarn has no global install command; run it on demand
-yarn dlx @0xjord4n/ideality
+yarn dlx @0xjordan/ideality
 ```
 
 The package installs the matching signed native release and verifies its
@@ -546,16 +546,16 @@ Direct binary installs update in place. Package-manager installs are detected
 and never overwritten. Update them through the manager that installed them:
 
 ```bash
-npm update --global @0xjord4n/ideality
-pnpm update --global @0xjord4n/ideality
-bun update --global @0xjord4n/ideality
+npm update --global @0xjordan/ideality
+pnpm update --global @0xjordan/ideality
+bun update --global @0xjordan/ideality
 
 # Yarn Classic
-yarn global upgrade @0xjord4n/ideality
+yarn global upgrade @0xjordan/ideality
 ```
 
 Modern Yarn's `yarn dlx` mode has no persistent installation to update. Run
-`yarn dlx @0xjord4n/ideality@latest` whenever you want the latest release.
+`yarn dlx @0xjordan/ideality@latest` whenever you want the latest release.
 
 ```bash
 ideality update --check

@@ -23,7 +23,7 @@ import { createConfigSnapshot, getConfigPath } from "./config-store.js";
 const METADATA_FILE = "release-metadata.json";
 const METADATA_BUNDLE_FILE = `${METADATA_FILE}.sigstore.json`;
 const DEFAULT_REPOSITORY = "0xJord4n/ideality";
-const NPM_PACKAGE = "@0xjord4n/ideality";
+const NPM_PACKAGE = "@0xjordan/ideality";
 const SIGSTORE_CERTIFICATE_IDENTITY_REGEXP =
   "https://github.com/0xJord4n/ideality/\\.github/workflows/release\\.yml.*";
 const SIGSTORE_OIDC_ISSUER = "https://token.actions.githubusercontent.com";
@@ -598,7 +598,7 @@ async function detectManagedInstall(
   }
   if (
     normalized.includes("/pnpm/global/") &&
-    /\/node_modules\/(?:\.pnpm\/@0xjord4n\+ideality@[^/]+\/node_modules\/)?@0xjord4n\/ideality\//.test(
+    /\/node_modules\/(?:\.pnpm\/@0xjordan\+ideality@[^/]+\/node_modules\/)?@0xjordan\/ideality\//.test(
       normalized,
     )
   ) {
@@ -608,7 +608,7 @@ async function detectManagedInstall(
     };
   }
   if (
-    /\/\.config\/yarn\/global\/node_modules\/@0xjord4n\/ideality\//.test(
+    /\/\.config\/yarn\/global\/node_modules\/@0xjordan\/ideality\//.test(
       normalized,
     )
   ) {
@@ -617,13 +617,13 @@ async function detectManagedInstall(
       instruction: `Use 'yarn global upgrade ${NPM_PACKAGE}' instead.`,
     };
   }
-  if (/\/lib\/node_modules\/@0xjord4n\/ideality\//.test(normalized)) {
+  if (/\/lib\/node_modules\/@0xjordan\/ideality\//.test(normalized)) {
     return {
       manager: "npm",
       instruction: `Use 'npm update -g ${NPM_PACKAGE}' instead.`,
     };
   }
-  if (/\/node_modules\/@0xjord4n\/ideality\//.test(normalized)) {
+  if (/\/node_modules\/@0xjordan\/ideality\//.test(normalized)) {
     return {
       manager: "a project package manager",
       instruction:

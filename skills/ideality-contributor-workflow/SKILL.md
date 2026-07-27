@@ -84,7 +84,7 @@ The workflow refuses a tag that doesn't match `package.json`, runs
 `bun run check`, builds four target archives, rehearses offline, signs with
 Sigstore cosign (keyless), attests build provenance when the repository is
 public, and publishes the GitHub release. It then uses npm trusted publishing to run
-`npm publish --access public` for `@0xjord4n/ideality`; never add a long-lived
+`npm publish --access public` for `@0xjordan/ideality`; never add a long-lived
 npm token to the workflow.
 
 Do not bump or tag a normal release manually. A recovery run is explicit and

@@ -4,7 +4,7 @@ Release Please owns version bumps, changelog updates, tags, and GitHub release
 creation. After it creates a release, `.github/workflows/release-please.yml`
 explicitly dispatches `.github/workflows/release.yml` at that tag to build,
 sign, attest where GitHub supports it, upload the artifacts, and publish
-`@0xjord4n/ideality`. The version lives in `package.json` and flows into
+`@0xjordan/ideality`. The version lives in `package.json` and flows into
 `bunli.config.ts` and the CLI (`src/version.ts`) through imports.
 
 ## Cutting a release
@@ -67,15 +67,15 @@ For each release the `release` job:
    private repositories; Sigstore signing remains mandatory in either case.
 6. Publishes a GitHub release with all archives, checksums, and signature
    bundles, with generated release notes.
-7. Publishes the dependency-free `@0xjord4n/ideality` launcher to npm with
+7. Publishes the dependency-free `@0xjordan/ideality` launcher to npm with
    provenance through npm trusted publishing. The package installs the signed
    native release matching its own version; its launcher repeats that verified
    bootstrap on first use when a package manager disabled lifecycle scripts.
 
 ## npm trusted publishing setup
 
-The npm account or organization must own the `@0xjord4n` scope. Configure a
-trusted publisher for the `@0xjord4n/ideality` package with:
+The npm account or organization must own the `@0xjordan` scope. Configure a
+trusted publisher for the `@0xjordan/ideality` package with:
 
 - GitHub organization or user: `0xJord4n`
 - Repository: `ideality`
