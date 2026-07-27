@@ -1,6 +1,19 @@
 import { describe, expect, test } from "bun:test";
+import {
+  spawn as nodeSpawn,
+  spawnSync as nodeSpawnSync,
+} from "node:child_process";
 import { existsSync } from "node:fs";
-import { chmod, mkdtemp, readFile, stat, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  copyFile,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -27,6 +40,8 @@ const securityWorkflow = path.join(
   "workflows",
   "security.yml",
 );
+const workflowsDirectory = path.join(repoRoot, ".github", "workflows");
+const dependabotConfig = path.join(repoRoot, ".github", "dependabot.yml");
 
 const hostTarget = `${process.platform === "darwin" ? "darwin" : "linux"}-${
   process.arch === "arm64" ? "arm64" : "x64"
@@ -55,6 +70,84 @@ function run(cmd: string[], env: Record<string, string> = {}): RunResult {
     stderr: result.stderr.toString(),
   };
 }
+
+describe("bin/ideality", () => {
+  test("preserves native exit and signal semantics", async () => {
+    const packageRoot = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-launcher-"),
+    );
+    const launcher = path.join(packageRoot, "bin", "ideality");
+    const nativeBinary = path.join(packageRoot, "vendor", "ideality");
+    await mkdir(path.dirname(launcher), { recursive: true });
+    await mkdir(path.dirname(nativeBinary), { recursive: true });
+    await copyFile(path.join(repoRoot, "bin", "ideality"), launcher);
+    await chmod(launcher, 0o755);
+
+    await writeFile(nativeBinary, "#!/bin/sh\nexit 23\n", { mode: 0o755 });
+    const normalExit = nodeSpawnSync(process.execPath, [launcher]);
+    expect(normalExit.status).toBe(23);
+    expect(normalExit.signal).toBeNull();
+
+    await writeFile(nativeBinary, "#!/bin/sh\nkill -TERM $$\n", {
+      mode: 0o755,
+    });
+    const signaledExit = nodeSpawnSync(process.execPath, [launcher]);
+    expect(signaledExit.status).not.toBe(0);
+    expect(signaledExit.status).toBeNull();
+    expect(signaledExit.signal).toBe("SIGTERM");
+
+    await writeFile(
+      nativeBinary,
+      '#!/bin/sh\nprintf "%s\\n" "$$"\nexec sleep 30\n',
+      { mode: 0o755 },
+    );
+    const forwarded = nodeSpawn(process.execPath, [launcher], {
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let nativePid: number | undefined;
+    try {
+      nativePid = await new Promise<number>((resolve, reject) => {
+        const timeout = setTimeout(
+          () => reject(new Error("native launcher child did not start")),
+          5_000,
+        );
+        forwarded.stdout.once("data", (chunk) => {
+          clearTimeout(timeout);
+          resolve(Number.parseInt(chunk.toString().trim(), 10));
+        });
+      });
+      expect(Number.isSafeInteger(nativePid)).toBe(true);
+      forwarded.kill("SIGTERM");
+      const forwardedExit = await new Promise<{
+        code: number | null;
+        signal: NodeJS.Signals | null;
+      }>((resolve, reject) => {
+        const timeout = setTimeout(
+          () => reject(new Error("launcher did not preserve forwarded signal")),
+          5_000,
+        );
+        forwarded.once("exit", (code, signal) => {
+          clearTimeout(timeout);
+          resolve({ code, signal });
+        });
+      });
+      expect(forwardedExit.code).toBeNull();
+      expect(forwardedExit.signal).toBe("SIGTERM");
+      expect(() => process.kill(nativePid!, 0)).toThrow();
+    } finally {
+      if (forwarded.exitCode === null && forwarded.signalCode === null) {
+        forwarded.kill("SIGKILL");
+      }
+      if (nativePid !== undefined) {
+        try {
+          process.kill(nativePid, "SIGKILL");
+        } catch {
+          // The forwarded signal already terminated the native child.
+        }
+      }
+    }
+  });
+});
 
 /**
  * Build a release-shaped artifact directory (archive + SHA256SUMS.txt)
@@ -461,7 +554,9 @@ describe(".github/workflows/release.yml", () => {
 
   test("publishes the scoped CLI package through npm trusted publishing", async () => {
     const workflow = await readFile(releaseWorkflow, "utf8");
-    expect(workflow).toContain("actions/setup-node@v6");
+    expect(workflow).toContain(
+      "actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0",
+    );
     expect(workflow).toContain('node-version: "24"');
     expect(workflow).toContain("registry-url: https://registry.npmjs.org");
     expect(workflow).toContain("npm pack --dry-run");
@@ -474,6 +569,31 @@ describe(".github/workflows/release.yml", () => {
       "npm publish --access public --provenance=false",
     );
     expect(workflow).not.toContain("NODE_AUTH_TOKEN");
+  });
+});
+
+describe(".github action supply-chain policy", () => {
+  test("pins every action to an immutable commit with a version comment", async () => {
+    const workflows = (await readdir(workflowsDirectory))
+      .filter((file) => file.endsWith(".yml"))
+      .sort();
+    for (const file of workflows) {
+      const source = await readFile(
+        path.join(workflowsDirectory, file),
+        "utf8",
+      );
+      for (const line of source.split("\n")) {
+        if (!/^\s*-?\s*uses:/.test(line)) continue;
+        expect(line).toMatch(
+          /^\s*-?\s*uses:\s+[^@\s]+@[0-9a-f]{40}\s+#\s+v\d+\.\d+\.\d+\s*$/,
+        );
+      }
+    }
+  });
+
+  test("keeps Dependabot updates enabled for GitHub Actions", async () => {
+    const source = await readFile(dependabotConfig, "utf8");
+    expect(source).toContain("package-ecosystem: github-actions");
   });
 });
 

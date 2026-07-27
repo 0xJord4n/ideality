@@ -52,7 +52,7 @@ const stringSet = <T extends readonly [string, ...string[]]>(
       for (const [index, entry] of entries.entries()) {
         if (seen.has(entry)) {
           context.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             path: [index],
             message: `Duplicate ${label} '${entry}'`,
           });
@@ -74,7 +74,7 @@ const platformsSchema = z
         for (const [index, entry] of entries.entries()) {
           if (seen.has(entry)) {
             context.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: "custom",
               path: [index],
               message: `Duplicate executable '${entry}'`,
             });
@@ -199,7 +199,7 @@ const manifestSchema = z
       hasCustomCommands
     ) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["implementation", "type"],
         message:
           "user-configured implementations must declare custom-command privilege, and trusted-core implementations must not",
@@ -210,7 +210,7 @@ const manifestSchema = z
       !manifest.permissions.network.includes("host-control")
     ) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["permissions", "network"],
         message: "Network adapters must declare host-control permission",
       });
@@ -220,7 +220,7 @@ const manifestSchema = z
       !manifest.permissions.network.includes("guest-control")
     ) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["permissions", "network"],
         message: "VM adapters must declare guest-control permission",
       });
@@ -233,7 +233,7 @@ const manifestSchema = z
       )
     ) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["permissions", "secrets"],
         message:
           "Secret permissions must exactly match declared secret operations",
@@ -246,7 +246,7 @@ const manifestSchema = z
         manifest.permissions.privileges.includes("external-cli"));
     if (requiresExecutable && manifest.platforms.executables.length === 0) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["platforms", "executables"],
         message:
           "Trusted command-backed adapters must declare their executable requirements",

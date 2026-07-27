@@ -122,7 +122,7 @@ const manifestSchema = z
         state: z.enum(["full", "partial", "credentials"]).default("partial"),
       })
       .strict()
-      .default({}),
+      .prefault({}),
     auth: z
       .object({
         login: authCommandSchema.optional(),
@@ -133,7 +133,7 @@ const manifestSchema = z
       .optional(),
     profile: z
       .object({
-        env: z.record(valueSourceSchema.nullable()).optional(),
+        env: z.record(z.string(), valueSourceSchema.nullable()).optional(),
         args: z
           .array(z.union([z.string().min(1), identityArgSchema]))
           .optional(),
@@ -149,7 +149,7 @@ const manifestSchema = z
     ).entries()) {
       if (seen.has(alias)) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["executable", "alternatives", index],
           message: `Duplicate executable alias '${alias}'`,
         });
@@ -159,7 +159,7 @@ const manifestSchema = z
     for (const name of Object.keys(manifest.profile?.env ?? {})) {
       if (!SAFE_VARIABLE.test(name)) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["profile", "env", name],
           message: `Invalid environment variable name '${name}'`,
         });

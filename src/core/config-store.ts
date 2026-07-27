@@ -71,7 +71,7 @@ const toolProfileSchema = z.object({
       }),
     ])
     .optional(),
-  env: z.record(valueSourceSchema.nullable()).optional(),
+  env: z.record(z.string(), valueSourceSchema.nullable()).optional(),
   args: z.array(z.string()).optional(),
 });
 
@@ -101,7 +101,7 @@ const identitySchema = z.object({
     })
     .optional(),
   execution: executionSchema.optional(),
-  tools: z.record(toolProfileSchema),
+  tools: z.record(z.string(), toolProfileSchema),
 });
 
 const networkBase = {
@@ -170,7 +170,7 @@ const networkSchema = z.discriminatedUnion("driver", [
     connect: z.array(z.string()).min(1),
     disconnect: z.array(z.string()).min(1),
     status: z.array(z.string()).min(1),
-    env: z.record(valueSourceSchema).optional(),
+    env: z.record(z.string(), valueSourceSchema).optional(),
     verifiedKillSwitch: z.boolean().optional(),
   }),
 ]);
@@ -248,8 +248,9 @@ const configSchema = z
     version: z.literal(CONFIG_VERSION),
     defaultIdentity: z.string().min(1),
     secretBackend: secretBackendSchema.optional(),
-    identities: z.record(identitySchema),
+    identities: z.record(z.string(), identitySchema),
     tools: z.record(
+      z.string(),
       z.object({
         executable: z.string().min(1),
         displayName: z.string().optional(),
@@ -268,8 +269,8 @@ const configSchema = z
           .optional(),
       }),
     ),
-    networks: z.record(networkSchema).optional(),
-    vms: z.record(vmSchema).optional(),
+    networks: z.record(z.string(), networkSchema).optional(),
+    vms: z.record(z.string(), vmSchema).optional(),
     auditHistory: auditHistorySchema.optional(),
   })
   .superRefine((config, context) => {
@@ -277,7 +278,7 @@ const configSchema = z
     const safeVariable = /^[A-Za-z_][A-Za-z0-9_]*$/;
     if (!config.identities[config.defaultIdentity]) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["defaultIdentity"],
         message: `Default identity '${config.defaultIdentity}' does not exist`,
       });
@@ -285,7 +286,7 @@ const configSchema = z
     for (const [id, identity] of Object.entries(config.identities)) {
       if (!safeName.test(id)) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["identities", id],
           message: `Invalid identity ID '${id}'`,
         });
@@ -293,7 +294,7 @@ const configSchema = z
       for (const [index, root] of identity.roots.entries()) {
         if (/[\0\r\n"]/.test(root)) {
           context.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             path: ["identities", id, "roots", index],
             message: "Directory roots cannot contain NUL, newlines, or quotes",
           });
@@ -308,7 +309,7 @@ const configSchema = z
       for (const [tool, profile] of Object.entries(identity.tools)) {
         if (!config.tools[tool]) {
           context.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             path: ["identities", id, "tools", tool],
             message: `Tool '${tool}' has no definition`,
           });
@@ -322,7 +323,7 @@ const configSchema = z
         for (const variable of Object.keys(profile.env ?? {})) {
           if (!safeVariable.test(variable)) {
             context.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: "custom",
               path: ["identities", id, "tools", tool, "env", variable],
               message: `Invalid environment variable '${variable}'`,
             });
@@ -337,7 +338,7 @@ const configSchema = z
             isolation !== "process"
           ) {
             context.addIssue({
-              code: z.ZodIssueCode.custom,
+              code: "custom",
               path: ["identities", id, "tools", tool, "env", variable],
               message: "Logical secrets require process isolation",
             });
@@ -348,7 +349,7 @@ const configSchema = z
     for (const tool of Object.keys(config.tools)) {
       if (!safeName.test(tool)) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["tools", tool],
           message: `Invalid tool name '${tool}'`,
         });
@@ -357,7 +358,7 @@ const configSchema = z
     for (const [network, profile] of Object.entries(config.networks ?? {})) {
       if (!safeName.test(network)) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["networks", network],
           message: `Invalid network profile ID '${network}'`,
         });
@@ -368,7 +369,7 @@ const configSchema = z
         !profile.verifiedKillSwitch
       ) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["networks", network, "verifiedKillSwitch"],
           message:
             "Custom networks with a required kill switch must declare verifiedKillSwitch",
@@ -376,7 +377,7 @@ const configSchema = z
       }
       if (profile.driver === "mullvad" && profile.dns === "system") {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["networks", network, "dns"],
           message:
             "Mullvad does not expose system DNS while connected; use provider or custom servers",
@@ -386,14 +387,14 @@ const configSchema = z
     for (const [vm, profile] of Object.entries(config.vms ?? {})) {
       if (!safeName.test(vm)) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["vms", vm],
           message: `Invalid VM profile ID '${vm}'`,
         });
       }
       if (profile.network && !config.networks?.[profile.network]) {
         context.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: "custom",
           path: ["vms", vm, "network"],
           message: `Network profile '${profile.network}' does not exist`,
         });
@@ -413,14 +414,14 @@ function validateExecutionReferences(
   if (!execution) return;
   if (execution.network && !config.networks?.[execution.network]) {
     context.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: "custom",
       path: [...issuePath, "network"],
       message: `Network profile '${execution.network}' does not exist`,
     });
   }
   if (execution.target === "vm" && !config.vms?.[execution.vm]) {
     context.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: "custom",
       path: [...issuePath, "vm"],
       message: `VM profile '${execution.vm}' does not exist`,
     });

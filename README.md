@@ -593,6 +593,7 @@ Run `ideality --help` or `ideality <command> --help` for flags and examples.
 
 | Guide | Covers |
 |:--|:--|
+| [Architecture](docs/architecture.md) | Runtime layers, adapter trust boundaries, persistence, and release distribution |
 | [Tool packs and isolation](docs/tool-packs.md) | Built-in adapters, isolation grades, mechanisms, and upstream controls |
 | [Network and VM isolation](docs/network-vm.md) | VPN enforcement, VM backends, requirements, and security boundaries |
 | [Custom adapters](docs/custom-adapters.md) | Portable tool manifests, templates, value sources, and contracts |

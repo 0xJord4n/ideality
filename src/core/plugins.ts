@@ -36,7 +36,7 @@ const legacyPluginSchema = z
         enabled: z.boolean().optional(),
         executable: z.string().optional(),
         isolation: z.literal("process").optional(),
-        env: z.record(z.unknown()).optional(),
+        env: z.record(z.string(), z.unknown()).optional(),
         args: z.array(z.string()).optional(),
       })
       .strict()
@@ -47,7 +47,7 @@ const legacyPluginSchema = z
     // `enabled: true` is the implicit default everywhere, so only `false` is untranslatable.
     if (manifest.profile?.enabled === false) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["profile", "enabled"],
         message:
           "Cannot be translated to a tool adapter manifest; plugins always install enabled",
@@ -55,7 +55,7 @@ const legacyPluginSchema = z
     }
     if (manifest.profile?.executable !== undefined) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         path: ["profile", "executable"],
         message:
           "Cannot be translated to a tool adapter manifest; set the top-level executable instead",

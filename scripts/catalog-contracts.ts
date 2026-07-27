@@ -76,7 +76,7 @@ const contractCaseSchema = z
       })
       .strict()
       .optional(),
-    env: z.record(z.unknown()).optional(),
+    env: z.record(z.string(), z.unknown()).optional(),
     args: z.array(z.string().min(1)).optional(),
   })
   .strict();
@@ -115,7 +115,7 @@ const contractSchema = z
       for (const [index, value] of values.entries()) {
         if (seen.has(value)) {
           context.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             path: [pathName, index],
             message: `Duplicate ${label} '${value}'`,
           });
@@ -134,7 +134,7 @@ const contractSchema = z
       for (const name of Object.keys(profile.env ?? {})) {
         if (!SAFE_VARIABLE.test(name)) {
           context.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: "custom",
             path: ["profiles", index, "env", name],
             message: `Invalid environment variable name '${name}'`,
           });

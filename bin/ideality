@@ -34,17 +34,26 @@ if (!executable) {
 }
 
 const child = spawn(binary, process.argv.slice(2), { stdio: "inherit" });
+const signalHandlers = new Map();
 child.on("error", (error) => {
   console.error(`ideality: could not start native binary: ${error.message}`);
   process.exit(1);
 });
 child.on("exit", (code, signal) => {
-  if (signal) process.kill(process.pid, signal);
-  else process.exit(code ?? 1);
+  if (signal) {
+    for (const [forwardedSignal, handler] of signalHandlers) {
+      process.removeListener(forwardedSignal, handler);
+    }
+    process.kill(process.pid, signal);
+    return;
+  }
+  process.exit(code ?? 1);
 });
 
 for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
-  process.on(signal, () => child.kill(signal));
+  const handler = () => child.kill(signal);
+  signalHandlers.set(signal, handler);
+  process.on(signal, handler);
 }
 
 const __IDEALITY_JS__ = 0;

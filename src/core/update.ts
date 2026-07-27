@@ -40,7 +40,7 @@ const releaseMetadataSchema = z.object({
   schemaVersion: z.literal(1),
   package: z.literal("ideality"),
   version: z.string().min(1),
-  artifacts: z.record(artifactSchema),
+  artifacts: z.record(z.string(), artifactSchema),
 });
 
 export type ReleaseMetadata = z.infer<typeof releaseMetadataSchema>;

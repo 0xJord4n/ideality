@@ -1,8 +1,8 @@
 {
   "binary": "dist/index",
   "standaloneBuild": {
-    "maxBytes": 122000000,
-    "description": "122 MB maximum for the compressed Linux x64 standalone executable"
+    "maxBytes": 136000000,
+    "description": "136 MB maximum for the Linux x64 standalone executable; OpenTUI 0.4 baseline: 130.2 MB"
   },
   "startup": {
     "args": ["--version"],

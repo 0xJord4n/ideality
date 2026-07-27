@@ -127,7 +127,7 @@ export interface PrivilegedAdapterContractEntry {
 }
 
 const SAFE_ID = /^[a-z][a-z0-9_-]*$/;
-const record = z.record(z.unknown());
+const record = z.record(z.string(), z.unknown());
 const caseName = z.string().max(64).regex(SAFE_ID);
 const actionSteps = z
   .object({
@@ -145,7 +145,7 @@ const secretRunnerCall = z
   .object({
     command: z.array(z.string()).min(1),
     input: z.string().optional(),
-    environment: z.record(z.string()).optional(),
+    environment: z.record(z.string(), z.string()).optional(),
   })
   .strict();
 const secretReadExpectation = z
@@ -162,7 +162,7 @@ const secretReadExpectation = z
       (expectation.error === undefined)
     ) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: "Secret read must declare exactly one of result or error",
       });
     }
