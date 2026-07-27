@@ -436,6 +436,19 @@ describe(".github/workflows/release.yml", () => {
     );
   });
 
+  test("supports immutable-tag recovery and private repository releases", async () => {
+    const workflow = await readFile(releaseWorkflow, "utf8");
+    expect(workflow).toContain("release_tag:");
+    expect(workflow).toContain("ref: ${{ inputs.release_tag || github.ref }}");
+    expect(workflow).toContain(
+      "RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}",
+    );
+    expect(workflow).toContain(
+      "tag_name: ${{ inputs.release_tag || github.ref_name }}",
+    );
+    expect(workflow).toContain("if: ${{ !github.event.repository.private }}");
+  });
+
   test("publishes the scoped CLI package through npm trusted publishing", async () => {
     const workflow = await readFile(releaseWorkflow, "utf8");
     expect(workflow).toContain("actions/setup-node@v6");

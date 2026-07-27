@@ -82,8 +82,8 @@ changelog entries from them (`feat:`, `fix:`, `docs:`; breaking changes use
 Release Please dispatches `.github/workflows/release.yml` at the created tag.
 The workflow refuses a tag that doesn't match `package.json`, runs
 `bun run check`, builds four target archives, rehearses offline, signs with
-Sigstore cosign (keyless), attests build provenance, and publishes the GitHub
-release. It then uses npm trusted publishing to run
+Sigstore cosign (keyless), attests build provenance when the repository is
+public, and publishes the GitHub release. It then uses npm trusted publishing to run
 `npm publish --access public` for `@0xjord4n/ideality`; never add a long-lived
 npm token to the workflow.
 

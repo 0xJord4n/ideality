@@ -171,10 +171,12 @@ bun link
 <summary><strong>Release verification</strong></summary>
 
 Every release includes archives for all four supported targets, checksums,
-GitHub build provenance, and authenticated release metadata.
+and authenticated release metadata. Public-repository releases also include
+GitHub build provenance.
 
 ```bash
 sha256sum -c --ignore-missing SHA256SUMS.txt
+# Public repositories
 gh attestation verify ideality-linux-x64.tar.gz --repo 0xJord4n/ideality
 ```
 

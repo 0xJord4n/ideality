@@ -3,9 +3,9 @@
 Release Please owns version bumps, changelog updates, tags, and GitHub release
 creation. After it creates a release, `.github/workflows/release-please.yml`
 explicitly dispatches `.github/workflows/release.yml` at that tag to build,
-sign, attest, upload the artifacts, and publish `@0xjord4n/ideality`. The
-version lives in `package.json` and flows into `bunli.config.ts` and the CLI
-(`src/version.ts`) through imports.
+sign, attest where GitHub supports it, upload the artifacts, and publish
+`@0xjord4n/ideality`. The version lives in `package.json` and flows into
+`bunli.config.ts` and the CLI (`src/version.ts`) through imports.
 
 ## Cutting a release
 
@@ -24,6 +24,14 @@ explicitly:
 
 ```bash
 gh workflow run release.yml --ref v0.2.0
+```
+
+If the workflow itself needed a fix after Release Please created an immutable
+tag, run the corrected workflow from `main` while explicitly checking out that
+tag:
+
+```bash
+gh workflow run release.yml --ref main -f release_tag=v0.2.0
 ```
 
 The release workflow refuses to run if the tag does not match
@@ -53,8 +61,10 @@ For each release the `release` job:
    `<artifact>.sigstore.json` bundles. `release-metadata.json` is signed too;
    the installer and `ideality update` verify
    `release-metadata.json.sigstore.json` before trusting archive checksums.
-5. Creates GitHub [build provenance attestations](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations)
-   for the archives.
+5. For public repositories, creates GitHub
+   [build provenance attestations](https://docs.github.com/en/actions/security-for-github-actions/using-artifact-attestations)
+   for the archives. GitHub does not provide this feature to user-owned
+   private repositories; Sigstore signing remains mandatory in either case.
 6. Publishes a GitHub release with all archives, checksums, and signature
    bundles, with generated release notes.
 7. Publishes the dependency-free `@0xjord4n/ideality` launcher to npm with
@@ -111,7 +121,7 @@ cosign verify-blob \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com \
   ideality-linux-x64.tar.gz
 
-# GitHub build provenance
+# GitHub build provenance (public repositories)
 gh attestation verify ideality-linux-x64.tar.gz --repo 0xJord4n/ideality
 ```
 
