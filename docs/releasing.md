@@ -66,8 +66,9 @@ For each release the `release` job:
    for the archives. GitHub does not provide this feature to user-owned
    private repositories; Sigstore signing remains mandatory in either case.
 6. Publishes a GitHub release with all archives, checksums, and signature
-   bundles, with generated release notes. Recovery reruns preserve assets
-   already attached to the immutable tag and upload only missing names.
+   bundles, with generated release notes. If the complete expected asset set
+   is already attached to the immutable tag, recovery reruns skip release
+   mutation entirely.
 7. Publishes the dependency-free `@0xjordan/ideality` launcher to npm with
    provenance through npm trusted publishing. The package installs the signed
    native release matching its own version; its launcher repeats that verified

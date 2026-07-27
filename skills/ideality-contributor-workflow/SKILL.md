@@ -85,8 +85,9 @@ The workflow refuses a tag that doesn't match `package.json`, runs
 Sigstore cosign (keyless), attests build provenance when the repository is
 public, and publishes the GitHub release. It then uses npm trusted publishing to run
 `npm publish --access public` for `@0xjordan/ideality`; never add a long-lived
-npm token to the workflow. Recovery reruns preserve existing release assets
-and skip an npm package version that is already public.
+npm token to the workflow. Recovery reruns skip mutation when the immutable
+release already has every expected asset, and skip an npm package version that
+is already public.
 
 Do not bump or tag a normal release manually. A recovery run is explicit and
 only valid after Release Please has created a matching tag:

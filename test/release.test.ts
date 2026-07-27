@@ -448,6 +448,11 @@ describe(".github/workflows/release.yml", () => {
     );
     expect(workflow).toContain("if: ${{ !github.event.repository.private }}");
     expect(workflow).toContain("overwrite_files: false");
+    expect(workflow).toContain("Inspect existing GitHub release assets");
+    expect(workflow).toContain(
+      "if: ${{ steps.release-assets.outputs.complete != 'true' }}",
+    );
+    expect(workflow).toContain('echo "complete=$complete" >> "$GITHUB_OUTPUT"');
   });
 
   test("publishes the scoped CLI package through npm trusted publishing", async () => {

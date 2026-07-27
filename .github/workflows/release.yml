@@ -78,7 +78,29 @@ jobs:
         with:
           subject-path: dist/release/ideality-*.tar.gz
 
+      - name: Inspect existing GitHub release assets
+        id: release-assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+        run: |
+          complete=true
+          existing="$(
+            gh release view "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json assets \
+              --jq '.assets[].name' 2>/dev/null
+          )" || complete=false
+          for artifact in dist/release/ideality-*.tar.gz dist/release/SHA256SUMS.txt dist/release/release-metadata.json dist/release/*.sigstore.json; do
+            name="${artifact##*/}"
+            if ! grep -Fqx -- "$name" <<<"$existing"; then
+              complete=false
+            fi
+          done
+          echo "complete=$complete" >> "$GITHUB_OUTPUT"
+
       - name: Create GitHub release
+        if: ${{ steps.release-assets.outputs.complete != 'true' }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ inputs.release_tag || github.ref_name }}
