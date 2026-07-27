@@ -6,6 +6,7 @@ import { resolveExecution, summarizeExecution } from "../core/execution.js";
 import { loadActiveNetwork } from "../core/network.js";
 import { loadRuntime, resolveExecutable } from "../core/runtime.js";
 import { printJson } from "./shared.js";
+import { hintLines, keyValue, statusGlyph, table, tidyPath } from "./ui.js";
 
 const statusCommand = defineCommand({
   name: "status",
@@ -79,34 +80,71 @@ const statusCommand = defineCommand({
       return;
     }
     console.log(
-      `${colors.bold(output.label)} ${colors.dim(`(${output.identity})`)}`,
-    );
-    console.log(
-      `path  ${output.path}\nmatch ${output.matchedRoot ?? "<default identity>"}`,
-    );
-    if (output.git) {
-      console.log(`git   ${output.git.name} <${output.git.email}>`);
-      console.log(`ssh   ${output.git.sshKey ?? "<default SSH agent>"}`);
-    }
-    console.log(
-      `target ${output.execution.target}${
-        output.execution.vmId ? ` (${output.execution.vmId})` : ""
+      `${colors.bold(output.label)} ${colors.dim(`(${output.identity})`)}${
+        output.default ? colors.dim("  default identity") : ""
       }`,
     );
     console.log(
-      `vpn    ${output.execution.networkId ?? "<none>"}${
-        output.activeNetwork
-          ? ` / active: ${output.activeNetwork.profile} (${output.activeNetwork.enforcement})`
-          : ""
-      }`,
+      keyValue([
+        ["path", tidyPath(output.path)],
+        [
+          "matched root",
+          output.matchedRoot
+            ? tidyPath(output.matchedRoot)
+            : colors.dim("none (default identity)"),
+        ],
+        [
+          "git",
+          output.git ? `${output.git.name} <${output.git.email}>` : undefined,
+        ],
+        [
+          "ssh",
+          output.git
+            ? output.git.sshKey
+              ? tidyPath(output.git.sshKey)
+              : colors.dim("default SSH agent")
+            : undefined,
+        ],
+        [
+          "target",
+          `${output.execution.target}${
+            output.execution.vmId ? ` (${output.execution.vmId})` : ""
+          }`,
+        ],
+        [
+          "vpn",
+          output.execution.networkId
+            ? `${output.execution.networkId}${
+                output.activeNetwork
+                  ? ` / active: ${output.activeNetwork.profile} (${output.activeNetwork.enforcement})`
+                  : ""
+              }`
+            : colors.dim("none"),
+        ],
+      ]),
     );
     console.log();
-    for (const tool of tools) {
-      const marker = tool.installed
-        ? colors.green("ready")
-        : colors.yellow("missing");
+    console.log(
+      table({
+        head: ["tool", "state", "isolation", "target", "executable"],
+        rows: tools.map((tool) => [
+          tool.name,
+          tool.installed
+            ? statusGlyph("ok", "ready")
+            : statusGlyph("off", "missing"),
+          tool.isolation,
+          tool.execution.target,
+          tool.executable ? tidyPath(tool.executable) : colors.dim("-"),
+        ]),
+      }),
+    );
+    const missing = tools.filter((tool) => !tool.installed);
+    if (missing.length > 0) {
+      console.log();
       console.log(
-        `${tool.name.padEnd(10)} ${marker.padEnd(16)} ${tool.isolation.padEnd(8)} ${tool.execution.target.padEnd(5)} ${tool.executable ?? "-"}`,
+        hintLines([
+          `${missing.map((tool) => tool.name).join(", ")} not installed on this machine; ideality doctor has details`,
+        ]),
       );
     }
   },

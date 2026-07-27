@@ -432,10 +432,10 @@ ideality tui
 
 The dashboard stages identity, folder, tool, network, VM, plugin, and secret
 backend changes in memory. It previews a readable diff and writes only after an
-explicit save through transactional history. Press `g` for plugin manifest
-administration and `k` for secret-backend administration. Plugin installation
-or removal requires a clean staged draft; destructive actions require explicit
-confirmation.
+explicit save through transactional history. Press `?` on any screen for the
+full keymap, `g` for plugin manifest administration, and `k` for secret-backend
+administration. Plugin installation or removal requires a clean staged draft;
+destructive actions require explicit confirmation.
 
 ## Custom Adapters
 

@@ -1,7 +1,10 @@
 #!/usr/bin/env bun
 import { createCLI } from "@bunli/core";
+import { colors } from "@bunli/utils";
 
 import { VERSION } from "./version.js";
+import { idealityHelpRenderer } from "./commands/help.js";
+import { GLYPHS } from "./commands/ui.js";
 import auditCommand from "./commands/audit.js";
 import authCommand from "./commands/auth.js";
 import completionCommand from "./commands/completion.js";
@@ -35,6 +38,7 @@ const cli = await createCLI({
   name: "ideality",
   version: VERSION,
   description: "Folder-based identity orchestration for developer tools",
+  help: { renderer: idealityHelpRenderer },
 });
 
 const commands = [
@@ -66,7 +70,7 @@ const commands = [
   tuiCommand,
   updateCommand,
 ];
-const commandsByName = new Map(
+const commandsByName = new Map<string, (typeof commands)[number]>(
   commands.map((command) => [command.name, command]),
 );
 if (commandsByName.size !== IDEALITY_COMMAND_NAMES.length) {
@@ -84,6 +88,6 @@ try {
   await cli.run();
 } catch (error) {
   const message = error instanceof Error ? error.message : String(error);
-  console.error(`ideality: ${message}`);
+  console.error(`${colors.red(GLYPHS.fail)} ideality: ${message}`);
   process.exitCode = 1;
 }

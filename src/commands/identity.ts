@@ -30,9 +30,12 @@ import { generateSshKey } from "../integrations/ssh.js";
 import {
   assertIdentityId,
   discoverGitIdentity,
+  parseList,
   printJson,
   requirePositional,
+  wizardStep,
 } from "./shared.js";
+import { hintLines, table, tidyPath } from "./ui.js";
 
 async function saveAndSync(
   config: Awaited<ReturnType<typeof loadConfig>>,
@@ -52,32 +55,6 @@ async function saveAndSync(
 type SshMode = "generate" | "existing" | "agent";
 type FileChoice = { kind: "file"; path: string } | { kind: "manual" };
 
-async function wizardStep<T>(pending: Promise<T>): Promise<T> {
-  const value = await pending;
-  await Bun.sleep(0);
-  return value;
-}
-
-function parseList(value: string | undefined): string[] {
-  return value
-    ? [
-        ...new Set(
-          value
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean),
-        ),
-      ]
-    : [];
-}
-
-function displayHomePath(file: string, home: string): string {
-  const relative = path.relative(home, file);
-  return relative && !relative.startsWith("..") && !path.isAbsolute(relative)
-    ? `~/${relative}`
-    : file;
-}
-
 const identityCommand = defineGroup({
   name: "identity",
   alias: "id",
@@ -88,13 +65,31 @@ const identityCommand = defineGroup({
       description: "List identities",
       handler: async ({ colors }) => {
         const config = await loadConfig();
-        for (const [id, identity] of Object.entries(config.identities)) {
-          const marker =
-            id === config.defaultIdentity ? colors.green("*") : " ";
-          console.log(
-            `${marker} ${id.padEnd(16)} ${identity.label.padEnd(20)} ${identity.roots.join(", ")}`,
-          );
+        const entries = Object.entries(config.identities);
+        if (entries.length === 0) {
+          console.log(colors.dim("No identities yet."));
+          console.log(hintLines(["create one with: ideality init"]));
+          return;
         }
+        console.log(
+          table({
+            head: ["", "id", "label", "folders"],
+            rows: entries.map(([id, identity]) => [
+              id === config.defaultIdentity ? colors.green("*") : " ",
+              id,
+              identity.label,
+              identity.roots
+                .map((root) => tidyPath(expandHome(root, os.homedir())))
+                .join(", "),
+            ]),
+          }),
+        );
+        console.log();
+        console.log(
+          hintLines([
+            `* marks the default identity (${config.defaultIdentity})`,
+          ]),
+        );
       },
     }),
     defineCommand({
@@ -229,7 +224,8 @@ const identityCommand = defineGroup({
           prompt.intro("IDEALITY  /  NEW IDENTITY");
           label = await wizardStep(
             prompt.text("Display label", {
-              default: label,
+              default: label === "New identity" ? "" : label,
+              placeholder: "Work, Personal, or Acme",
               validate: (value) =>
                 value.length > 0 || "Display label is required",
             }),
@@ -248,7 +244,7 @@ const identityCommand = defineGroup({
             prompt.filter<FileChoice>("Folder root", {
               options: [
                 ...directories.map((directory) => ({
-                  label: displayHomePath(directory, home),
+                  label: tidyPath(directory, home),
                   value: { kind: "file", path: directory } as const,
                 })),
                 {
@@ -320,7 +316,7 @@ const identityCommand = defineGroup({
               prompt.filter<FileChoice>("SSH private key", {
                 options: [
                   ...keys.map((file) => ({
-                    label: displayHomePath(file, home),
+                    label: tidyPath(file, home),
                     value: { kind: "file", path: file } as const,
                   })),
                   {

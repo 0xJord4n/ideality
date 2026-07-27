@@ -35,31 +35,15 @@ import {
   assertIdentityId,
   discoverConfiguredGitIdentity,
   discoverGitIdentity,
+  parseList,
+  wizardStep,
 } from "./shared.js";
+import { hintLines, statusGlyph, tidyPath } from "./ui.js";
 
 type SshMode = "generate" | "existing" | "agent";
 type Integration = "shell" | "git";
 type SetupMode = "recommended" | "advanced";
 type SshFileChoice = { kind: "file"; path: string } | { kind: "manual" };
-
-async function wizardStep<T>(prompt: Promise<T>): Promise<T> {
-  const value = await prompt;
-  await Bun.sleep(0);
-  return value;
-}
-
-function parseList(value: string | undefined): string[] {
-  return value
-    ? [
-        ...new Set(
-          value
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean),
-        ),
-      ]
-    : [];
-}
 
 function detectedShell(): SupportedShell {
   const shell = process.env.SHELL ?? "";
@@ -73,13 +57,6 @@ function defaultRc(shell: SupportedShell, home: string): string {
     return path.join(home, ".config", "fish", "config.fish");
   }
   return path.join(home, shell === "bash" ? ".bashrc" : ".zshrc");
-}
-
-function displayHomePath(file: string, home: string): string {
-  const relative = path.relative(home, file);
-  return relative && !relative.startsWith("..") && !path.isAbsolute(relative)
-    ? `~/${relative}`
-    : file;
 }
 
 const initCommand = defineCommand({
@@ -238,8 +215,9 @@ const initCommand = defineCommand({
 
       label = await wizardStep(
         prompt.text("Identity name", {
-          default: label,
+          default: label === "Default" ? "" : label,
           placeholder: "Work, Personal, or Acme",
+          validate: (value) => value.length > 0 || "A name is required",
         }),
       );
       if (!id) id = deriveIdentityId(label, []);
@@ -299,7 +277,7 @@ const initCommand = defineCommand({
               {
                 label: "Generate a new Ed25519 key",
                 value: "generate",
-                hint: `${idealityHome}/ssh/${id}`,
+                hint: tidyPath(path.join(idealityHome, "ssh", id), home),
               },
               {
                 label: "Use an existing private key",
@@ -322,7 +300,7 @@ const initCommand = defineCommand({
             prompt.filter<SshFileChoice>("SSH private key", {
               options: [
                 ...discoveredKeys.map((file) => ({
-                  label: displayHomePath(file, home),
+                  label: tidyPath(file, home),
                   value: { kind: "file", path: file } as const,
                 })),
                 {
@@ -423,16 +401,16 @@ const initCommand = defineCommand({
         setupMode === "recommended"
           ? [
               `${label} (${id})`,
-              `Folder: ${root}`,
+              `Folder: ${tidyPath(root, home)}`,
               `Git: ${gitName} <${gitEmail}>`,
               `Automatic switching: ${integrations.length > 0 ? "enabled" : "disabled"}`,
             ]
           : [
               `${label} (${id})`,
-              `Folder: ${root}`,
+              `Folder: ${tidyPath(root, home)}`,
               `Git:  ${gitName} <${gitEmail}>`,
               `SSH:  ${sshMode}`,
-              `Home: ${idealityHome}`,
+              `Home: ${tidyPath(idealityHome, home)}`,
               `Packs: ${selectedPacks.join(", ")}`,
               `Tools: ${selectedTools.join(", ")}`,
               `Integrations: ${integrations.join(", ") || "none"}`,
@@ -541,13 +519,18 @@ const initCommand = defineCommand({
 
     if (interactive) {
       prompt.outro(
-        `Ready. ${root} now uses ${label}. Check it with ${colors.cyan("ideality status")}`,
+        `Ready. ${tidyPath(root, home)} now uses ${label}. Check it with ${colors.cyan("ideality status")}`,
       );
     } else {
-      console.log(colors.green(`Created ${configPath}`));
-      if (!flags.install) {
-        console.log(`Next: ideality install --shell ${shell}`);
-      }
+      console.log(statusGlyph("ok", `Created ${tidyPath(configPath, home)}`));
+      console.log(
+        hintLines([
+          ...(flags.install
+            ? []
+            : [`install integrations: ideality install --shell ${shell}`]),
+          "see the active identity: ideality status",
+        ]),
+      );
     }
   },
 });

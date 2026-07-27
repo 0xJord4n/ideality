@@ -37,7 +37,13 @@ import { syncInstalledCompletions } from "../integrations/completion.js";
 import { installGitIntegration } from "../integrations/git.js";
 import { installShims } from "../integrations/shims.js";
 import { generateSshKey } from "../integrations/ssh.js";
-import { discoverGitIdentity, printJson } from "./shared.js";
+import {
+  discoverGitIdentity,
+  parseList,
+  printJson,
+  wizardStep,
+} from "./shared.js";
+import { tidyPath } from "./ui.js";
 
 type SetupScope = "project" | "local";
 type HandoverDetail = "full" | "requirements";
@@ -48,32 +54,6 @@ type IdentityChoice =
   | { kind: "project"; id: string }
   | { kind: "new" };
 type FileChoice = { kind: "file"; path: string } | { kind: "manual" };
-
-async function wizardStep<T>(pending: Promise<T>): Promise<T> {
-  const value = await pending;
-  await Bun.sleep(0);
-  return value;
-}
-
-function parseTools(value: string | undefined): string[] {
-  return value
-    ? [
-        ...new Set(
-          value
-            .split(",")
-            .map((tool) => tool.trim())
-            .filter(Boolean),
-        ),
-      ]
-    : [];
-}
-
-function displayHomePath(file: string, home: string): string {
-  const relative = path.relative(home, file);
-  return relative && !relative.startsWith("..") && !path.isAbsolute(relative)
-    ? `~/${relative}`
-    : file;
-}
 
 function handoverRisks(
   config: IdealityConfig,
@@ -232,7 +212,7 @@ const setupCommand = defineCommand({
       : "full";
     let integrations: Integration[] = ["git", "shims", "completions"];
     let identityId = flags.identity ?? "";
-    let selectedTools = parseTools(flags.tools);
+    let selectedTools = parseList(flags.tools);
     let sshMode: SshMode = "agent";
     let sshKey: string | undefined;
     let generatedIdentity = false;
@@ -252,7 +232,7 @@ const setupCommand = defineCommand({
       prompt.intro("IDEALITY  /  PROJECT SETUP");
       prompt.note(
         [
-          `Project: ${projectRoot}`,
+          `Project: ${tidyPath(projectRoot, home)}`,
           `Git: ${
             (await stat(path.join(projectRoot, ".git"))
               .then(() => true)
@@ -260,7 +240,7 @@ const setupCommand = defineCommand({
               ? "detected"
               : "not detected"
           }`,
-          `Handover: ${existingProject ? getProjectConfigPath(projectRoot) : "not configured"}`,
+          `Handover: ${existingProject ? tidyPath(getProjectConfigPath(projectRoot), home) : "not configured"}`,
         ].join("\n"),
         "Detected",
       );
@@ -369,7 +349,7 @@ const setupCommand = defineCommand({
                 prompt.filter<FileChoice>("SSH private key", {
                   options: [
                     ...keys.map((file) => ({
-                      label: displayHomePath(file, home),
+                      label: tidyPath(file, home),
                       value: { kind: "file", path: file } as const,
                     })),
                     {
@@ -680,7 +660,7 @@ const setupCommand = defineCommand({
         [
           `Identity: ${identityId}${generatedIdentity ? " (new)" : ""}`,
           `Tools: ${selectedTools.join(", ")}`,
-          `Handover: ${review.handover ?? "local only"}`,
+          `Handover: ${review.handover ? tidyPath(review.handover, home) : "local only"}`,
           `Detail: ${review.handoverDetail ?? "not shared"}`,
           `Secrets: ${review.secretBackend}`,
           `Execution: ${execution?.target ?? "host"}${
@@ -768,7 +748,7 @@ const setupCommand = defineCommand({
 
     if (interactive) {
       prompt.outro(
-        `Ready. Verify with ${colors.cyan(`ideality status -C ${projectRoot}`)}`,
+        `Ready. Verify with ${colors.cyan(`ideality status -C ${tidyPath(projectRoot, home)}`)}`,
       );
     } else {
       console.log(colors.green(`Configured ${projectRoot}`));

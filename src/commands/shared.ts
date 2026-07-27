@@ -66,3 +66,24 @@ export function discoverConfiguredGitIdentity(
 export function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
 }
+
+/** Await a wizard prompt, then yield once so OpenTUI can settle its views. */
+export async function wizardStep<T>(pending: Promise<T>): Promise<T> {
+  const value = await pending;
+  await Bun.sleep(0);
+  return value;
+}
+
+/** Parse a comma-separated flag value into unique trimmed entries. */
+export function parseList(value: string | undefined): string[] {
+  return value
+    ? [
+        ...new Set(
+          value
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        ),
+      ]
+    : [];
+}

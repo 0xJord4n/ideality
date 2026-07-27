@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { IdealityConfig } from "../src/domain/config.js";
 import { buildDashboardModel } from "../src/tui/model.js";
+import { createTuiState, tuiReducer } from "../src/tui/state.js";
 
 const config: IdealityConfig = {
   version: 1,
@@ -19,6 +20,20 @@ const config: IdealityConfig = {
   },
   tools: { gh: { executable: "gh", isolation: "shell" } },
 };
+
+describe("help overlay", () => {
+  test("toggle-help opens and closes the keymap overlay", () => {
+    const initial = createTuiState(config, "personal");
+    expect(initial.showingHelp).toBe(false);
+
+    const opened = tuiReducer(initial, { type: "toggle-help" });
+    expect(opened.showingHelp).toBe(true);
+    expect(opened.screen).toBe("dashboard");
+
+    const closed = tuiReducer(opened, { type: "toggle-help" });
+    expect(closed.showingHelp).toBe(false);
+  });
+});
 
 describe("buildDashboardModel", () => {
   test("builds identity navigation and tool readiness without secret values", () => {

@@ -2,13 +2,22 @@ import { createCliRenderer } from "@opentui/core";
 import { createRoot, useKeyboard } from "@opentui/react";
 import { useMemo, useReducer, useRef, useState } from "react";
 
-import type { AuthHealthState } from "../core/auth.js";
 import type { IdealityConfig } from "../domain/config.js";
 import {
   MaskedSecretInput,
   PluginScreen,
   SecretScreen,
 } from "./admin-screens.js";
+import { tidyPath } from "../commands/ui.js";
+import { HelpOverlay } from "./help-overlay.js";
+import {
+  AuthScreen,
+  DashboardScreen,
+  DiffScreen,
+  PolicyScreen,
+  RollbackScreen,
+} from "./screens.js";
+import { COLORS, KEY_HINTS } from "./theme.js";
 import {
   applyRollbackSnapshot,
   deleteTuiSecret,
@@ -23,18 +32,14 @@ import {
   saveDraftConfig,
   writeTuiSecret,
 } from "./effects.js";
-import { buildDashboardModel, type DashboardModel } from "./model.js";
+import { buildDashboardModel } from "./model.js";
 import {
   canApplyRollback,
   canRunPluginSideEffect,
   canRunSecretSideEffect,
   createTuiState,
   diffConfigs,
-  formatDiffLine,
-  isToolActive,
-  toolNames,
   tuiReducer,
-  type ConfigDiffLine,
   type TuiAction,
   type TuiState,
 } from "./state.js";
@@ -49,46 +54,6 @@ export interface DashboardContext {
   home: string;
   idealityHome: string;
 }
-
-const COLORS = {
-  background: "#101418",
-  panel: "#172026",
-  border: "#34454f",
-  accent: "#22d3ee",
-  text: "#d7e0e5",
-  dim: "#8da2ad",
-  faint: "#70838d",
-  green: "#4ade80",
-  yellow: "#facc15",
-  amber: "#fbbf24",
-  red: "#f87171",
-  selection: "#164e63",
-} as const;
-
-const AUTH_STATE_COLORS: Record<AuthHealthState, string> = {
-  "logged-in": COLORS.green,
-  expired: COLORS.red,
-  unavailable: COLORS.amber,
-  unsupported: COLORS.faint,
-};
-
-const DIFF_COLORS: Record<ConfigDiffLine["op"], string> = {
-  add: COLORS.green,
-  remove: COLORS.red,
-  change: COLORS.yellow,
-};
-
-const KEY_HINTS: Record<TuiState["screen"], string> = {
-  dashboard:
-    "tab pane  space toggle  n net  v vm  m default  b bind  x unbind  s save  u undo  h history  a auth  p policy  g plugins  k secrets  e edit  d doctor  q quit",
-  diff: "y save  c discard  esc back",
-  rollback: "up/down select  enter preview  esc back",
-  auth: "r probe again  esc back",
-  policy: "r re-check  esc back",
-  plugins: "up/down select  i install manifest  x remove  r refresh  esc back",
-  secrets:
-    "up/down select  b backend  n set secret  x delete  r refresh  esc back",
-};
 
 function errorText(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
@@ -493,6 +458,16 @@ function TuiApp({ context, onExit }: TuiAppProps) {
       }
       return;
     }
+    if (current.showingHelp) {
+      if (name === "escape" || name === "q" || name === "?") {
+        dispatch({ type: "toggle-help" });
+      }
+      return;
+    }
+    if (name === "?") {
+      dispatch({ type: "toggle-help" });
+      return;
+    }
     if (current.screen === "dashboard") handleDashboardKey(name);
     else if (current.screen === "diff") handleDiffKey(name);
     else if (current.screen === "rollback") handleRollbackKey(name);
@@ -550,23 +525,29 @@ function TuiApp({ context, onExit }: TuiAppProps) {
         <text fg={COLORS.accent}>IDEALITY</text>
         <text fg={stagedDiff.length > 0 ? COLORS.yellow : COLORS.dim}>
           {stagedDiff.length > 0
-            ? `${context.path}   [${stagedDiff.length} staged]`
-            : context.path}
+            ? `${tidyPath(context.path, context.home)}   [${stagedDiff.length} staged]`
+            : tidyPath(context.path, context.home)}
         </text>
       </box>
 
-      {state.screen === "dashboard" && (
-        <DashboardScreen state={state} model={model} />
-      )}
-      {state.screen === "diff" && <DiffScreen lines={stagedDiff} />}
-      {state.screen === "rollback" && <RollbackScreen state={state} />}
-      {state.screen === "auth" && <AuthScreen state={state} />}
-      {state.screen === "policy" && <PolicyScreen state={state} />}
-      {state.screen === "plugins" && (
-        <PluginScreen state={state} colors={COLORS} />
-      )}
-      {state.screen === "secrets" && (
-        <SecretScreen state={state} colors={COLORS} />
+      {state.showingHelp ? (
+        <HelpOverlay colors={COLORS} />
+      ) : (
+        <>
+          {state.screen === "dashboard" && (
+            <DashboardScreen state={state} model={model} />
+          )}
+          {state.screen === "diff" && <DiffScreen lines={stagedDiff} />}
+          {state.screen === "rollback" && <RollbackScreen state={state} />}
+          {state.screen === "auth" && <AuthScreen state={state} />}
+          {state.screen === "policy" && <PolicyScreen state={state} />}
+          {state.screen === "plugins" && (
+            <PluginScreen state={state} colors={COLORS} />
+          )}
+          {state.screen === "secrets" && (
+            <SecretScreen state={state} colors={COLORS} />
+          )}
+        </>
       )}
 
       <Footer
@@ -575,340 +556,6 @@ function TuiApp({ context, onExit }: TuiAppProps) {
         dispatch={dispatch}
         onAdminInputSubmit={handleAdminInputSubmit}
       />
-    </box>
-  );
-}
-
-interface DashboardScreenProps {
-  state: TuiState;
-  model: DashboardModel;
-}
-
-function DashboardScreen({ state, model }: DashboardScreenProps) {
-  const names = toolNames(state.draft);
-  return (
-    <box style={{ flexGrow: 1, flexDirection: "row", padding: 1, gap: 1 }}>
-      <box style={{ width: "34%", flexDirection: "column", gap: 1 }}>
-        <box
-          title="Identities"
-          style={{
-            flexGrow: 1,
-            border: true,
-            borderColor:
-              state.pane === "identities" ? COLORS.accent : COLORS.border,
-            padding: 1,
-          }}
-        >
-          <scrollbox focused={false} style={{ flexGrow: 1 }}>
-            {model.identities.map((identity) => {
-              const selected = identity.value === model.selected.id;
-              return (
-                <text
-                  key={String(identity.value)}
-                  fg={
-                    selected
-                      ? state.pane === "identities"
-                        ? COLORS.accent
-                        : "#f8fafc"
-                      : COLORS.text
-                  }
-                >
-                  {`${selected ? "> " : "  "}${identity.name}`}
-                  <span
-                    fg={COLORS.faint}
-                  >{`  ${identity.description ?? ""}`}</span>
-                </text>
-              );
-            })}
-          </scrollbox>
-        </box>
-        <box
-          title="Folders"
-          style={{
-            height: 8,
-            border: true,
-            borderColor: state.pane === "roots" ? COLORS.accent : COLORS.border,
-            padding: 1,
-            flexDirection: "column",
-          }}
-        >
-          {model.selected.roots.map((root, index) => (
-            <text
-              key={root}
-              fg={
-                state.pane === "roots" && index === state.rootCursor
-                  ? COLORS.accent
-                  : COLORS.text
-              }
-            >
-              {`${
-                state.pane === "roots" && index === state.rootCursor
-                  ? "> "
-                  : "  "
-              }${root}`}
-            </text>
-          ))}
-        </box>
-      </box>
-
-      <box
-        title={`${model.selected.label} / ${model.selected.id}`}
-        style={{
-          flexGrow: 1,
-          border: true,
-          borderColor: model.selected.color,
-          padding: 1,
-          flexDirection: "column",
-          gap: 1,
-        }}
-      >
-        <text fg={model.selected.color}>
-          {model.selected.isDefault ? "DEFAULT IDENTITY" : "FOLDER IDENTITY"}
-        </text>
-        <text fg={COLORS.text}>
-          Git:{" "}
-          {model.selected.git
-            ? `${model.selected.git.name} <${model.selected.git.email}>`
-            : "not configured"}
-        </text>
-        <text fg={COLORS.text}>
-          SSH: {model.selected.git?.sshKey ?? "SSH agent default"}
-        </text>
-        <text fg={COLORS.text}>
-          Target: {model.selected.execution.target}
-          {model.selected.execution.vm
-            ? ` / ${model.selected.execution.vm}`
-            : ""}
-          {model.selected.execution.network
-            ? ` / VPN ${model.selected.execution.network}`
-            : ""}
-        </text>
-        <text fg={state.pane === "tools" ? COLORS.accent : COLORS.yellow}>
-          TOOLS
-        </text>
-        <scrollbox focused={false} style={{ flexGrow: 1 }}>
-          {model.selected.tools.map((tool, index) => {
-            const active = isToolActive(
-              state.draft,
-              model.selected.id,
-              tool.name,
-            );
-            const staged =
-              active !==
-              isToolActive(state.saved, model.selected.id, tool.name);
-            const cursor =
-              state.pane === "tools" &&
-              index === state.toolCursor &&
-              names[state.toolCursor] === tool.name;
-            return (
-              <text
-                key={tool.name}
-                fg={
-                  cursor
-                    ? COLORS.accent
-                    : !tool.configured
-                      ? COLORS.faint
-                      : !active
-                        ? COLORS.faint
-                        : tool.installed
-                          ? COLORS.green
-                          : COLORS.amber
-                }
-              >
-                {`${cursor ? ">" : " "}[${active ? "x" : " "}]${
-                  staged ? "*" : " "
-                }${tool.name.padEnd(11)} ${tool.isolation.padEnd(7)} ${
-                  tool.installed ? "ready  " : "missing"
-                } ${tool.target}${tool.vm ? `:${tool.vm}` : ""}${
-                  tool.network ? ` vpn:${tool.network}` : ""
-                } env:${tool.variables} args:${tool.arguments}`}
-              </text>
-            );
-          })}
-        </scrollbox>
-      </box>
-    </box>
-  );
-}
-
-function DiffScreen({ lines }: { lines: ConfigDiffLine[] }) {
-  return (
-    <box
-      title="Staged changes"
-      style={{
-        flexGrow: 1,
-        margin: 1,
-        border: true,
-        borderColor: COLORS.border,
-        padding: 1,
-        flexDirection: "column",
-      }}
-    >
-      {lines.length === 0 ? (
-        <text fg={COLORS.dim}>No staged changes.</text>
-      ) : (
-        <scrollbox focused={false} style={{ flexGrow: 1 }}>
-          {lines.map((line) => (
-            <text key={`${line.op}:${line.path}`} fg={DIFF_COLORS[line.op]}>
-              {formatDiffLine(line)}
-            </text>
-          ))}
-        </scrollbox>
-      )}
-    </box>
-  );
-}
-
-function RollbackScreen({ state }: { state: TuiState }) {
-  const { rollback } = state;
-  if (rollback.preview) {
-    return (
-      <box
-        title={`Rollback preview: ${rollback.preview.snapshot}`}
-        style={{
-          flexGrow: 1,
-          margin: 1,
-          border: true,
-          borderColor: COLORS.border,
-          padding: 1,
-          flexDirection: "column",
-          gap: 1,
-        }}
-      >
-        <text fg={COLORS.dim}>
-          Applying restores the saved config below (a snapshot of the current
-          config is kept first).
-        </text>
-        {rollback.preview.diff.length === 0 ? (
-          <text fg={COLORS.dim}>Snapshot matches the current config.</text>
-        ) : (
-          <scrollbox focused={false} style={{ flexGrow: 1 }}>
-            {rollback.preview.diff.map((line) => (
-              <text key={`${line.op}:${line.path}`} fg={DIFF_COLORS[line.op]}>
-                {formatDiffLine(line)}
-              </text>
-            ))}
-          </scrollbox>
-        )}
-      </box>
-    );
-  }
-  return (
-    <box
-      title="Rollback history (newest first)"
-      style={{
-        flexGrow: 1,
-        margin: 1,
-        border: true,
-        borderColor: COLORS.border,
-        padding: 1,
-        flexDirection: "column",
-      }}
-    >
-      {!rollback.loaded ? (
-        <text fg={COLORS.dim}>Loading history...</text>
-      ) : rollback.snapshots.length === 0 ? (
-        <text fg={COLORS.dim}>No snapshots yet.</text>
-      ) : (
-        <scrollbox focused={false} style={{ flexGrow: 1 }}>
-          {rollback.snapshots.map((snapshot, index) => (
-            <text
-              key={snapshot}
-              fg={index === rollback.cursor ? COLORS.accent : COLORS.text}
-            >
-              {`${index === rollback.cursor ? "> " : "  "}${snapshot}`}
-            </text>
-          ))}
-        </scrollbox>
-      )}
-    </box>
-  );
-}
-
-function AuthScreen({ state }: { state: TuiState }) {
-  const { auth } = state;
-  return (
-    <box
-      title="Auth health (redacted)"
-      style={{
-        flexGrow: 1,
-        margin: 1,
-        border: true,
-        borderColor: COLORS.border,
-        padding: 1,
-        flexDirection: "column",
-      }}
-    >
-      {auth.phase === "loading" ? (
-        <text fg={COLORS.dim}>Probing auth status for every identity...</text>
-      ) : auth.results.length === 0 ? (
-        <text fg={COLORS.dim}>
-          No results yet. Press r to probe every identity/tool pairing.
-        </text>
-      ) : (
-        <scrollbox focused={false} style={{ flexGrow: 1 }}>
-          {auth.results.map((result) => (
-            <text
-              key={`${result.identity}/${result.tool}`}
-              fg={AUTH_STATE_COLORS[result.state]}
-            >
-              {`${result.identity.padEnd(12)} ${result.tool.padEnd(
-                10,
-              )} ${result.state.padEnd(12)} ${result.detail}`}
-            </text>
-          ))}
-        </scrollbox>
-      )}
-    </box>
-  );
-}
-
-function PolicyScreen({ state }: { state: TuiState }) {
-  const { policy } = state;
-  const result = policy.result;
-  return (
-    <box
-      title="Team policy"
-      style={{
-        flexGrow: 1,
-        margin: 1,
-        border: true,
-        borderColor: COLORS.border,
-        padding: 1,
-        flexDirection: "column",
-        gap: 1,
-      }}
-    >
-      {policy.phase === "loading" || !result ? (
-        <text fg={COLORS.dim}>Checking the team policy...</text>
-      ) : (
-        <>
-          <text fg={result.status === "pass" ? COLORS.green : COLORS.red}>
-            {`${result.status.toUpperCase()}  ${
-              result.policy
-                ? `policy v${result.policy.version}${
-                    result.policy.label ? ` (${result.policy.label})` : ""
-                  }`
-                : "no policy loaded"
-            }`}
-          </text>
-          <text fg={COLORS.dim}>{result.policyPath}</text>
-          {result.findings.length === 0 ? (
-            <text fg={COLORS.green}>All policy checks passed.</text>
-          ) : (
-            <scrollbox focused={false} style={{ flexGrow: 1 }}>
-              {result.findings.map((finding) => (
-                <text
-                  key={`${finding.code}:${finding.subject}:${finding.message}`}
-                  fg={COLORS.amber}
-                >
-                  {`${finding.code.padEnd(28)} ${finding.subject}: ${finding.message}`}
-                </text>
-              ))}
-            </scrollbox>
-          )}
-        </>
-      )}
     </box>
   );
 }
@@ -997,7 +644,9 @@ function Footer({
             : "No staged changes"}
         </text>
       )}
-      <text fg={COLORS.faint}>{KEY_HINTS[state.screen]}</text>
+      <text fg={COLORS.faint}>
+        {state.showingHelp ? "esc close  ? close" : KEY_HINTS[state.screen]}
+      </text>
     </box>
   );
 }

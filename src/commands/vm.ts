@@ -248,7 +248,8 @@ const vmCommandGroup = defineGroup({
         if (interactive) {
           prompt.intro("IDEALITY  /  VIRTUAL MACHINE");
           label = await prompt.text("Profile label", {
-            default: label,
+            default: flags.label ?? "",
+            placeholder: "Isolated workspace",
             validate: (value) => value.length > 0 || "Label is required",
           });
           driver = await prompt.select<VmDriver>("Virtualization backend", {
