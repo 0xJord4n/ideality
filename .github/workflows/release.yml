@@ -90,6 +90,7 @@ jobs:
             dist/release/*.sigstore.json
           generate_release_notes: true
           fail_on_unmatched_files: true
+          overwrite_files: false
 
       - name: Publish npm package with provenance
         run: |

@@ -447,6 +447,7 @@ describe(".github/workflows/release.yml", () => {
       "tag_name: ${{ inputs.release_tag || github.ref_name }}",
     );
     expect(workflow).toContain("if: ${{ !github.event.repository.private }}");
+    expect(workflow).toContain("overwrite_files: false");
   });
 
   test("publishes the scoped CLI package through npm trusted publishing", async () => {
