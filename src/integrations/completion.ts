@@ -1,37 +1,16 @@
 import { chmod, mkdir, rename } from "node:fs/promises";
 import path from "node:path";
 
+import { IDEALITY_COMMAND_NAMES } from "../commands/names.js";
 import type { IdealityConfig } from "../domain/config.js";
 
 export type CompletionShell = "zsh" | "bash" | "fish";
-
-const COMMANDS = [
-  "init",
-  "setup",
-  "status",
-  "env",
-  "run",
-  "explain",
-  "prompt",
-  "auth",
-  "secret",
-  "identity",
-  "tool",
-  "plugin",
-  "install",
-  "rollback",
-  "hook",
-  "completion",
-  "doctor",
-  "config",
-  "tui",
-];
 
 export function renderCompletion(
   shell: CompletionShell,
   values: { identities: string[]; tools: string[] },
 ): string {
-  const commands = COMMANDS.join(" ");
+  const commands = IDEALITY_COMMAND_NAMES.join(" ");
   const identities = values.identities.join(" ");
   const tools = values.tools.join(" ");
   if (shell === "zsh") {

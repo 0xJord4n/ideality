@@ -38,6 +38,36 @@ metadata is available. Package-manager installs are not overwritten. Remove a
 legacy managed installation first, then use the signed installer so only one
 `ideality` remains on `PATH`.
 
+### Agent Skills
+
+Ideality ships ten Agent Skills for operating the CLI and contributing
+adapters. Install them with Vercel's open Skills CLI:
+
+```bash
+npx skills add 0xJord4n/ideality
+# or
+bunx skills add 0xJord4n/ideality
+```
+
+Once Ideality is installed, its wrapper prefers `bunx` and falls back to
+`npx`:
+
+```bash
+ideality skills install
+ideality skills install --list
+ideality skills install --runner bunx
+ideality skills install \
+  --skill ideality-getting-started \
+  --skill ideality-troubleshooting \
+  --agent codex \
+  --global
+```
+
+The installer supports the agents recognized by Vercel Skills, interactive
+skill selection, project or global scope, symlink or copy installation, and
+non-interactive `--yes`/`--all` modes. See the
+[Agent Skills guide](skills/README.md) for the complete roster and options.
+
 ### Prebuilt binaries
 
 Every release ships `ideality-<os>-<arch>.tar.gz` archives for Linux and

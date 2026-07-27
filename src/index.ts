@@ -14,6 +14,7 @@ import identityCommand from "./commands/identity.js";
 import initCommand from "./commands/init.js";
 import installCommand from "./commands/install.js";
 import networkCommand from "./commands/network.js";
+import { IDEALITY_COMMAND_NAMES } from "./commands/names.js";
 import pluginCommand from "./commands/plugin.js";
 import policyCommand from "./commands/policy.js";
 import promptCommand from "./commands/prompt.js";
@@ -21,6 +22,7 @@ import rollbackCommand from "./commands/rollback.js";
 import runCommand from "./commands/run.js";
 import secretCommand from "./commands/secret.js";
 import setupCommand from "./commands/setup.js";
+import skillsCommand from "./commands/skills.js";
 import statusCommand from "./commands/status.js";
 import toolCommand from "./commands/tool.js";
 import tuiCommand from "./commands/tui.js";
@@ -33,9 +35,10 @@ const cli = await createCLI({
   description: "Folder-based identity orchestration for developer tools",
 });
 
-for (const command of [
+const commands = [
   initCommand,
   setupCommand,
+  skillsCommand,
   statusCommand,
   envCommand,
   runCommand,
@@ -58,7 +61,18 @@ for (const command of [
   configCommand,
   tuiCommand,
   updateCommand,
-]) {
+];
+const commandsByName = new Map(
+  commands.map((command) => [command.name, command]),
+);
+if (commandsByName.size !== IDEALITY_COMMAND_NAMES.length) {
+  throw new Error("Ideality command registry has duplicate or missing names");
+}
+for (const name of IDEALITY_COMMAND_NAMES) {
+  const command = commandsByName.get(name);
+  if (!command) {
+    throw new Error(`Ideality command '${name}' is not registered`);
+  }
   cli.command(command);
 }
 

@@ -107,14 +107,14 @@ Commit both `.ideality/project.jsonc` and `.ideality/policy.jsonc`, then fail
 the pipeline on drift. Example GitHub Actions step:
 
 ```yaml
-- uses: oven-sh/setup-bun@v2
+- name: Install ideality
+  run: curl -fsSL https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/install.sh | bash
 - name: Enforce ideality team policy
-  run: |
-    bun install --frozen-lockfile
-    bun run src/index.ts policy check --json
+  run: ~/.local/bin/ideality policy check --json
 ```
 
-With a compiled `ideality` binary on the runner the step is just
-`ideality policy check`. The JSON output (`status`, `policy`, `findings[]`
-with `code`, `subject`, and `message`) is stable for machine consumption, so
-pipelines can annotate pull requests with the exact violations.
+If the released binary is already on `PATH`, the check is simply
+`ideality policy check --json`. The JSON output (`status`, `policy`,
+`findings[]` with `code`, `subject`, and `message`) is stable for machine
+consumption, so pipelines can annotate pull requests with the exact
+violations.

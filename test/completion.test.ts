@@ -3,6 +3,7 @@ import { mkdtemp } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
+import { IDEALITY_COMMAND_NAMES } from "../src/commands/names.js";
 import {
   installCompletion,
   renderCompletion,
@@ -18,6 +19,14 @@ describe("renderCompletion", () => {
 
     expect(output).toContain("#compdef ideality");
     expect(output).toContain("explain");
+    expect(output).toContain("skills");
+    expect(output).toContain("network");
+    expect(output).toContain("policy");
+    expect(output).toContain("update");
+    expect(output).toContain("vm");
+    for (const command of IDEALITY_COMMAND_NAMES) {
+      expect(output).toContain(command);
+    }
     expect(output).toContain("default sample");
     expect(output).toContain("gh vercel");
   });

@@ -1,25 +1,30 @@
 # Releasing
 
-Releases are built, signed, and published by `.github/workflows/release.yml`
-whenever a `v*` tag is pushed. Version `0.1.0` lives in one place —
-`package.json` — and flows into `bunli.config.ts` and the CLI (`src/version.ts`)
-through imports, so a release only ever bumps `package.json`.
+Release Please owns version bumps, changelog updates, tags, and GitHub release
+creation. After it creates a release, `.github/workflows/release-please.yml`
+explicitly dispatches `.github/workflows/release.yml` at that tag to build,
+sign, attest, and upload the artifacts. The version lives in `package.json`
+and flows into `bunli.config.ts` and the CLI (`src/version.ts`) through
+imports.
 
 ## Cutting a release
 
-1. Bump the version (edits `package.json` only):
+1. Merge Conventional Commit changes to `main`. Release Please derives the
+   next version and changelog entries from `feat:`, `fix:`, `docs:`, and
+   breaking-change markers.
+2. Review the open `autorelease: pending` pull request. Its explicitly
+   dispatched CI, quality, catalog, and security workflows must pass.
+3. Merge the Release Please pull request. Release Please updates
+   `CHANGELOG.md` and `package.json`, creates the tag and GitHub release, and
+   dispatches the artifact workflow at that tag.
 
-   ```bash
-   bun run version:patch   # or version:minor / version:major
-   ```
+Do not bump or tag a normal release manually. For recovery after Release
+Please has already created a matching tag, dispatch the artifact workflow
+explicitly:
 
-2. Commit the bump and tag it with the same version, `v`-prefixed:
-
-   ```bash
-   git commit -am "release: v$(grep -m1 '"version":' package.json | cut -d '"' -f 4)"
-   git tag "v$(grep -m1 '"version":' package.json | cut -d '"' -f 4)"
-   git push origin main --follow-tags
-   ```
+```bash
+gh workflow run release.yml --ref v0.2.0
+```
 
 The release workflow refuses to run if the tag does not match
 `package.json` — a mismatched tag fails fast before anything is published.
