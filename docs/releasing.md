@@ -69,10 +69,13 @@ For each release the `release` job:
    bundles, with generated release notes. Recovery reruns preserve existing
    assets, upload only missing names, and skip release mutation entirely when
    the expected set is complete.
-7. Publishes the dependency-free `@0xjordan/ideality` launcher to npm with
-   provenance through npm trusted publishing. The package installs the signed
-   native release matching its own version; its launcher repeats that verified
-   bootstrap on first use when a package manager disabled lifecycle scripts.
+7. Publishes the dependency-free `@0xjordan/ideality` launcher through npm
+   trusted publishing. Public source repositories receive npm provenance
+   automatically. npm does not support provenance for private GitHub source
+   repositories, so those releases explicitly disable provenance while still
+   authenticating with OIDC. The package installs the signed native release
+   matching its own version; its launcher repeats that verified bootstrap on
+   first use when a package manager disabled lifecycle scripts.
 
 ## npm trusted publishing setup
 
@@ -114,7 +117,8 @@ provider. The explicit CLI flag overrides the repository's
 `publishConfig.provenance` setting. Complete npm's 2FA prompt when the
 `npm trust` command creates the publisher relationship. Keep
 `publishConfig.provenance` enabled: all later releases publish only through
-OIDC in the workflow and receive npm provenance automatically.
+OIDC in the workflow. The workflow overrides it only when the source repository
+is private because npm provenance supports public repositories only.
 
 ## Verifying a release
 

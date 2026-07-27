@@ -83,9 +83,12 @@ Release Please dispatches `.github/workflows/release.yml` at the created tag.
 The workflow refuses a tag that doesn't match `package.json`, runs
 `bun run check`, builds four target archives, rehearses offline, signs with
 Sigstore cosign (keyless), attests build provenance when the repository is
-public, and publishes the GitHub release. It then uses npm trusted publishing to run
-`npm publish --access public` for `@0xjordan/ideality`; never add a long-lived
-npm token to the workflow. Recovery reruns preserve existing release assets,
+public, and publishes the GitHub release. It then uses npm trusted publishing
+for `@0xjordan/ideality`; never add a long-lived npm token to the workflow.
+Public source repositories run `npm publish --access public` with provenance,
+while private source repositories use the same OIDC trust with
+`npm publish --access public --provenance=false` because npm does not support
+private-source provenance. Recovery reruns preserve existing release assets,
 upload only missing names, and skip an npm package version that is already
 public.
 

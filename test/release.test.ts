@@ -467,6 +467,12 @@ describe(".github/workflows/release.yml", () => {
     expect(workflow).toContain("npm pack --dry-run");
     expect(workflow).toContain('npm view "$package@$version" version');
     expect(workflow).toContain("npm publish --access public");
+    expect(workflow).toContain(
+      "REPOSITORY_PRIVATE: ${{ github.event.repository.private }}",
+    );
+    expect(workflow).toContain(
+      "npm publish --access public --provenance=false",
+    );
     expect(workflow).not.toContain("NODE_AUTH_TOKEN");
   });
 });

@@ -143,11 +143,15 @@ jobs:
           overwrite_files: false
 
       - name: Publish npm package with provenance
+        env:
+          REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
         run: |
           package="$(node -p 'require("./package.json").name')"
           version="$(node -p 'require("./package.json").version')"
           if npm view "$package@$version" version >/dev/null 2>&1; then
             echo "$package@$version is already published; skipping"
+          elif [ "$REPOSITORY_PRIVATE" = "true" ]; then
+            npm publish --access public --provenance=false
           else
             npm publish --access public
           fi
