@@ -161,7 +161,7 @@ describe("agent skills package", () => {
       /(?:plugin manifests \(`g`\)|`g` for plugin manifest)/,
     );
     expect(readme).toMatch(
-      /(?:secret references \(`k`\)|`k` for secret-backend)/,
+      /(?:secret\s+references \(`k`\)|`k` for secret-backend)/,
     );
     expect(customTools).toContain("press `g`");
     expect(secrets).toContain("press `k`");
