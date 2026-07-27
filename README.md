@@ -547,8 +547,13 @@ and never overwritten. Update them through the manager that installed them:
 npm update --global @0xjord4n/ideality
 pnpm update --global @0xjord4n/ideality
 bun update --global @0xjord4n/ideality
+
+# Yarn Classic
 yarn global upgrade @0xjord4n/ideality
 ```
+
+Modern Yarn's `yarn dlx` mode has no persistent installation to update. Run
+`yarn dlx @0xjord4n/ideality@latest` whenever you want the latest release.
 
 ```bash
 ideality update --check

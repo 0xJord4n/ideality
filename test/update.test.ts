@@ -245,7 +245,7 @@ describe("runUpdate", () => {
       executablePath: executable,
     });
     await expect(update).rejects.toThrow(
-      "first remove the legacy package-manager installation",
+      "First remove the legacy package-manager installation",
     );
     await expect(update).rejects.toThrow(
       "https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/install.sh",
@@ -284,6 +284,20 @@ describe("runUpdate", () => {
       },
       {
         pathParts: [
+          "pnpm",
+          "global",
+          "5",
+          "node_modules",
+          ".pnpm",
+          "@0xjord4n+ideality@0.1.0",
+          "node_modules",
+          "@0xjord4n",
+          "ideality",
+        ],
+        command: "pnpm update -g @0xjord4n/ideality",
+      },
+      {
+        pathParts: [
           ".config",
           "yarn",
           "global",
@@ -307,6 +321,37 @@ describe("runUpdate", () => {
           executablePath: executable,
         }),
       ).rejects.toThrow(entry.command);
+    }
+  });
+
+  test("refuses project-local package installs without recommending a global update", async () => {
+    const cases = [
+      ["node_modules", "@0xjord4n", "ideality"],
+      [
+        "node_modules",
+        ".pnpm",
+        "@0xjord4n+ideality@0.1.0",
+        "node_modules",
+        "@0xjord4n",
+        "ideality",
+      ],
+    ];
+
+    for (const pathParts of cases) {
+      const dir = await tempDir("ideality-project-managed-");
+      const executable = path.join(dir, ...pathParts, "vendor", "ideality");
+      await writeBinary(executable, "0.1.0");
+      const update = runUpdate({
+        checkOnly: true,
+        ...(await updateOptions()),
+        currentVersion: "0.1.0",
+        executablePath: executable,
+      });
+
+      await expect(update).rejects.toThrow(
+        "Update the dependency from the project root with the same package manager instead.",
+      );
+      await expect(update).rejects.not.toThrow(/update -g|update --global/);
     }
   });
 

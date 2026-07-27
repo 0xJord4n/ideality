@@ -120,7 +120,8 @@ ideality update --version 0.2.0   # when its metadata is available
 Package-manager installs are not overwritten. Use the manager-specific update
 command printed by `ideality update`, such as
 `npm update --global @0xjord4n/ideality` or
-`bun update --global @0xjord4n/ideality`.
+`bun update --global @0xjord4n/ideality`. Modern Yarn's `yarn dlx` mode is
+ephemeral; run `yarn dlx @0xjord4n/ideality@latest` for the latest release.
 
 ## Verify it works
 

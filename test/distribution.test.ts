@@ -80,5 +80,7 @@ describe("release distribution", () => {
     expect(releaseDocs).toContain("@0xjord4n/ideality");
     expect(contributorWorkflow).toContain("npm publish --access public");
     expect(contributorWorkflow).toContain("npm pack --dry-run");
+    expect(readme).toContain("yarn dlx @0xjord4n/ideality@latest");
+    expect(gettingStarted).toContain("yarn dlx @0xjord4n/ideality@latest");
   });
 });

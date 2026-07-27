@@ -78,7 +78,7 @@ export interface UpdateResult {
 
 interface ManagedInstall {
   manager: string;
-  command: string;
+  instruction: string;
 }
 
 export function getHostTarget(
@@ -170,7 +170,7 @@ export async function runUpdate(
   const managed = await detectManagedInstall(executablePath);
   if (managed) {
     throw new Error(
-      `This ideality executable is managed by ${managed.manager}; refusing to overwrite it. Use '${managed.command}' instead.`,
+      `This ideality executable is managed by ${managed.manager}; refusing to overwrite it. ${managed.instruction}`,
     );
   }
   if (!explicitExecutable) {
@@ -586,22 +586,26 @@ async function detectManagedInstall(
   if (/\/Cellar\/ideality\//.test(normalized)) {
     return {
       manager: "a legacy package manager",
-      command:
-        "first remove the legacy package-manager installation so only one ideality remains on PATH, then run: curl -fsSL https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/install.sh | bash",
+      instruction:
+        "First remove the legacy package-manager installation so only one ideality remains on PATH, then run: curl -fsSL https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/install.sh | bash",
     };
   }
   if (/\/\.bun\/install\/global\//.test(normalized)) {
-    return { manager: "Bun", command: `bun update -g ${NPM_PACKAGE}` };
+    return {
+      manager: "Bun",
+      instruction: `Use 'bun update -g ${NPM_PACKAGE}' instead.`,
+    };
   }
   if (
-    /\/pnpm\/global\/[^/]+\/node_modules\/@0xjord4n\/ideality\//.test(
-      normalized,
-    ) ||
-    /\/node_modules\/\.pnpm\/@0xjord4n\+ideality@[^/]+\/node_modules\/@0xjord4n\/ideality\//.test(
+    normalized.includes("/pnpm/global/") &&
+    /\/node_modules\/(?:\.pnpm\/@0xjord4n\+ideality@[^/]+\/node_modules\/)?@0xjord4n\/ideality\//.test(
       normalized,
     )
   ) {
-    return { manager: "pnpm", command: `pnpm update -g ${NPM_PACKAGE}` };
+    return {
+      manager: "pnpm",
+      instruction: `Use 'pnpm update -g ${NPM_PACKAGE}' instead.`,
+    };
   }
   if (
     /\/\.config\/yarn\/global\/node_modules\/@0xjord4n\/ideality\//.test(
@@ -610,13 +614,20 @@ async function detectManagedInstall(
   ) {
     return {
       manager: "Yarn",
-      command: `yarn global upgrade ${NPM_PACKAGE}`,
+      instruction: `Use 'yarn global upgrade ${NPM_PACKAGE}' instead.`,
+    };
+  }
+  if (/\/lib\/node_modules\/@0xjord4n\/ideality\//.test(normalized)) {
+    return {
+      manager: "npm",
+      instruction: `Use 'npm update -g ${NPM_PACKAGE}' instead.`,
     };
   }
   if (/\/node_modules\/@0xjord4n\/ideality\//.test(normalized)) {
     return {
-      manager: "npm",
-      command: `npm update -g ${NPM_PACKAGE}`,
+      manager: "a project package manager",
+      instruction:
+        "Update the dependency from the project root with the same package manager instead.",
     };
   }
   return null;
