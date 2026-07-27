@@ -273,28 +273,34 @@ describe("scripts/install.sh", () => {
     );
     expect(installed.exitCode).toBe(0);
 
-    const command = run([path.join(prefix, "bin", "ideality"), "--version"], {
+    const packageRoot = path.join(
+      prefix,
+      "lib",
+      "node_modules",
+      "@0xjord4n",
+      "ideality",
+    );
+    const bootstrapEnv = {
       HOME: home,
       IDEALITY_BASE_URL: `file://${artifacts}`,
       IDEALITY_COSIGN: cosign.bin,
       IDEALITY_REPO: UNREACHABLE_REPO,
-    });
+    };
+    const directNodeCommand = run(
+      ["node", path.join(packageRoot, "bin", "ideality"), "--version"],
+      bootstrapEnv,
+    );
+    expect(directNodeCommand.exitCode).toBe(0);
+    expect(directNodeCommand.stdout).toContain(`ideality ${PACKAGE_VERSION}`);
+
+    const command = run(
+      [path.join(prefix, "bin", "ideality"), "--version"],
+      bootstrapEnv,
+    );
     expect(command.exitCode).toBe(0);
     expect(command.stdout).toContain(`ideality ${PACKAGE_VERSION}`);
     expect(
-      (
-        await stat(
-          path.join(
-            prefix,
-            "lib",
-            "node_modules",
-            "@0xjord4n",
-            "ideality",
-            "vendor",
-            "ideality",
-          ),
-        )
-      ).isFile(),
+      (await stat(path.join(packageRoot, "vendor", "ideality"))).isFile(),
     ).toBe(true);
   }, 60_000);
 

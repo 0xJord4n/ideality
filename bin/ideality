@@ -1,22 +1,44 @@
 #!/bin/sh
-set -eu
+':' //; runtime="$(command -v node || command -v bun)" || { echo "ideality: Node.js or Bun is required to start the package launcher" >&2; exit 1; }; exec "$runtime" "$0" "$@"
+':' <<'__IDEALITY_JS__'
 
-launcher="$0"
-while [ -L "$launcher" ]; do
-  launcher_dir="$(CDPATH= cd -P "$(dirname "$launcher")" && pwd)"
-  link="$(readlink "$launcher")"
-  case "$link" in
-    /*) launcher="$link" ;;
-    *) launcher="$launcher_dir/$link" ;;
-  esac
-done
+import { spawn, spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 
-package_root="$(CDPATH= cd -P "$(dirname "$launcher")/.." && pwd)"
-binary="$package_root/vendor/ideality"
+const packageRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
+const binary = path.join(packageRoot, "vendor", "ideality");
 
-if [ ! -x "$binary" ]; then
-  IDEALITY_PACKAGE_FORCE_INSTALL=1 \
-    bash "$package_root/scripts/install-package.sh"
-fi
+if (!existsSync(binary)) {
+  const install = spawnSync(
+    "bash",
+    [path.join(packageRoot, "scripts", "install-package.sh")],
+    {
+      env: { ...process.env, IDEALITY_PACKAGE_FORCE_INSTALL: "1" },
+      stdio: "inherit",
+    },
+  );
+  if (install.error) {
+    console.error(`ideality: could not start package installer: ${install.error.message}`);
+    process.exit(1);
+  }
+  if (install.status !== 0) process.exit(install.status ?? 1);
+}
 
-exec "$binary" "$@"
+const child = spawn(binary, process.argv.slice(2), { stdio: "inherit" });
+child.on("error", (error) => {
+  console.error(`ideality: could not start native binary: ${error.message}`);
+  process.exit(1);
+});
+child.on("exit", (code, signal) => {
+  if (signal) process.kill(process.pid, signal);
+  else process.exit(code ?? 1);
+});
+
+for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"]) {
+  process.on(signal, () => child.kill(signal));
+}
+
+const __IDEALITY_JS__ = 0;
+__IDEALITY_JS__

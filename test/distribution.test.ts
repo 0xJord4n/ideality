@@ -30,8 +30,9 @@ describe("release distribution", () => {
       "utf8",
     );
     expect(launcher).toStartWith("#!/bin/sh\n");
-    expect(launcher).toContain("scripts/install-package.sh");
-    expect(launcher).toContain('exec "$binary" "$@"');
+    expect(launcher).toContain("command -v node || command -v bun");
+    expect(launcher).toContain('"install-package.sh"');
+    expect(launcher).toContain("spawn(binary, process.argv.slice(2)");
   });
 
   test("does not build or publish Homebrew packages", async () => {
