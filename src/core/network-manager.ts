@@ -500,16 +500,22 @@ async function lockOwnerIsDead(lock: string): Promise<boolean> {
     const owner = Number(
       (await Bun.file(path.join(lock, "owner")).text()).trim(),
     );
-    if (!Number.isInteger(owner) || owner <= 0) return true;
+    if (!Number.isInteger(owner) || owner <= 0) {
+      return lockIsStale(lock);
+    }
     process.kill(owner, 0);
     return false;
   } catch (error) {
     const code = (error as NodeJS.ErrnoException).code;
     if (code === "ESRCH") return true;
     if (code === "ENOENT") {
-      const info = await stat(lock).catch(() => null);
-      return Boolean(info && Date.now() - info.mtimeMs > 5000);
+      return lockIsStale(lock);
     }
     return false;
   }
+}
+
+async function lockIsStale(lock: string): Promise<boolean> {
+  const info = await stat(lock).catch(() => null);
+  return Boolean(info && Date.now() - info.mtimeMs > 5000);
 }

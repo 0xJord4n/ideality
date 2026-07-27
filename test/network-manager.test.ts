@@ -127,7 +127,9 @@ describe("network lifecycle", () => {
       idealityHome: temporary,
       runner,
     };
-    await Promise.all([activateNetwork(options), activateNetwork(options)]);
+    await Promise.all(
+      Array.from({ length: 8 }, () => activateNetwork(options)),
+    );
     expect(connections).toBe(1);
   });
 
