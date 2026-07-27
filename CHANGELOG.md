@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. Release Please updates this file
 from Conventional Commit messages when it prepares a release pull request.
 
+## [0.2.4](https://github.com/0xJord4n/ideality/compare/v0.2.3...v0.2.4) (2026-07-27)
+
+
+### Bug Fixes
+
+* preserve live network locks during initialization ([c4c58b8](https://github.com/0xJord4n/ideality/commit/c4c58b85aa0cb1b564a78bd9ad85c803a4941797))
+
 ## [0.2.3](https://github.com/0xJord4n/ideality/compare/v0.2.2...v0.2.3) (2026-07-27)
 
 
