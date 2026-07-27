@@ -96,12 +96,23 @@ describe("bin/ideality", () => {
     expect(signaledExit.status).toBeNull();
     expect(signaledExit.signal).toBe("SIGTERM");
 
+    const signalMarker = path.join(packageRoot, "signal-received");
     await writeFile(
       nativeBinary,
-      '#!/bin/sh\nprintf "%s\\n" "$$"\nexec sleep 30\n',
+      `#!/usr/bin/env node
+const fs = require("node:fs");
+process.once("SIGTERM", () => {
+  fs.writeFileSync(process.env.IDEALITY_SIGNAL_MARKER, "SIGTERM\\n");
+  process.removeAllListeners("SIGTERM");
+  process.kill(process.pid, "SIGTERM");
+});
+console.log(process.pid);
+setInterval(() => {}, 1_000);
+`,
       { mode: 0o755 },
     );
     const forwarded = nodeSpawn(process.execPath, [launcher], {
+      env: { ...process.env, IDEALITY_SIGNAL_MARKER: signalMarker },
       stdio: ["ignore", "pipe", "pipe"],
     });
     let nativePid: number | undefined;
@@ -133,7 +144,7 @@ describe("bin/ideality", () => {
       });
       expect(forwardedExit.code).toBeNull();
       expect(forwardedExit.signal).toBe("SIGTERM");
-      expect(() => process.kill(nativePid!, 0)).toThrow();
+      expect(await readFile(signalMarker, "utf8")).toBe("SIGTERM\n");
     } finally {
       if (forwarded.exitCode === null && forwarded.signalCode === null) {
         forwarded.kill("SIGKILL");
