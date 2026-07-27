@@ -16,6 +16,12 @@ const releaseWorkflow = path.join(
   "workflows",
   "release.yml",
 );
+const releasePleaseWorkflow = path.join(
+  repoRoot,
+  ".github",
+  "workflows",
+  "release-please.yml",
+);
 const securityWorkflow = path.join(
   repoRoot,
   ".github",
@@ -283,6 +289,18 @@ describe(".github/workflows/release.yml", () => {
     expect(workflow).toContain("cosign sign-blob --yes --bundle");
     expect(workflow).toContain(
       "dist/release/release-metadata.json.sigstore.json",
+    );
+  });
+
+  test("is dispatched explicitly after release-please creates a tag", async () => {
+    const release = await readFile(releaseWorkflow, "utf8");
+    const releasePlease = await readFile(releasePleaseWorkflow, "utf8");
+    expect(release).toContain("workflow_dispatch:");
+    expect(releasePlease).toContain("actions: write");
+    expect(releasePlease).toContain("id: release");
+    expect(releasePlease).toContain("steps.release.outputs.release_created");
+    expect(releasePlease).toContain(
+      'gh workflow run release.yml --ref "$RELEASE_TAG"',
     );
   });
 });
