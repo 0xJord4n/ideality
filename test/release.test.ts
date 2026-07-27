@@ -62,7 +62,7 @@ function run(cmd: string[], env: Record<string, string> = {}): RunResult {
  */
 async function makeStubRelease(
   binaryVersion: string = STUB_VERSION,
-  options: { delegateToSource?: boolean } = {},
+  options: { delegateToSource?: boolean; metadataVersion?: string } = {},
 ): Promise<string> {
   const dir = await mkdtemp(path.join(os.tmpdir(), "ideality-release-"));
   await writeFile(
@@ -98,7 +98,7 @@ async function makeStubRelease(
       {
         schemaVersion: 1,
         package: "ideality",
-        version: PACKAGE_VERSION,
+        version: options.metadataVersion ?? PACKAGE_VERSION,
         artifacts: {
           [hostTarget]: {
             filename: archive,
@@ -241,6 +241,63 @@ describe("scripts/install.sh", () => {
     expect((await stat(path.join(installDir, "ideality"))).isFile()).toBe(true);
   });
 
+  test("npm package exposes a lazy verified ideality executable", async () => {
+    const artifacts = await makeStubRelease(PACKAGE_VERSION);
+    const cosign = await makeFakeCosign();
+    const packDir = await mkdtemp(path.join(os.tmpdir(), "ideality-pack-"));
+    const prefix = await mkdtemp(path.join(os.tmpdir(), "ideality-prefix-"));
+    const home = await mkdtemp(path.join(os.tmpdir(), "ideality-home-"));
+    const packed = run([
+      "npm",
+      "pack",
+      "--ignore-scripts",
+      "--json",
+      "--pack-destination",
+      packDir,
+    ]);
+    expect(packed.exitCode).toBe(0);
+    const [{ filename }] = JSON.parse(packed.stdout) as Array<{
+      filename: string;
+    }>;
+    const installed = run(
+      [
+        "npm",
+        "install",
+        "--global",
+        "--ignore-scripts",
+        "--prefix",
+        prefix,
+        path.join(packDir, filename),
+      ],
+      { HOME: home },
+    );
+    expect(installed.exitCode).toBe(0);
+
+    const command = run([path.join(prefix, "bin", "ideality"), "--version"], {
+      HOME: home,
+      IDEALITY_BASE_URL: `file://${artifacts}`,
+      IDEALITY_COSIGN: cosign.bin,
+      IDEALITY_REPO: UNREACHABLE_REPO,
+    });
+    expect(command.exitCode).toBe(0);
+    expect(command.stdout).toContain(`ideality ${PACKAGE_VERSION}`);
+    expect(
+      (
+        await stat(
+          path.join(
+            prefix,
+            "lib",
+            "node_modules",
+            "@0xjord4n",
+            "ideality",
+            "vendor",
+            "ideality",
+          ),
+        )
+      ).isFile(),
+    ).toBe(true);
+  }, 60_000);
+
   test("fails closed when cosign cannot verify release metadata", async () => {
     const artifacts = await makeStubRelease();
     const home = await mkdtemp(path.join(os.tmpdir(), "ideality-home-"));
@@ -253,6 +310,27 @@ describe("scripts/install.sh", () => {
     });
     expect(result.exitCode).not.toBe(0);
     expect(result.stderr).toContain("cosign is required");
+  });
+
+  test("rejects signed metadata for a different requested version", async () => {
+    const artifacts = await makeStubRelease(PACKAGE_VERSION, {
+      metadataVersion: "9.9.9",
+    });
+    const cosign = await makeFakeCosign();
+    const home = await mkdtemp(path.join(os.tmpdir(), "ideality-home-"));
+    const result = run(["bash", installScript], {
+      HOME: home,
+      IDEALITY_BASE_URL: `file://${artifacts}`,
+      IDEALITY_COSIGN: cosign.bin,
+      IDEALITY_INSTALL_DIR: path.join(home, "bin"),
+      IDEALITY_REPO: UNREACHABLE_REPO,
+      IDEALITY_VERSION: PACKAGE_VERSION,
+    });
+
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr).toContain(
+      `release metadata version 9.9.9 does not match requested version ${PACKAGE_VERSION}`,
+    );
   });
 });
 
@@ -349,6 +427,17 @@ describe(".github/workflows/release.yml", () => {
     expect(releasePlease).toContain(
       'gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$RELEASE_TAG"',
     );
+  });
+
+  test("publishes the scoped CLI package through npm trusted publishing", async () => {
+    const workflow = await readFile(releaseWorkflow, "utf8");
+    expect(workflow).toContain("actions/setup-node@v6");
+    expect(workflow).toContain('node-version: "24"');
+    expect(workflow).toContain("registry-url: https://registry.npmjs.org");
+    expect(workflow).toContain("npm pack --dry-run");
+    expect(workflow).toContain('npm view "$package@$version" version');
+    expect(workflow).toContain("npm publish --access public");
+    expect(workflow).not.toContain("NODE_AUTH_TOKEN");
   });
 });
 

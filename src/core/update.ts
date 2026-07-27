@@ -23,6 +23,7 @@ import { createConfigSnapshot, getConfigPath } from "./config-store.js";
 const METADATA_FILE = "release-metadata.json";
 const METADATA_BUNDLE_FILE = `${METADATA_FILE}.sigstore.json`;
 const DEFAULT_REPOSITORY = "0xJord4n/ideality";
+const NPM_PACKAGE = "@0xjord4n/ideality";
 const SIGSTORE_CERTIFICATE_IDENTITY_REGEXP =
   "https://github.com/0xJord4n/ideality/\\.github/workflows/release\\.yml.*";
 const SIGSTORE_OIDC_ISSUER = "https://token.actions.githubusercontent.com";
@@ -590,23 +591,32 @@ async function detectManagedInstall(
     };
   }
   if (/\/\.bun\/install\/global\//.test(normalized)) {
-    return { manager: "Bun", command: "bun update -g ideality" };
+    return { manager: "Bun", command: `bun update -g ${NPM_PACKAGE}` };
   }
   if (
-    /\/pnpm\/global\/[^/]+\/node_modules\/ideality\//.test(normalized) ||
-    /\/node_modules\/\.pnpm\/ideality@[^/]+\/node_modules\/ideality\//.test(
+    /\/pnpm\/global\/[^/]+\/node_modules\/@0xjord4n\/ideality\//.test(
+      normalized,
+    ) ||
+    /\/node_modules\/\.pnpm\/@0xjord4n\+ideality@[^/]+\/node_modules\/@0xjord4n\/ideality\//.test(
       normalized,
     )
   ) {
-    return { manager: "pnpm", command: "pnpm update -g ideality" };
+    return { manager: "pnpm", command: `pnpm update -g ${NPM_PACKAGE}` };
   }
-  if (/\/\.config\/yarn\/global\/node_modules\/ideality\//.test(normalized)) {
-    return { manager: "Yarn", command: "yarn global upgrade ideality" };
+  if (
+    /\/\.config\/yarn\/global\/node_modules\/@0xjord4n\/ideality\//.test(
+      normalized,
+    )
+  ) {
+    return {
+      manager: "Yarn",
+      command: `yarn global upgrade ${NPM_PACKAGE}`,
+    };
   }
-  if (/\/node_modules\/ideality\//.test(normalized)) {
+  if (/\/node_modules\/@0xjord4n\/ideality\//.test(normalized)) {
     return {
       manager: "npm",
-      command: "npm update -g ideality",
+      command: `npm update -g ${NPM_PACKAGE}`,
     };
   }
   return null;

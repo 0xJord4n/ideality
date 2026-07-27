@@ -23,6 +23,13 @@ jobs:
         with:
           bun-version-file: .bun-version
 
+      - name: Setup Node for npm trusted publishing
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
       - name: Install dependencies (all target platforms)
         run: bun install --frozen-lockfile --os '*' --cpu '*'
 
@@ -43,6 +50,9 @@ jobs:
 
       - name: Rehearse release offline (metadata, checksums, archive layout, binary smoke, installer)
         run: bash scripts/release-rehearsal.sh --no-build
+
+      - name: Validate npm package contents
+        run: npm pack --dry-run
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
@@ -69,3 +79,13 @@ jobs:
             dist/release/*.sigstore.json
           generate_release_notes: true
           fail_on_unmatched_files: true
+
+      - name: Publish npm package with provenance
+        run: |
+          package="$(node -p 'require("./package.json").name')"
+          version="$(node -p 'require("./package.json").version')"
+          if npm view "$package@$version" version >/dev/null 2>&1; then
+            echo "$package@$version is already published; skipping"
+          else
+            npm publish --access public
+          fi

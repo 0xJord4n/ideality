@@ -3,9 +3,9 @@
 Release Please owns version bumps, changelog updates, tags, and GitHub release
 creation. After it creates a release, `.github/workflows/release-please.yml`
 explicitly dispatches `.github/workflows/release.yml` at that tag to build,
-sign, attest, and upload the artifacts. The version lives in `package.json`
-and flows into `bunli.config.ts` and the CLI (`src/version.ts`) through
-imports.
+sign, attest, upload the artifacts, and publish `@0xjord4n/ideality`. The
+version lives in `package.json` and flows into `bunli.config.ts` and the CLI
+(`src/version.ts`) through imports.
 
 ## Cutting a release
 
@@ -57,6 +57,39 @@ For each release the `release` job:
    for the archives.
 6. Publishes a GitHub release with all archives, checksums, and signature
    bundles, with generated release notes.
+7. Publishes the dependency-free `@0xjord4n/ideality` launcher to npm with
+   provenance through npm trusted publishing. The package installs the signed
+   native release matching its own version; its launcher repeats that verified
+   bootstrap on first use when a package manager disabled lifecycle scripts.
+
+## npm trusted publishing setup
+
+The npm account or organization must own the `@0xjord4n` scope. Configure a
+trusted publisher for the `@0xjord4n/ideality` package with:
+
+- GitHub organization or user: `0xJord4n`
+- Repository: `ideality`
+- Workflow filename: `release.yml`
+- Environment: leave empty
+- Allowed action: `npm publish`
+
+This is a one-time npm registry setting. The workflow uses GitHub OIDC and
+`npm publish --access public`; do not add an npm access token or
+`NODE_AUTH_TOKEN`. The GitHub release is created before npm publication so
+the package's verified native artifacts already exist when consumers install
+it. Recovery runs skip an npm version that is already published.
+
+npm exposes trusted-publisher settings only after a package exists. For the
+first release, let the workflow create the signed GitHub artifacts, publish
+that exact version once from an authenticated maintainer checkout, configure
+the trusted publisher immediately, then rerun the release workflow:
+
+```bash
+npm publish --access public
+gh workflow run release.yml --ref "v$(node -p 'require(\"./package.json\").version')"
+```
+
+All later releases publish only through OIDC in the workflow.
 
 ## Verifying a release
 
@@ -82,6 +115,7 @@ gh attestation verify ideality-linux-x64.tar.gz --repo 0xJord4n/ideality
 ```bash
 bun run release:rehearsal    # build the host archive, then prove checksums, archive
                              # layout, metadata verifier args, binary smoke, and installer offline
+npm pack --dry-run           # inspect the exact public package file set
 bun install --os '*' --cpu '*'   # once: native runtimes for every target platform
 bun run build:release        # build all four archives + SHA256SUMS.txt + release-metadata.json
 bash scripts/release-rehearsal.sh --no-build   # rehearse existing dist/release artifacts

@@ -1,0 +1,22 @@
+#!/bin/sh
+set -eu
+
+launcher="$0"
+while [ -L "$launcher" ]; do
+  launcher_dir="$(CDPATH= cd -P "$(dirname "$launcher")" && pwd)"
+  link="$(readlink "$launcher")"
+  case "$link" in
+    /*) launcher="$link" ;;
+    *) launcher="$launcher_dir/$link" ;;
+  esac
+done
+
+package_root="$(CDPATH= cd -P "$(dirname "$launcher")/.." && pwd)"
+binary="$package_root/vendor/ideality"
+
+if [ ! -x "$binary" ]; then
+  IDEALITY_PACKAGE_FORCE_INSTALL=1 \
+    bash "$package_root/scripts/install-package.sh"
+fi
+
+exec "$binary" "$@"

@@ -10,6 +10,25 @@ with only that identity's process environment.
 
 ## Install
 
+Install the scoped package globally; every manager exposes the command as
+`ideality`:
+
+```bash
+npm install --global @0xjord4n/ideality
+pnpm add --global @0xjord4n/ideality
+bun add --global @0xjord4n/ideality
+
+# Yarn Classic
+yarn global add @0xjord4n/ideality
+
+# Modern Yarn runs CLIs on demand instead of installing them globally
+yarn dlx @0xjord4n/ideality
+```
+
+The package downloads the matching signed native release. When lifecycle
+scripts are disabled, its launcher performs that verified bootstrap on first
+use.
+
 ```bash
 # Install script (verifies Sigstore bundle + checksums, installs to ~/.local/bin)
 curl -fsSL https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/install.sh | bash
@@ -98,9 +117,10 @@ ideality update
 ideality update --version 0.2.0   # when its metadata is available
 ```
 
-Package-manager installs are not overwritten. Remove a legacy managed
-installation first, then use the signed installer so only one `ideality`
-remains on `PATH`.
+Package-manager installs are not overwritten. Use the manager-specific update
+command printed by `ideality update`, such as
+`npm update --global @0xjord4n/ideality` or
+`bun update --global @0xjord4n/ideality`.
 
 ## Verify it works
 

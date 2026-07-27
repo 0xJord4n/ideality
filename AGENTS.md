@@ -56,7 +56,8 @@ Also run:
   registration, or performance-sensitive paths.
 - `bun run build:native && bash scripts/smoke.sh dist/ideality` when changing
   native builds, installers, releases, updates, or distribution behavior.
-- `bun run release:rehearsal` for release-contract changes.
+- `bun run release:rehearsal` and `npm pack --dry-run` for release-contract or
+  package-distribution changes.
 
 ## Change Discipline
 
@@ -121,7 +122,8 @@ Read `CONTRIBUTING.md` before changing either adapter system.
 - Release Please owns normal version bumps, changelog changes, tags, and GitHub
   releases. Do not bump or tag a normal release manually.
 - The artifact release must remain an explicit dispatch after Release Please
-  creates a matching tag; see `docs/releasing.md`.
+  creates a matching tag. It publishes the native GitHub artifacts before the
+  scoped npm launcher through trusted publishing; see `docs/releasing.md`.
 - Do not push, publish, release, or mutate external services unless the user
   explicitly authorizes it.
 - Report the checks run and any remaining uncommitted files at handoff.

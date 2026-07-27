@@ -38,6 +38,8 @@ bun run audit
   registration.
 - Run `bun run build:native && bash scripts/smoke.sh dist/ideality` for native
   distribution-path changes.
+- Run `bun run release:rehearsal` and `npm pack --dry-run` for release-contract
+  or package-distribution changes.
 - Use `bun run format` to apply formatting; `bun run check` only verifies it.
 
 ## Repository Rules
@@ -60,6 +62,8 @@ bun run audit
   behavior or public commands change.
 - Use Conventional Commit subjects. Release Please owns normal version bumps,
   tags, changelog updates, and GitHub releases; do not perform them manually.
+- Publish the scoped npm launcher only through the release workflow's npm
+  trusted publisher, after its matching native GitHub artifacts exist.
 
 ## References
 

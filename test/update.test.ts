@@ -257,20 +257,41 @@ describe("runUpdate", () => {
     await rm(path.join(release.dir, "release-metadata.json.sigstore.json"));
     const cases = [
       {
-        pathParts: [".bun", "install", "global", "node_modules", "ideality"],
-        command: "bun update -g ideality",
+        pathParts: [
+          ".bun",
+          "install",
+          "global",
+          "node_modules",
+          "@0xjord4n",
+          "ideality",
+        ],
+        command: "bun update -g @0xjord4n/ideality",
       },
       {
-        pathParts: ["lib", "node_modules", "ideality"],
-        command: "npm update -g ideality",
+        pathParts: ["lib", "node_modules", "@0xjord4n", "ideality"],
+        command: "npm update -g @0xjord4n/ideality",
       },
       {
-        pathParts: ["pnpm", "global", "5", "node_modules", "ideality"],
-        command: "pnpm update -g ideality",
+        pathParts: [
+          "pnpm",
+          "global",
+          "5",
+          "node_modules",
+          "@0xjord4n",
+          "ideality",
+        ],
+        command: "pnpm update -g @0xjord4n/ideality",
       },
       {
-        pathParts: [".config", "yarn", "global", "node_modules", "ideality"],
-        command: "yarn global upgrade ideality",
+        pathParts: [
+          ".config",
+          "yarn",
+          "global",
+          "node_modules",
+          "@0xjord4n",
+          "ideality",
+        ],
+        command: "yarn global upgrade @0xjord4n/ideality",
       },
     ];
     for (const entry of cases) {

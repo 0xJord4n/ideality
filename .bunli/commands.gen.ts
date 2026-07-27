@@ -23,6 +23,7 @@ import Rollback from '../src/commands/rollback.js'
 import Run from '../src/commands/run.js'
 import Secret from '../src/commands/secret.js'
 import Setup from '../src/commands/setup.js'
+import Skills from '../src/commands/skills.js'
 import Status from '../src/commands/status.js'
 import Tool from '../src/commands/tool.js'
 import Tui from '../src/commands/tui.js'
@@ -30,7 +31,7 @@ import Update from '../src/commands/update.js'
 import Vm from '../src/commands/vm.js'
 
 // Narrow list of command names to avoid typeof-cycles in types
-const names = ['audit', 'auth', 'completion', 'config', 'doctor', 'env', 'explain', 'hook', 'identity', 'init', 'install', 'network', 'plugin', 'policy', 'prompt', 'rollback', 'run', 'secret', 'setup', 'status', 'tool', 'tui', 'update', 'vm'] as const
+const names = ['audit', 'auth', 'completion', 'config', 'doctor', 'env', 'explain', 'hook', 'identity', 'init', 'install', 'network', 'plugin', 'policy', 'prompt', 'rollback', 'run', 'secret', 'setup', 'skills', 'status', 'tool', 'tui', 'update', 'vm'] as const
 type GeneratedNames = typeof names[number]
 
 const modules: Record<GeneratedNames, Command<any>> = {
@@ -53,6 +54,7 @@ const modules: Record<GeneratedNames, Command<any>> = {
   'run': Run,
   'secret': Secret,
   'setup': Setup,
+  'skills': Skills,
   'status': Status,
   'tool': Tool,
   'tui': Tui,
@@ -546,6 +548,29 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
         'allow-policy-violations': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Bypass .ideality/policy.jsonc violations for this setup invocation', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":6523,"end":6528,"loc":{"start":{"line":196,"column":58,"index":6523},"end":{"line":196,"column":63,"index":6528}},"value":false}}]}, validator: '(val) => true' }
       },
       path: './src/commands/setup'
+    },
+  'skills': {
+      name: 'skills',
+      description: 'Install Ideality agent skills with the Vercel Skills CLI',
+      commands: [
+        {
+          name: 'install',
+          description: 'Install the skills package into supported coding agents',
+          options: {
+            'runner': { type: 'z.enum.default', required: true, hasDefault: true, default: "auto", description: 'Package runner (auto prefers bunx, then npx)', enumValues: ["auto","bunx","npx"], schema: {"type":"zod","method":"default","args":[{"type":"literal","value":"auto"}]}, validator: '(val) => true' },
+            'skill': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Skill name; repeat or comma-separate (default: choose)', short: 's', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'agent': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Agent ID; repeat or comma-separate', short: 'a', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+            'global': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Install for the current user instead of this project', short: 'g', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1911,"end":1916,"loc":{"start":{"line":61,"column":43,"index":1911},"end":{"line":61,"column":48,"index":1916}},"value":false}}]}, validator: '(val) => true' },
+            'copy': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Copy skill files instead of creating symlinks', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":2107,"end":2112,"loc":{"start":{"line":66,"column":41,"index":2107},"end":{"line":66,"column":46,"index":2112}},"value":false}}]}, validator: '(val) => true' },
+            'list': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'List available Ideality skills without installing', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":2274,"end":2279,"loc":{"start":{"line":70,"column":41,"index":2274},"end":{"line":70,"column":46,"index":2279}},"value":false}}]}, validator: '(val) => true' },
+            'all': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Install every skill into every detected agent', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":2444,"end":2449,"loc":{"start":{"line":74,"column":40,"index":2444},"end":{"line":74,"column":45,"index":2449}},"value":false}}]}, validator: '(val) => true' },
+            'yes': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip Vercel Skills confirmation prompts', short: 'y', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":2610,"end":2615,"loc":{"start":{"line":78,"column":40,"index":2610},"end":{"line":78,"column":45,"index":2615}},"value":false}}]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Print the external command without executing it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":2798,"end":2803,"loc":{"start":{"line":83,"column":46,"index":2798},"end":{"line":83,"column":51,"index":2803}},"value":false}}]}, validator: '(val) => true' }
+          },
+          path: './src/commands/skills'
+        }
+      ],
+      path: './src/commands/skills'
     },
   'status': {
       name: 'status',

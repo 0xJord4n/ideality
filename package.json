@@ -1,11 +1,43 @@
 {
-  "name": "ideality",
+  "name": "@0xjord4n/ideality",
   "version": "0.1.0",
   "description": "Folder-based identity orchestration for developer tools",
   "license": "MIT",
   "author": "",
+  "homepage": "https://github.com/0xJord4n/ideality#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/0xJord4n/ideality.git"
+  },
+  "bugs": {
+    "url": "https://github.com/0xJord4n/ideality/issues"
+  },
+  "keywords": [
+    "cli",
+    "developer-tools",
+    "identity",
+    "profiles",
+    "secrets"
+  ],
   "bin": {
-    "ideality": "./src/index.ts"
+    "ideality": "bin/ideality"
+  },
+  "files": [
+    "bin/ideality",
+    "scripts/install-package.sh",
+    "scripts/install.sh"
+  ],
+  "os": [
+    "darwin",
+    "linux"
+  ],
+  "cpu": [
+    "arm64",
+    "x64"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
   },
   "type": "module",
   "packageManager": "bun@1.3.14",
@@ -30,26 +62,25 @@
     "check": "bun run format:check && bun run lint && bun run typecheck && bun run catalog:check && bun run privileged:check && bun test",
     "smoke": "bash scripts/smoke.sh",
     "release:rehearsal": "bash scripts/release-rehearsal.sh",
+    "postinstall": "bash scripts/install-package.sh",
     "version:patch": "bun pm version patch --no-git-tag-version",
     "version:minor": "bun pm version minor --no-git-tag-version",
     "version:major": "bun pm version major --no-git-tag-version"
   },
-  "dependencies": {
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.5",
     "@bunli/core": "0.9.1",
     "@bunli/utils": "0.6.0",
     "@opentui/core": "0.1.97",
     "@opentui/react": "0.1.97",
-    "jsonc-parser": "^3.3.1",
-    "react": "^19.2.8",
-    "zod": "^3.22.0"
-  },
-  "devDependencies": {
-    "@biomejs/biome": "^2.5.5",
     "@bunli/test": "0.6.0",
     "@tsconfig/bun": "1.0.10",
     "@types/bun": "1.3.14",
     "@types/react": "^19.2.17",
     "bunli": "0.9.1",
-    "typescript": "^5.9.3"
+    "jsonc-parser": "^3.3.1",
+    "react": "^19.2.8",
+    "typescript": "^5.9.3",
+    "zod": "^3.22.0"
   }
 }

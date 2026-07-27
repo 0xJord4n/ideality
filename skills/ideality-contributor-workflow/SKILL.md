@@ -83,7 +83,9 @@ Release Please dispatches `.github/workflows/release.yml` at the created tag.
 The workflow refuses a tag that doesn't match `package.json`, runs
 `bun run check`, builds four target archives, rehearses offline, signs with
 Sigstore cosign (keyless), attests build provenance, and publishes the GitHub
-release.
+release. It then uses npm trusted publishing to run
+`npm publish --access public` for `@0xjord4n/ideality`; never add a long-lived
+npm token to the workflow.
 
 Do not bump or tag a normal release manually. A recovery run is explicit and
 only valid after Release Please has created a matching tag:
@@ -96,6 +98,7 @@ Local dry runs:
 
 ```bash
 bun run release:rehearsal
+npm pack --dry-run
 bun install --os '*' --cpu '*'                  # once: all target runtimes
 bun run build:release
 bash scripts/release-rehearsal.sh --no-build

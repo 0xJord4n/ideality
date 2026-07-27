@@ -138,6 +138,20 @@ echo "==> Verifying release metadata signature"
     exit 1
   }
 
+metadata_version="$(
+  sed -n 's/^[[:space:]]*"version":[[:space:]]*"\([^"]*\)".*/\1/p' \
+    "$workdir/$metadata" |
+    head -n 1
+)"
+if [ -z "$metadata_version" ]; then
+  echo "ideality-install: verified release metadata has no version" >&2
+  exit 1
+fi
+if [ "$version" != "latest" ] && [ "$metadata_version" != "${version#v}" ]; then
+  echo "ideality-install: release metadata version $metadata_version does not match requested version ${version#v}" >&2
+  exit 1
+fi
+
 metadata_block="$(awk -v target="\"$target\"" '
   index($0, target) { found = 1 }
   found { print }

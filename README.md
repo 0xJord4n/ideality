@@ -83,6 +83,28 @@ applied explicitly with `ideality setup`.
 
 Prebuilt binaries support Linux and macOS on x64 and arm64.
 
+### Package Managers
+
+The registry package is scoped as `@0xjord4n/ideality`, but it installs the
+normal `ideality` command:
+
+```bash
+npm install --global @0xjord4n/ideality
+pnpm add --global @0xjord4n/ideality
+bun add --global @0xjord4n/ideality
+
+# Yarn Classic
+yarn global add @0xjord4n/ideality
+
+# Modern Yarn has no global install command; run it on demand
+yarn dlx @0xjord4n/ideality
+```
+
+The package installs the matching signed native release and verifies its
+authenticated metadata and checksum. If a package manager disables lifecycle
+scripts, the `ideality` launcher performs the same verified installation on
+first use.
+
 ### Install Script
 
 The installer authenticates the release metadata, verifies the selected
@@ -519,7 +541,14 @@ ideality config migrate --dry-run
 ## Updates
 
 Direct binary installs update in place. Package-manager installs are detected
-and never overwritten.
+and never overwritten. Update them through the manager that installed them:
+
+```bash
+npm update --global @0xjord4n/ideality
+pnpm update --global @0xjord4n/ideality
+bun update --global @0xjord4n/ideality
+yarn global upgrade @0xjord4n/ideality
+```
 
 ```bash
 ideality update --check
