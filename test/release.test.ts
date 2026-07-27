@@ -450,8 +450,12 @@ describe(".github/workflows/release.yml", () => {
     expect(workflow).toContain("overwrite_files: false");
     expect(workflow).toContain("Inspect existing GitHub release assets");
     expect(workflow).toContain(
-      "if: ${{ steps.release-assets.outputs.complete != 'true' }}",
+      "if: ${{ steps.release-assets.outputs.exists != 'true' }}",
     );
+    expect(workflow).toContain("Upload missing GitHub release assets");
+    expect(workflow).toContain('missing+=("$artifact")');
+    expect(workflow).toContain('gh release upload "$RELEASE_TAG"');
+    expect(workflow).toContain('echo "exists=$exists" >> "$GITHUB_OUTPUT"');
     expect(workflow).toContain('echo "complete=$complete" >> "$GITHUB_OUTPUT"');
   });
 
