@@ -299,8 +299,19 @@ describe(".github/workflows/release.yml", () => {
     expect(releasePlease).toContain("actions: write");
     expect(releasePlease).toContain("id: release");
     expect(releasePlease).toContain("steps.release.outputs.release_created");
+    expect(releasePlease).not.toContain("steps.release.outputs.prs_created");
+    for (const workflow of [
+      "ci.yml",
+      "quality.yml",
+      "catalog-check.yml",
+      "security.yml",
+    ]) {
+      expect(releasePlease).toContain(
+        `gh workflow run ${workflow} --repo "$GITHUB_REPOSITORY" --ref "$release_branch"`,
+      );
+    }
     expect(releasePlease).toContain(
-      'gh workflow run release.yml --ref "$RELEASE_TAG"',
+      'gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "$RELEASE_TAG"',
     );
   });
 });
