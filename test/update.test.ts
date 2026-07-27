@@ -223,13 +223,13 @@ describe("runUpdate", () => {
     expect(await readFile(install.executable, "utf8")).toBe(before);
   });
 
-  test("refuses Homebrew-managed executables with the native upgrade command", async () => {
+  test("refuses legacy Cellar executables and directs migration to the signed installer", async () => {
     const release = await makeRelease("0.2.0");
     await rm(path.join(release.dir, "release-metadata.json.sigstore.json"));
-    const dir = await tempDir("ideality-homebrew-");
+    const dir = await tempDir("ideality-managed-");
     const cellar = path.join(
       dir,
-      "Homebrew",
+      "prefix",
       "Cellar",
       "ideality",
       "0.1.0",
@@ -237,15 +237,19 @@ describe("runUpdate", () => {
     );
     const executable = path.join(cellar, "ideality");
     await writeBinary(executable, "0.1.0");
-    await expect(
-      runUpdate({
-        baseUrl: `file://${release.dir}`,
-        ...(await updateOptions()),
-        currentVersion: "0.1.0",
-        checkOnly: true,
-        executablePath: executable,
-      }),
-    ).rejects.toThrow("brew upgrade 0xJord4n/tap/ideality");
+    const update = runUpdate({
+      baseUrl: `file://${release.dir}`,
+      ...(await updateOptions()),
+      currentVersion: "0.1.0",
+      checkOnly: true,
+      executablePath: executable,
+    });
+    await expect(update).rejects.toThrow(
+      "first remove the legacy package-manager installation",
+    );
+    await expect(update).rejects.toThrow(
+      "https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/install.sh",
+    );
   });
 
   test("refuses Bun, npm, pnpm, and yarn managed installs with native upgrade commands", async () => {

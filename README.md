@@ -12,12 +12,6 @@ VPNs, VMs, and declarative custom plugins.
 
 ## Install
 
-### Homebrew (macOS and Linux)
-
-```bash
-brew install 0xJord4n/tap/ideality
-```
-
 ### Install script
 
 Downloads the signed release metadata, verifies its Sigstore bundle with
@@ -40,9 +34,9 @@ ideality update
 ```
 
 `ideality update --version <version>` installs a specific release when its
-metadata is available. Package-manager installs are not overwritten; for
-example, Homebrew installs are refused with the native
-`brew upgrade 0xJord4n/tap/ideality` command.
+metadata is available. Package-manager installs are not overwritten. Remove a
+legacy managed installation first, then use the signed installer so only one
+`ideality` remains on `PATH`.
 
 ### Prebuilt binaries
 

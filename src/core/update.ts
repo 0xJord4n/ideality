@@ -584,8 +584,9 @@ async function detectManagedInstall(
   const normalized = resolved.replaceAll("\\", "/");
   if (/\/Cellar\/ideality\//.test(normalized)) {
     return {
-      manager: "Homebrew",
-      command: "brew upgrade 0xJord4n/tap/ideality",
+      manager: "a legacy package manager",
+      command:
+        "first remove the legacy package-manager installation so only one ideality remains on PATH, then run: curl -fsSL https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/install.sh | bash",
     };
   }
   if (/\/\.bun\/install\/global\//.test(normalized)) {

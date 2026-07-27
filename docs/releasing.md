@@ -41,8 +41,8 @@ For each release the `release` job:
    smoke-tests the extracted Linux binary end to end (`scripts/smoke.sh`:
    init → status → run → setup → rollback in an isolated temporary HOME),
    installs from the artifacts with `scripts/install.sh` over `file://` using
-   a controlled fake cosign verifier for the metadata bundle, and renders the
-   Homebrew formula — all before anything is signed or published.
+   a controlled fake cosign verifier for the metadata bundle — all before
+   anything is signed or published.
 4. Signs every archive and the checksum manifest with
    [Sigstore cosign](https://docs.sigstore.dev/) keyless signing, producing
    `<artifact>.sigstore.json` bundles. `release-metadata.json` is signed too;
@@ -52,22 +52,6 @@ For each release the `release` job:
    for the archives.
 6. Publishes a GitHub release with all archives, checksums, and signature
    bundles, with generated release notes.
-
-The `homebrew` job then renders `Formula/ideality.rb` from the release
-checksums (`scripts/homebrew-formula.ts`) and pushes it to the Homebrew tap
-(`scripts/publish-homebrew.sh`).
-
-## Homebrew tap configuration
-
-Publishing to the tap requires:
-
-| Setting | Kind | Purpose |
-|---------|------|---------|
-| `HOMEBREW_TAP_TOKEN` | Actions secret | Token with push access to the tap repository. When absent the job logs a notice and skips publishing — the release itself still succeeds. |
-| `HOMEBREW_TAP_REPOSITORY` | Actions variable (optional) | Tap repository slug. Defaults to `<owner>/homebrew-tap`. |
-
-The tap repository must exist; the workflow creates or updates
-`Formula/ideality.rb` on its default branch.
 
 ## Verifying a release
 
@@ -92,16 +76,13 @@ gh attestation verify ideality-linux-x64.tar.gz --repo 0xJord4n/ideality
 
 ```bash
 bun run release:rehearsal    # build the host archive, then prove checksums, archive
-                             # layout, metadata verifier args, binary smoke, installer, and formula offline
+                             # layout, metadata verifier args, binary smoke, and installer offline
 bun install --os '*' --cpu '*'   # once: native runtimes for every target platform
 bun run build:release        # build all four archives + SHA256SUMS.txt + release-metadata.json
 bash scripts/release-rehearsal.sh --no-build   # rehearse existing dist/release artifacts
 bun run smoke                # smoke-test the dev entrypoint
 bun run build:native         # compile dist/ideality for this machine
 bash scripts/smoke.sh dist/ideality   # smoke-test the compiled binary
-bun scripts/homebrew-formula.ts \
-  --version 0.1.0 --repository 0xJord4n/ideality \
-  --checksums dist/release/SHA256SUMS.txt   # preview the formula
 ```
 
 Cross-compilation happens on the Linux CI runner — Bun downloads the target

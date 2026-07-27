@@ -9,7 +9,6 @@ import pkg from "../package.json";
 const repoRoot = path.resolve(import.meta.dir, "..");
 const installScript = path.join(repoRoot, "scripts", "install.sh");
 const rehearsalScript = path.join(repoRoot, "scripts", "release-rehearsal.sh");
-const formulaScript = path.join(repoRoot, "scripts", "homebrew-formula.ts");
 const releaseWorkflow = path.join(
   repoRoot,
   ".github",
@@ -321,66 +320,5 @@ describe(".github/workflows/security.yml", () => {
     const workflow = await readFile(securityWorkflow, "utf8");
     expect(workflow).toContain("bun run audit");
     expect(workflow).not.toContain("actions/dependency-review-action");
-  });
-});
-
-describe("scripts/homebrew-formula.ts", () => {
-  const sums: Record<string, string> = {
-    "darwin-arm64": "1".repeat(64),
-    "darwin-x64": "2".repeat(64),
-    "linux-arm64": "3".repeat(64),
-    "linux-x64": "4".repeat(64),
-  };
-
-  async function writeChecksums(
-    entries: Record<string, string>,
-  ): Promise<string> {
-    const dir = await mkdtemp(path.join(os.tmpdir(), "ideality-sums-"));
-    const file = path.join(dir, "SHA256SUMS.txt");
-    const lines = Object.entries(entries).map(
-      ([target, sum]) => `${sum}  ideality-${target}.tar.gz`,
-    );
-    await writeFile(file, `${lines.join("\n")}\n`);
-    return file;
-  }
-
-  test("renders a formula with the version, per-target URLs, and checksums", async () => {
-    const checksums = await writeChecksums(sums);
-    const result = run([
-      "bun",
-      formulaScript,
-      "--version",
-      "v1.2.3",
-      "--repository",
-      "acme/ideality",
-      "--checksums",
-      checksums,
-    ]);
-    expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain("class Ideality < Formula");
-    expect(result.stdout).toContain('version "1.2.3"');
-    for (const [target, sum] of Object.entries(sums)) {
-      expect(result.stdout).toContain(
-        `https://github.com/acme/ideality/releases/download/v1.2.3/ideality-${target}.tar.gz`,
-      );
-      expect(result.stdout).toContain(sum);
-    }
-  });
-
-  test("fails when a target's checksum is missing from the manifest", async () => {
-    const { "linux-x64": _omitted, ...partial } = sums;
-    const checksums = await writeChecksums(partial);
-    const result = run([
-      "bun",
-      formulaScript,
-      "--version",
-      "1.2.3",
-      "--repository",
-      "acme/ideality",
-      "--checksums",
-      checksums,
-    ]);
-    expect(result.exitCode).not.toBe(0);
-    expect(result.stderr).toContain("linux-x64");
   });
 });

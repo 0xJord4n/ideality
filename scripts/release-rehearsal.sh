@@ -11,9 +11,6 @@
 #   5. scripts/install.sh installs from these exact artifacts served over
 #      file:// (IDEALITY_BASE_URL) with a controlled fake metadata verifier,
 #      and the installed binary runs
-#   6. scripts/homebrew-formula.ts renders a well-formed formula from the
-#      manifest; targets that were not built are padded with placeholder
-#      checksums and the rendered file never leaves the rehearsal tmpdir
 #
 # Usage:
 #   scripts/release-rehearsal.sh                    # build host target, then verify
@@ -198,31 +195,6 @@ EOF
 diff -u "$expected_cosign_args" "$cosign_log" ||
   fail "offline metadata verifier arguments changed"
 echo "Verified offline metadata signature command"
-
-step "Rendering the Homebrew formula from the manifest"
-formula_sums="$rehearsal_tmp/SHA256SUMS.txt"
-cp "$manifest" "$formula_sums"
-placeholder="$(printf '0%.0s' $(seq 64))"
-padded=()
-for target in darwin-arm64 darwin-x64 linux-arm64 linux-x64; do
-  if ! grep -q "ideality-$target\.tar\.gz\$" "$formula_sums"; then
-    echo "$placeholder  ideality-$target.tar.gz" >> "$formula_sums"
-    padded+=("$target")
-  fi
-done
-if [ "${#padded[@]}" -gt 0 ]; then
-  echo "release-rehearsal: padded placeholder checksums for unbuilt targets: ${padded[*]}"
-fi
-formula="$rehearsal_tmp/ideality.rb"
-bun scripts/homebrew-formula.ts \
-  --version "$expected_version" \
-  --repository "${GITHUB_REPOSITORY:-0xJord4n/ideality}" \
-  --checksums "$formula_sums" \
-  --out "$formula"
-grep -q "class Ideality < Formula" "$formula" || fail "formula is missing the Ideality class"
-grep -q "version \"$expected_version\"" "$formula" || fail "formula does not pin version $expected_version"
-host_sum="$(grep -E " \*?$host_archive\$" "$manifest" | cut -d ' ' -f 1)"
-grep -q "$host_sum" "$formula" || fail "formula does not embed the real $host_target checksum"
 
 printf '\nrelease-rehearsal: OK (version %s, archives: %s)\n' \
   "$expected_version" "${archives[*]}"
