@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. Release Please updates this file
 from Conventional Commit messages when it prepares a release pull request.
 
+## [0.2.2](https://github.com/0xJord4n/ideality/compare/v0.2.1...v0.2.2) (2026-07-27)
+
+
+### Bug Fixes
+
+* make release recovery idempotent ([b2629e9](https://github.com/0xJord4n/ideality/commit/b2629e983dc8a423c7909a310b4d57c7cfa4631d))
+* restore partial release assets ([051c402](https://github.com/0xJord4n/ideality/commit/051c4028bccc3b592e7f635b7cb3e2d6a90fef50))
+* skip complete immutable releases ([274abc2](https://github.com/0xJord4n/ideality/commit/274abc231a73a0061b3478e9cd2bb9b607874b00))
+
 ## [0.2.1](https://github.com/0xJord4n/ideality/compare/v0.2.0...v0.2.1) (2026-07-27)
 
 
