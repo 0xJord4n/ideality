@@ -18,6 +18,7 @@ import os from "node:os";
 import path from "node:path";
 
 import pkg from "../package.json";
+import { parseNpmPackResult } from "../scripts/npm-pack-json.js";
 
 const repoRoot = path.resolve(import.meta.dir, "..");
 const installScript = path.join(repoRoot, "scripts", "install.sh");
@@ -42,6 +43,7 @@ const securityWorkflow = path.join(
 );
 const workflowsDirectory = path.join(repoRoot, ".github", "workflows");
 const dependabotConfig = path.join(repoRoot, ".github", "dependabot.yml");
+const releasingDocs = path.join(repoRoot, "docs", "releasing.md");
 
 const hostTarget = `${process.platform === "darwin" ? "darwin" : "linux"}-${
   process.arch === "arm64" ? "arm64" : "x64"
@@ -55,6 +57,37 @@ interface RunResult {
   stdout: string;
   stderr: string;
 }
+
+describe("npm pack JSON compatibility", () => {
+  const packageResult = {
+    name: "@0xjordan/ideality",
+    filename: "0xjordan-ideality-0.2.5.tgz",
+    files: [{ path: "bin/ideality" }],
+  };
+
+  test("accepts the npm 11 array response", () => {
+    expect(parseNpmPackResult(JSON.stringify([packageResult]))).toEqual(
+      packageResult,
+    );
+  });
+
+  test("accepts the npm 12 package-keyed object response", () => {
+    expect(
+      parseNpmPackResult(
+        JSON.stringify({ "@0xjordan/ideality": packageResult }),
+      ),
+    ).toEqual(packageResult);
+  });
+
+  test("fails closed on an empty or malformed response", () => {
+    expect(() => parseNpmPackResult("[]")).toThrow(
+      "npm pack returned no package",
+    );
+    expect(() => parseNpmPackResult(JSON.stringify({ notice: true }))).toThrow(
+      "npm pack returned no valid package",
+    );
+  });
+});
 
 function run(cmd: string[], env: Record<string, string> = {}): RunResult {
   const result = Bun.spawnSync({
@@ -360,9 +393,7 @@ describe("scripts/install.sh", () => {
       packDir,
     ]);
     expect(packed.exitCode).toBe(0);
-    const [{ filename }] = JSON.parse(packed.stdout) as Array<{
-      filename: string;
-    }>;
+    const { filename } = parseNpmPackResult(packed.stdout);
     const installed = run(
       [
         "npm",
@@ -540,27 +571,46 @@ describe(".github/workflows/release.yml", () => {
     );
   });
 
-  test("supports immutable-tag recovery and private repository releases", async () => {
+  test("verifies and checks out only a fully qualified release tag", async () => {
     const workflow = await readFile(releaseWorkflow, "utf8");
     expect(workflow).toContain("release_tag:");
-    expect(workflow).toContain("ref: ${{ inputs.release_tag || github.ref }}");
+    expect(workflow).toContain("id: release-ref");
+    expect(workflow).toContain('git check-ref-format "refs/tags/$release_tag"');
     expect(workflow).toContain(
-      "RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}",
+      'git fetch --force --no-tags origin "refs/tags/$release_tag:refs/tags/$release_tag"',
     );
     expect(workflow).toContain(
-      "tag_name: ${{ inputs.release_tag || github.ref_name }}",
+      'git show-ref --verify --quiet "refs/tags/$release_tag"',
     );
+    expect(workflow).toContain(
+      'tag_commit="$(git rev-parse "refs/tags/$release_tag^{commit}")"',
+    );
+    expect(workflow).toContain('git checkout --detach "$tag_commit"');
+    expect(workflow).toContain(
+      'if [ -z "$release_tag" ] && [ "$GITHUB_REF_TYPE" != "tag" ]; then',
+    );
+    expect(workflow).not.toContain("inputs.release_tag || github.ref");
+  });
+
+  test("replaces the complete expected asset set during partial recovery", async () => {
+    const workflow = await readFile(releaseWorkflow, "utf8");
     expect(workflow).toContain("if: ${{ !github.event.repository.private }}");
-    expect(workflow).toContain("overwrite_files: false");
     expect(workflow).toContain("Inspect existing GitHub release assets");
     expect(workflow).toContain(
       "if: ${{ steps.release-assets.outputs.exists != 'true' }}",
     );
-    expect(workflow).toContain("Upload missing GitHub release assets");
-    expect(workflow).toContain('missing+=("$artifact")');
-    expect(workflow).toContain('gh release upload "$RELEASE_TAG"');
-    expect(workflow).toContain('echo "exists=$exists" >> "$GITHUB_OUTPUT"');
-    expect(workflow).toContain('echo "complete=$complete" >> "$GITHUB_OUTPUT"');
+    expect(workflow).toContain("Replace partial GitHub release asset set");
+    expect(workflow).toContain(
+      'gh release delete-asset "$RELEASE_TAG" "$name"',
+    );
+    expect(workflow).toContain(
+      'gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${expected[@]}"',
+    );
+    expect(workflow).toContain(
+      "expected=(dist/release/ideality-*.tar.gz dist/release/SHA256SUMS.txt",
+    );
+    expect(workflow).not.toContain('missing+=("$artifact")');
+    expect(workflow).not.toContain("Upload missing GitHub release assets");
   });
 
   test("publishes the scoped CLI package through npm trusted publishing", async () => {
@@ -570,7 +620,8 @@ describe(".github/workflows/release.yml", () => {
     );
     expect(workflow).toContain('node-version: "24"');
     expect(workflow).toContain("registry-url: https://registry.npmjs.org");
-    expect(workflow).toContain("npm pack --dry-run");
+    expect(workflow).toContain("bun run package:check");
+    expect(workflow).toContain("npm install --global npm@12.0.2");
     expect(workflow).toContain('npm view "$package@$version" version');
     expect(workflow).toContain("npm publish --access public");
     expect(workflow).toContain(
@@ -580,6 +631,26 @@ describe(".github/workflows/release.yml", () => {
       "npm publish --access public --provenance=false",
     );
     expect(workflow).not.toContain("NODE_AUTH_TOKEN");
+  });
+});
+
+describe("deterministic npm tooling", () => {
+  test("pins npm wherever release tests or package publishing run", async () => {
+    for (const file of ["ci.yml", "quality.yml", "release.yml"]) {
+      const workflow = await readFile(
+        path.join(workflowsDirectory, file),
+        "utf8",
+      );
+      expect(workflow).toContain("npm install --global npm@12.0.2");
+    }
+  });
+
+  test("documents pinned tooling and fail-closed recovery", async () => {
+    const docs = await readFile(releasingDocs, "utf8");
+    expect(docs).toContain("npm 12.0.2");
+    expect(docs).toContain("fully qualified `refs/tags/<tag>`");
+    expect(docs).toContain("deletes the complete expected asset set");
+    expect(docs).toContain("metadata and its signature are uploaded last");
   });
 });
 

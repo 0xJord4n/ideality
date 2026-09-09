@@ -36,6 +36,8 @@ gh workflow run release.yml --ref main -f release_tag=v0.2.0
 
 The release workflow refuses to run if the tag does not match
 `package.json` — a mismatched tag fails fast before anything is published.
+Recovery accepts only a verified tag name. It fetches fully qualified `refs/tags/<tag>`
+references, resolves the commit, and checks out that commit detached before building.
 
 ## What the workflow publishes
 
@@ -66,9 +68,9 @@ For each release the `release` job:
    for the archives. GitHub does not provide this feature to user-owned
    private repositories; Sigstore signing remains mandatory in either case.
 6. Publishes a GitHub release with all archives, checksums, and signature
-   bundles, with generated release notes. Recovery reruns preserve existing
-   assets, upload only missing names, and skip release mutation entirely when
-   the expected set is complete.
+   bundles, with generated release notes. If recovery finds an incomplete
+   release, it deletes the complete expected asset set and uploads one newly
+   built set. Archives and checksums are uploaded first; release metadata and its signature are uploaded last. A complete existing set is left unchanged.
 7. Publishes the dependency-free `@0xjordan/ideality` launcher through npm
    trusted publishing. Public source repositories receive npm provenance
    automatically. npm does not support provenance for private GitHub source
@@ -140,6 +142,10 @@ gh attestation verify ideality-linux-x64.tar.gz --repo 0xJord4n/ideality
 ```
 
 ## Local dry runs
+
+CI and the publishing workflow pin npm 12.0.2. The package validation parser
+also accepts npm 11's array-shaped `npm pack --json` response and npm 12's
+package-keyed response.
 
 ```bash
 bun run release:rehearsal    # build the host archive, then prove checksums, archive
