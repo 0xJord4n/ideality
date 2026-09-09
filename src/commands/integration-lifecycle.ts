@@ -76,7 +76,7 @@ export async function enableIntegrations(
     path.join(idealityHome, "completions"),
     path.join(idealityHome, "shell"),
     path.join(idealityHome, "git"),
-    ...(!flags["no-shell"] ? [rcPath] : []),
+    ...(!flags["no-shell"] ? [rcPath, `${rcPath}.pre-ideality`] : []),
   ]);
   try {
     const shims = await installShims(config, idealityHome);

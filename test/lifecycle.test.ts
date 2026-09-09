@@ -305,6 +305,8 @@ describe("integration lifecycle commands", () => {
         tools: {},
       })}\n`,
     );
+    const rcSource = "export TOKEN=secret\n";
+    await Bun.write(rcPath, rcSource);
     await Bun.write(globalConfig, "[broken\n");
     const result = Bun.spawnSync({
       cmd: [process.execPath, "run", "src/index.ts", "enable", "--rc", rcPath],
@@ -321,7 +323,8 @@ describe("integration lifecycle commands", () => {
       stderr: "pipe",
     });
     expect(result.exitCode).not.toBe(0);
-    expect(await Bun.file(rcPath).exists()).toBe(false);
+    expect(await Bun.file(rcPath).text()).toBe(rcSource);
+    expect(await Bun.file(`${rcPath}.pre-ideality`).exists()).toBe(false);
     expect(
       await Bun.file(path.join(idealityHome, "shell", "ideality.zsh")).exists(),
     ).toBe(false);
@@ -364,8 +367,10 @@ describe("integration lifecycle commands", () => {
     const rcPath = path.join(home, ".zshrc");
     const globalConfig = path.join(home, ".gitconfig");
     const prior = "prior registry\n";
+    const rcSource = "export TOKEN=secret\n";
     await mkdir(idealityHome, { recursive: true });
     await Bun.write(configPath, prior);
+    await Bun.write(rcPath, rcSource);
     await Bun.write(globalConfig, "[broken\n");
     const result = Bun.spawnSync({
       cmd: [
@@ -398,6 +403,7 @@ describe("integration lifecycle commands", () => {
     });
     expect(result.exitCode).not.toBe(0);
     expect(await Bun.file(configPath).text()).toBe(prior);
-    expect(await Bun.file(rcPath).exists()).toBe(false);
+    expect(await Bun.file(rcPath).text()).toBe(rcSource);
+    expect(await Bun.file(`${rcPath}.pre-ideality`).exists()).toBe(false);
   });
 });

@@ -451,7 +451,9 @@ const initCommand = defineCommand({
           path.join(idealityHome, "completions"),
           path.join(idealityHome, "shell"),
           path.join(idealityHome, "git"),
-          ...(integrations.includes("shell") ? [defaultRc(shell, home)] : []),
+          ...(integrations.includes("shell")
+            ? [defaultRc(shell, home), `${defaultRc(shell, home)}.pre-ideality`]
+            : []),
         ]);
     let generatedKey: { privateKey: string; publicKey: string } | null = null;
     let spin: ReturnType<typeof spinner> | null = null;
