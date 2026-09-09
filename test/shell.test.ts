@@ -4,6 +4,7 @@ import {
   chown,
   lstat,
   mkdtemp,
+  realpath,
   stat,
   symlink,
   utimes,
@@ -100,7 +101,7 @@ describe("disableShellIntegration", () => {
 
     expect(await shellRcTransactionPaths(rcPath)).toEqual([
       `${rcPath}.pre-ideality`,
-      target,
+      await realpath(target),
     ]);
   });
 

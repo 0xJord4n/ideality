@@ -1,5 +1,5 @@
 import { describe, expect, spyOn, test } from "bun:test";
-import { mkdtemp } from "node:fs/promises";
+import { mkdtemp, realpath } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -44,7 +44,7 @@ describe("ideality init", () => {
     };
     expect(
       output.config.identities[output.config.defaultIdentity]?.roots,
-    ).toEqual([project]);
+    ).toEqual([await realpath(project)]);
   });
 
   test("keeps recommended setup short and asks for missing Git identity", async () => {
