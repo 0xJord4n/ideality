@@ -8,6 +8,15 @@ export interface RenderedGitConfig {
   identities: Record<string, string>;
 }
 
+export interface GitIntegrationOptions {
+  executable?: string;
+  environment?: Record<string, string | undefined>;
+}
+
+export function gitIntegrationPath(idealityHome: string): string {
+  return path.join(idealityHome, "git", "includes.gitconfig");
+}
+
 function gitValue(value: string): string {
   if (/[\r\n]/.test(value)) {
     throw new Error("Git identity values cannot contain newlines");
@@ -82,7 +91,7 @@ export async function installGitIntegration(
 ): Promise<string> {
   const rendered = renderGitIncludes(config, home, idealityHome);
   const directory = path.join(idealityHome, "git");
-  const includesPath = path.join(directory, "includes.gitconfig");
+  const includesPath = gitIntegrationPath(idealityHome);
   await mkdir(directory, { recursive: true, mode: 0o700 });
   await Bun.write(includesPath, rendered.includes);
   await chmod(includesPath, 0o600);
@@ -98,6 +107,11 @@ export async function installGitIntegration(
     stdout: "pipe",
     stderr: "pipe",
   });
+  if (inspect.exitCode !== 0 && inspect.exitCode !== 1) {
+    throw new Error(
+      `Failed to inspect global Git config: ${inspect.stderr.toString().trim()}`,
+    );
+  }
   const registered = inspect.stdout
     .toString()
     .split("\n")
@@ -117,4 +131,52 @@ export async function installGitIntegration(
   }
 
   return includesPath;
+}
+
+export async function disableGitIntegration(
+  idealityHome: string,
+  options: GitIntegrationOptions = {},
+): Promise<{ configPath: string; removed: boolean }> {
+  const configPath = gitIntegrationPath(idealityHome);
+  const executable = options.executable ?? "git";
+  const inspect = Bun.spawnSync({
+    cmd: [executable, "config", "--global", "--get-all", "include.path"],
+    env: options.environment,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (inspect.exitCode !== 0 && inspect.exitCode !== 1) {
+    throw new Error(
+      `Failed to inspect global Git config: ${inspect.stderr.toString().trim()}`,
+    );
+  }
+  const registeredValue = inspect.stdout
+    .toString()
+    .split("\n")
+    .map((entry) => entry.trim())
+    .find((entry) => path.resolve(entry) === path.resolve(configPath));
+  if (!registeredValue) {
+    return { configPath, removed: false };
+  }
+
+  const remove = Bun.spawnSync({
+    cmd: [
+      executable,
+      "config",
+      "--global",
+      "--fixed-value",
+      "--unset-all",
+      "include.path",
+      registeredValue,
+    ],
+    env: options.environment,
+    stdout: "pipe",
+    stderr: "pipe",
+  });
+  if (remove.exitCode !== 0) {
+    throw new Error(
+      `Failed to unregister Git config: ${remove.stderr.toString().trim()}`,
+    );
+  }
+  return { configPath, removed: true };
 }

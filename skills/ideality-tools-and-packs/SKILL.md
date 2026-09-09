@@ -23,8 +23,9 @@ ideality tool disable work stripe
 ideality install            # refresh shims after changing selections
 ```
 
-`ideality init` and `ideality identity add` first select packs with arrow keys
-and Space, then allow fine-grained tool selection.
+Recommended `ideality init` enables the Developer essentials pack. Choose
+Advanced setup to select packs with arrow keys and Space, then fine-tune the
+tools. `ideality identity add` always exposes the pack and tool selectors.
 
 ## Isolation grades
 

@@ -187,25 +187,25 @@ artifact contract.
 
 ## Quick Start
 
-Create the registry and your first identity:
+Enter the folder that should use an account, then initialize it:
 
 ```bash
+cd ~/code/work
 ideality init
 ```
 
-The interactive wizard:
+The current folder is selected automatically. The recommended setup asks for
+an identity name, uses your existing Git identity (or asks for it once) and
+SSH agent, enables the essential developer tools, and installs automatic shell
+and Git switching. Review the summary and you are ready.
 
-- discovers likely folder roots and existing SSH keys,
-- derives a stable ID from the identity label,
-- can generate an Ed25519 key,
-- lets you choose tool packs and individual tools,
-- offers preselected shell, completion, and conditional Git integrations.
+Choose **Advanced setup** only when you want to generate or discover an SSH
+key, choose tool packs individually, or customize shell and Git integrations.
 
-Open a new shell, enter a configured folder, and inspect the result:
+Open a new shell and inspect the result:
 
 ```bash
 exec "$SHELL" -l
-cd ~/code/work
 
 ideality status
 ideality explain gh
@@ -234,6 +234,27 @@ ideality init --non-interactive \
   --install \
   --shell zsh
 ```
+
+### Pause or disable Ideality
+
+Disable automatic shell dispatch and Git identity routing without deleting
+identities, credentials, plugins, or other state:
+
+```bash
+ideality disable --dry-run
+ideality disable
+```
+
+The current terminal has already loaded its shell hook, so open a new terminal
+after disabling. Restore the integrations at any time with:
+
+```bash
+ideality enable
+```
+
+Both commands accept `--shell zsh|bash|fish`, `--rc <path>`, `--no-shell`, and
+`--no-git`. `ideality install` remains an equivalent way to enable and
+regenerate all integrations.
 
 ## Project Setup
 
@@ -283,7 +304,8 @@ See [team policy contracts](docs/policy.md) for the schema and CI patterns.
 
 ## Supported Tools
 
-`ideality init` and `ideality identity add` offer packs first, followed by
+Recommended `ideality init` enables Developer essentials automatically.
+Advanced setup and `ideality identity add` offer packs first, followed by
 fine-grained tool selection. Only enabled tools receive identity profiles and
 managed shims.
 
@@ -410,10 +432,10 @@ ideality tui
 
 The dashboard stages identity, folder, tool, network, VM, plugin, and secret
 backend changes in memory. It previews a readable diff and writes only after an
-explicit save through transactional history. Press `g` for plugin manifest
-administration and `k` for secret-backend administration. Plugin installation
-or removal requires a clean staged draft; destructive actions require explicit
-confirmation.
+explicit save through transactional history. Press `?` on any screen for the
+full keymap, `g` for plugin manifest administration, and `k` for secret-backend
+administration. Plugin installation or removal requires a clean staged draft;
+destructive actions require explicit confirmation.
 
 ## Custom Adapters
 
@@ -519,6 +541,7 @@ Managed state defaults to `~/.ideality`:
 ├── history/        # transactional registry snapshots
 ├── plugins/        # installed declarative manifests
 ├── profiles/       # identity-specific tool state
+├── runtime/        # active network and VM runtime state
 ├── secrets/        # local secret backend storage
 ├── shell/          # generated shell integration
 └── ssh/            # generated SSH keys
@@ -574,7 +597,7 @@ first, then use the signed installer so only one `ideality` remains on `PATH`.
 
 | Area | Commands |
 |:--|:--|
-| **Start** | `init`, `setup`, `install`, `tui` |
+| **Start** | `init`, `setup`, `install`, `enable`, `disable`, `tui` |
 | **Inspect** | `status`, `explain`, `env`, `doctor`, `prompt` |
 | **Execute** | `run`, `auth` |
 | **Identities** | `identity list|show|add|remove|bind|unbind|default|ssh-public` |

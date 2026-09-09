@@ -1,10 +1,112 @@
-import { chmod, copyFile, mkdir } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import {
+  chmod,
+  chown,
+  copyFile,
+  lstat,
+  mkdir,
+  realpath,
+  rename,
+  rm,
+  stat,
+  utimes,
+} from "node:fs/promises";
 import path from "node:path";
 import type { IdealityConfig } from "../domain/config.js";
 
 export type SupportedShell = "bash" | "zsh" | "fish";
 
 const VARIABLE_NAME = /^[A-Za-z_][A-Za-z0-9_]*$/;
+const MANAGED_BLOCK_BEGIN = "# >>> ideality >>>";
+const MANAGED_BLOCK_END = "# <<< ideality <<<";
+
+interface ManagedBlockLocation {
+  start: number;
+  end: number;
+}
+
+function managedBlockLocation(content: string): ManagedBlockLocation | null {
+  const marker = /^(# >>> ideality >>>|# <<< ideality <<<)\r?$/gm;
+  const matches = [...content.matchAll(marker)];
+  const begins = matches.filter((match) => match[1] === MANAGED_BLOCK_BEGIN);
+  const ends = matches.filter((match) => match[1] === MANAGED_BLOCK_END);
+  if (begins.length === 0 && ends.length === 0) return null;
+  if (begins.length !== 1 || ends.length !== 1) {
+    throw new Error(
+      "Ambiguous Ideality managed block markers; repair the shell rc file manually",
+    );
+  }
+  const begin = begins[0]!;
+  const end = ends[0]!;
+  if (begin.index >= end.index) {
+    throw new Error(
+      "Invalid Ideality managed block markers; repair the shell rc file manually",
+    );
+  }
+  return { start: begin.index, end: end.index + end[0].length };
+}
+
+export async function resolveShellRcWritePath(rcPath: string): Promise<string> {
+  let writePath = rcPath;
+  try {
+    if ((await lstat(rcPath)).isSymbolicLink()) {
+      writePath = await realpath(rcPath);
+    }
+  } catch (error) {
+    if (
+      !(error instanceof Error && "code" in error && error.code === "ENOENT")
+    ) {
+      throw error;
+    }
+  }
+  return writePath;
+}
+
+async function shellRcMetadata(writePath: string, rcPath: string) {
+  const rcFile = Bun.file(writePath);
+  const metadata = (await rcFile.exists()) ? await stat(writePath) : null;
+  const effectiveUser = process.geteuid?.();
+  if (
+    metadata &&
+    effectiveUser !== undefined &&
+    metadata.uid !== effectiveUser
+  ) {
+    throw new Error(`Refusing to replace '${rcPath}': owned by another user`);
+  }
+  return metadata;
+}
+
+export async function shellRcTransactionPaths(
+  rcPath: string,
+): Promise<string[]> {
+  const writePath = await resolveShellRcWritePath(rcPath);
+  await shellRcMetadata(writePath, rcPath);
+  return [
+    ...new Set([
+      ...(writePath === rcPath ? [rcPath] : []),
+      `${rcPath}.pre-ideality`,
+      writePath,
+    ]),
+  ];
+}
+
+async function writeShellRc(rcPath: string, content: string): Promise<void> {
+  const writePath = await resolveShellRcWritePath(rcPath);
+  const metadata = await shellRcMetadata(writePath, rcPath);
+  const mode = metadata ? metadata.mode & 0o777 : 0o600;
+  const temporary = `${writePath}.${process.pid}.${randomUUID()}.tmp`;
+  try {
+    await Bun.write(temporary, content);
+    await chmod(temporary, mode);
+    if (metadata) {
+      await chown(temporary, metadata.uid, metadata.gid);
+      await utimes(temporary, metadata.atime, metadata.mtime);
+    }
+    await rename(temporary, writePath);
+  } finally {
+    await rm(temporary, { force: true });
+  }
+}
 
 function assertVariableName(name: string): void {
   if (!VARIABLE_NAME.test(name)) {
@@ -128,24 +230,21 @@ export async function installShellIntegration(
   const directory = path.join(idealityHome, "shell");
   const extension = shell === "fish" ? "fish" : shell;
   const hookPath = path.join(directory, `ideality.${extension}`);
+  const rcFile = Bun.file(rcPath);
+  const existing = (await rcFile.exists()) ? await rcFile.text() : "";
+  const managed = managedBlockLocation(existing);
+
   await mkdir(directory, { recursive: true, mode: 0o700 });
   await Bun.write(hookPath, renderShellHook(config, shell, idealityHome));
   await chmod(hookPath, 0o600);
 
-  const rcFile = Bun.file(rcPath);
-  const existing = (await rcFile.exists()) ? await rcFile.text() : "";
-  const begin = "# >>> ideality >>>";
-  const end = "# <<< ideality <<<";
   const source =
     shell === "fish"
       ? `source ${fishQuote(hookPath)}`
       : `source ${singleQuote(hookPath)}`;
-  const block = `${begin}\n${source}\n${end}`;
-  const matcher = new RegExp(
-    `${begin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}[\\s\\S]*?${end.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}`,
-  );
-  const next = matcher.test(existing)
-    ? existing.replace(matcher, block)
+  const block = `${MANAGED_BLOCK_BEGIN}\n${source}\n${MANAGED_BLOCK_END}`;
+  const next = managed
+    ? `${existing.slice(0, managed.start)}${block}${existing.slice(managed.end)}`
     : `${existing.trimEnd()}${existing ? "\n\n" : ""}${block}\n`;
 
   let backupPath: string | null = null;
@@ -157,6 +256,27 @@ export async function installShellIntegration(
   } else {
     await mkdir(path.dirname(rcPath), { recursive: true });
   }
-  await Bun.write(rcPath, next);
+  await writeShellRc(rcPath, next);
   return { hookPath, rcPath, backupPath };
+}
+
+export async function disableShellIntegration(
+  rcPath: string,
+): Promise<{ rcPath: string; removed: boolean }> {
+  const rcFile = Bun.file(rcPath);
+  if (!(await rcFile.exists())) {
+    return { rcPath, removed: false };
+  }
+
+  const existing = await rcFile.text();
+  const managed = managedBlockLocation(existing);
+  if (!managed) {
+    return { rcPath, removed: false };
+  }
+
+  await writeShellRc(
+    rcPath,
+    `${existing.slice(0, managed.start)}${existing.slice(managed.end)}`,
+  );
+  return { rcPath, removed: true };
 }

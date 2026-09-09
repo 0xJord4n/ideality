@@ -68,6 +68,7 @@ export interface TuiState {
   rootCursor: number;
   bindingFolder: boolean;
   confirmingQuit: boolean;
+  showingHelp: boolean;
   status: TuiStatus | null;
   rollback: {
     loaded: boolean;
@@ -147,6 +148,7 @@ export type TuiAction =
   | { type: "submit-admin-input"; value: string }
   | { type: "request-quit" }
   | { type: "cancel-quit" }
+  | { type: "toggle-help" }
   | { type: "status"; status: TuiStatus };
 
 /** Build the initial TUI state around the last saved config. */
@@ -166,6 +168,7 @@ export function createTuiState(
     rootCursor: 0,
     bindingFolder: false,
     confirmingQuit: false,
+    showingHelp: false,
     status: null,
     rollback: { loaded: false, snapshots: [], cursor: 0, preview: null },
     auth: { phase: "idle", results: [] },
@@ -630,6 +633,8 @@ export function tuiReducer(state: TuiState, action: TuiAction): TuiState {
       const max = (next.draft.identities[id]?.roots.length ?? 1) - 1;
       return { ...next, rootCursor: clamp(next.rootCursor, max) };
     }
+    case "toggle-help":
+      return { ...state, showingHelp: !state.showingHelp, status: null };
     case "discard-draft":
       return {
         ...state,

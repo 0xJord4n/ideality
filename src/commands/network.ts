@@ -257,7 +257,8 @@ const networkCommand = defineGroup({
         if (interactive) {
           prompt.intro("IDEALITY  /  NETWORK");
           label = await prompt.text("Profile label", {
-            default: label,
+            default: flags.label ?? "",
+            placeholder: "Private network",
             validate: (value) => value.length > 0 || "Label is required",
           });
           driver = await prompt.select<NetworkDriver>("VPN provider", {

@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing immutable tag to rebuild from a corrected workflow
+        description: Existing immutable tag name to rebuild from a corrected workflow
         required: false
         type: string
 
@@ -20,10 +20,42 @@ jobs:
       id-token: write
       attestations: write
     steps:
-      - name: Checkout
+      - name: Checkout workflow revision
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ inputs.release_tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Verify and check out release tag
+        id: release-ref
+        env:
+          INPUT_RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          release_tag="$INPUT_RELEASE_TAG"
+          if [ -z "$release_tag" ] && [ "$GITHUB_REF_TYPE" != "tag" ]; then
+            echo "Dispatch this workflow from a tag or provide release_tag" >&2
+            exit 1
+          fi
+          if [ -z "$release_tag" ]; then
+            release_tag="$GITHUB_REF_NAME"
+          fi
+          if [[ "$release_tag" == refs/* ]] ||
+             ! git check-ref-format "refs/tags/$release_tag" >/dev/null; then
+            echo "Invalid release tag name: $release_tag" >&2
+            exit 1
+          fi
+          git fetch --force --no-tags origin "refs/tags/$release_tag:refs/tags/$release_tag"
+          if ! git show-ref --verify --quiet "refs/tags/$release_tag"; then
+            echo "Tag refs/tags/$release_tag does not exist" >&2
+            exit 1
+          fi
+          tag_commit="$(git rev-parse "refs/tags/$release_tag^{commit}")"
+          git checkout --detach "$tag_commit"
+          if [ "$(git rev-parse HEAD)" != "$tag_commit" ]; then
+            echo "Failed to check out verified tag commit $tag_commit" >&2
+            exit 1
+          fi
+          echo "tag=$release_tag" >> "$GITHUB_OUTPUT"
+          echo "commit=$tag_commit" >> "$GITHUB_OUTPUT"
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -37,12 +69,15 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
+      - name: Pin npm
+        run: npm install --global npm@11.6.2
+
       - name: Install dependencies (all target platforms)
         run: bun install --frozen-lockfile --os '*' --cpu '*'
 
       - name: Verify tag matches package.json version
         env:
-          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+          RELEASE_TAG: ${{ steps.release-ref.outputs.tag }}
         run: |
           tag_version="${RELEASE_TAG#v}"
           package_version="$(grep -m1 '"version":' package.json | cut -d '"' -f 4)"
@@ -61,7 +96,12 @@ jobs:
         run: bash scripts/release-rehearsal.sh --no-build
 
       - name: Validate npm package contents
-        run: npm pack --dry-run
+        run: |
+          if node -e "process.exit(require('./package.json').scripts?.['package:check'] ? 0 : 1)"; then
+            bun run package:check
+          else
+            npm pack --ignore-scripts --dry-run
+          fi
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
@@ -82,7 +122,7 @@ jobs:
         id: release-assets
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+          RELEASE_TAG: ${{ steps.release-ref.outputs.tag }}
         run: |
           exists=true
           complete=true
@@ -104,11 +144,11 @@ jobs:
           echo "exists=$exists" >> "$GITHUB_OUTPUT"
           echo "complete=$complete" >> "$GITHUB_OUTPUT"
 
-      - name: Upload missing GitHub release assets
+      - name: Replace partial GitHub release asset set
         if: ${{ steps.release-assets.outputs.exists == 'true' && steps.release-assets.outputs.complete != 'true' }}
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
+          RELEASE_TAG: ${{ steps.release-ref.outputs.tag }}
         run: |
           existing="$(
             gh release view "$RELEASE_TAG" \
@@ -116,28 +156,42 @@ jobs:
               --json assets \
               --jq '.assets[].name'
           )"
-          missing=()
-          for artifact in dist/release/ideality-*.tar.gz dist/release/SHA256SUMS.txt dist/release/release-metadata.json dist/release/*.sigstore.json; do
+          expected=(dist/release/ideality-*.tar.gz dist/release/SHA256SUMS.txt dist/release/SHA256SUMS.txt.sigstore.json dist/release/ideality-*.tar.gz.sigstore.json dist/release/release-metadata.json dist/release/release-metadata.json.sigstore.json)
+          delete_order=(dist/release/release-metadata.json.sigstore.json dist/release/release-metadata.json dist/release/SHA256SUMS.txt.sigstore.json dist/release/SHA256SUMS.txt dist/release/ideality-*.tar.gz.sigstore.json dist/release/ideality-*.tar.gz)
+          for artifact in "${delete_order[@]}"; do
             name="${artifact##*/}"
-            if ! grep -Fqx -- "$name" <<<"$existing"; then
-              missing+=("$artifact")
+            if grep -Fqx -- "$name" <<<"$existing"; then
+              gh release delete-asset "$RELEASE_TAG" "$name" \
+                --repo "$GITHUB_REPOSITORY" --yes
             fi
           done
-          gh release upload "$RELEASE_TAG" \
-            --repo "$GITHUB_REPOSITORY" \
-            "${missing[@]}"
+          gh release upload "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" "${expected[@]}"
+          uploaded="$(
+            gh release view "$RELEASE_TAG" \
+              --repo "$GITHUB_REPOSITORY" \
+              --json assets \
+              --jq '.assets[].name'
+          )"
+          for artifact in "${expected[@]}"; do
+            name="${artifact##*/}"
+            if ! grep -Fqx -- "$name" <<<"$uploaded"; then
+              echo "Release asset replacement incomplete: $name is missing" >&2
+              exit 1
+            fi
+          done
 
       - name: Create GitHub release
         if: ${{ steps.release-assets.outputs.exists != 'true' }}
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
-          tag_name: ${{ inputs.release_tag || github.ref_name }}
+          tag_name: ${{ steps.release-ref.outputs.tag }}
           files: |
             dist/release/ideality-*.tar.gz
+            dist/release/ideality-*.tar.gz.sigstore.json
             dist/release/SHA256SUMS.txt
+            dist/release/SHA256SUMS.txt.sigstore.json
             dist/release/release-metadata.json
             dist/release/release-metadata.json.sigstore.json
-            dist/release/*.sigstore.json
           generate_release_notes: true
           fail_on_unmatched_files: true
           overwrite_files: false

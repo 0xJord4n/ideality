@@ -8,7 +8,9 @@ import Audit from '../src/commands/audit.js'
 import Auth from '../src/commands/auth.js'
 import Completion from '../src/commands/completion.js'
 import Config from '../src/commands/config.js'
+import Disable from '../src/commands/disable.js'
 import Doctor from '../src/commands/doctor.js'
+import Enable from '../src/commands/enable.js'
 import Env from '../src/commands/env.js'
 import Explain from '../src/commands/explain.js'
 import Hook from '../src/commands/hook.js'
@@ -31,7 +33,7 @@ import Update from '../src/commands/update.js'
 import Vm from '../src/commands/vm.js'
 
 // Narrow list of command names to avoid typeof-cycles in types
-const names = ['audit', 'auth', 'completion', 'config', 'doctor', 'env', 'explain', 'hook', 'identity', 'init', 'install', 'network', 'plugin', 'policy', 'prompt', 'rollback', 'run', 'secret', 'setup', 'skills', 'status', 'tool', 'tui', 'update', 'vm'] as const
+const names = ['audit', 'auth', 'completion', 'config', 'disable', 'doctor', 'enable', 'env', 'explain', 'hook', 'identity', 'init', 'install', 'network', 'plugin', 'policy', 'prompt', 'rollback', 'run', 'secret', 'setup', 'skills', 'status', 'tool', 'tui', 'update', 'vm'] as const
 type GeneratedNames = typeof names[number]
 
 const modules: Record<GeneratedNames, Command<any>> = {
@@ -39,7 +41,9 @@ const modules: Record<GeneratedNames, Command<any>> = {
   'auth': Auth,
   'completion': Completion,
   'config': Config,
+  'disable': Disable,
   'doctor': Doctor,
+  'enable': Enable,
   'env': Env,
   'explain': Explain,
   'hook': Hook,
@@ -177,14 +181,38 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
       ],
       path: './src/commands/config'
     },
+  'disable': {
+      name: 'disable',
+      description: 'Disable shell shims and Git routing without deleting config',
+      options: {
+        'shell': { type: 'z.enum.default', required: true, hasDefault: true, default: undefined, description: 'Shell integration to disable', enumValues: ["zsh","bash","fish"], schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"detectedShell","args":[]}]}, validator: '(val) => true' },
+        'rc': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override shell rc file', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+        'no-shell': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Keep shell integration enabled', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":964,"end":969,"loc":{"start":{"line":32,"column":43,"index":964},"end":{"line":32,"column":48,"index":969}},"value":false}}]}, validator: '(val) => true' },
+        'no-git': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Keep Git includeIf integration enabled', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1104,"end":1109,"loc":{"start":{"line":36,"column":41,"index":1104},"end":{"line":36,"column":46,"index":1109}},"value":false}}]}, validator: '(val) => true' },
+        'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show integrations that would be disabled', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1253,"end":1258,"loc":{"start":{"line":40,"column":42,"index":1253},"end":{"line":40,"column":47,"index":1258}},"value":false}}]}, validator: '(val) => true' }
+      },
+      path: './src/commands/disable'
+    },
   'doctor': {
       name: 'doctor',
       description: 'Audit identity configuration and local tooling',
       options: {
-        'json': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Emit JSON', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":437,"end":442,"loc":{"start":{"line":14,"column":37,"index":437},"end":{"line":14,"column":42,"index":442}},"value":false}}]}, validator: '(val) => true' },
-        'strict': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Treat warnings as failures', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":554,"end":559,"loc":{"start":{"line":18,"column":39,"index":554},"end":{"line":18,"column":44,"index":559}},"value":false}}]}, validator: '(val) => true' }
+        'json': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Emit JSON', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":515,"end":520,"loc":{"start":{"line":15,"column":37,"index":515},"end":{"line":15,"column":42,"index":520}},"value":false}}]}, validator: '(val) => true' },
+        'strict': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Treat warnings as failures', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":632,"end":637,"loc":{"start":{"line":19,"column":39,"index":632},"end":{"line":19,"column":44,"index":637}},"value":false}}]}, validator: '(val) => true' }
       },
       path: './src/commands/doctor'
+    },
+  'enable': {
+      name: 'enable',
+      description: 'Enable shell shims and Git identity routing',
+      options: {
+        'shell': { type: 'z.enum.default', required: true, hasDefault: true, default: undefined, description: 'Shell integration to enable', enumValues: ["zsh","bash","fish"], schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"detectedShell","args":[]}]}, validator: '(val) => true' },
+        'rc': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override shell rc file', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
+        'no-shell': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip shell integration', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":563,"end":568,"loc":{"start":{"line":16,"column":43,"index":563},"end":{"line":16,"column":48,"index":568}},"value":false}}]}, validator: '(val) => true' },
+        'no-git': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip Git includeIf integration', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":695,"end":700,"loc":{"start":{"line":20,"column":41,"index":695},"end":{"line":20,"column":46,"index":700}},"value":false}}]}, validator: '(val) => true' },
+        'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show integrations that would be enabled', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":836,"end":841,"loc":{"start":{"line":24,"column":42,"index":836},"end":{"line":24,"column":47,"index":841}},"value":false}}]}, validator: '(val) => true' }
+      },
+      path: './src/commands/enable'
     },
   'env': {
       name: 'env',
@@ -203,7 +231,7 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
       options: {
         'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
         'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-        'json': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Emit JSON', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":694,"end":699,"loc":{"start":{"line":20,"column":37,"index":694},"end":{"line":20,"column":42,"index":699}},"value":false}}]}, validator: '(val) => true' }
+        'json': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Emit JSON', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":762,"end":767,"loc":{"start":{"line":21,"column":37,"index":762},"end":{"line":21,"column":42,"index":767}},"value":false}}]}, validator: '(val) => true' }
       },
       path: './src/commands/explain'
     },
@@ -243,12 +271,12 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
             'git-name': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Git author name', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
             'git-email': { type: 'z.string.email.optional', required: false, hasDefault: false, description: 'Git author email', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
             'ssh-key': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Existing SSH private key', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-            'generate-ssh': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Generate a new Ed25519 key', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4911,"end":4916,"loc":{"start":{"line":153,"column":51,"index":4911},"end":{"line":153,"column":56,"index":4916}},"value":false}}]}, validator: '(val) => true' },
+            'generate-ssh': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Generate a new Ed25519 key', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4920,"end":4925,"loc":{"start":{"line":148,"column":51,"index":4920},"end":{"line":148,"column":56,"index":4925}},"value":false}}]}, validator: '(val) => true' },
             'packs': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Comma-separated built-in tool packs', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
             'tools': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Comma-separated tools enabled for the identity', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-            'interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Force the identity wizard', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5319,"end":5324,"loc":{"start":{"line":163,"column":48,"index":5319},"end":{"line":163,"column":53,"index":5324}},"value":false}}]}, validator: '(val) => true' },
-            'non-interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Never prompt; derive the ID from the label', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5479,"end":5484,"loc":{"start":{"line":167,"column":54,"index":5479},"end":{"line":167,"column":59,"index":5484}},"value":false}}]}, validator: '(val) => true' },
-            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the identity without changing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5648,"end":5653,"loc":{"start":{"line":171,"column":46,"index":5648},"end":{"line":171,"column":51,"index":5653}},"value":false}}]}, validator: '(val) => true' }
+            'interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Force the identity wizard', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5328,"end":5333,"loc":{"start":{"line":158,"column":48,"index":5328},"end":{"line":158,"column":53,"index":5333}},"value":false}}]}, validator: '(val) => true' },
+            'non-interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Never prompt; derive the ID from the label', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5488,"end":5493,"loc":{"start":{"line":162,"column":54,"index":5488},"end":{"line":162,"column":59,"index":5493}},"value":false}}]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the identity without changing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5657,"end":5662,"loc":{"start":{"line":166,"column":46,"index":5657},"end":{"line":166,"column":51,"index":5662}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/identity'
         },
@@ -256,8 +284,8 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
           name: 'remove',
           description: 'Remove an identity without deleting its files',
           options: {
-            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip confirmation', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":16180,"end":16185,"loc":{"start":{"line":476,"column":42,"index":16180},"end":{"line":476,"column":47,"index":16185}},"value":false}}]}, validator: '(val) => true' },
-            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the change without saving it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":16346,"end":16351,"loc":{"start":{"line":481,"column":46,"index":16346},"end":{"line":481,"column":51,"index":16351}},"value":false}}]}, validator: '(val) => true' }
+            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip confirmation', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":16261,"end":16266,"loc":{"start":{"line":472,"column":42,"index":16261},"end":{"line":472,"column":47,"index":16266}},"value":false}}]}, validator: '(val) => true' },
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the change without saving it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":16427,"end":16432,"loc":{"start":{"line":477,"column":46,"index":16427},"end":{"line":477,"column":51,"index":16432}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/identity'
         },
@@ -265,7 +293,7 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
           name: 'bind',
           description: 'Bind an additional directory root',
           options: {
-            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the change without saving it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":17622,"end":17627,"loc":{"start":{"line":519,"column":46,"index":17622},"end":{"line":519,"column":51,"index":17627}},"value":false}}]}, validator: '(val) => true' }
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the change without saving it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":17703,"end":17708,"loc":{"start":{"line":515,"column":46,"index":17703},"end":{"line":515,"column":51,"index":17708}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/identity'
         },
@@ -273,7 +301,7 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
           name: 'unbind',
           description: 'Remove a directory binding',
           options: {
-            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the change without saving it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":18579,"end":18584,"loc":{"start":{"line":545,"column":46,"index":18579},"end":{"line":545,"column":51,"index":18584}},"value":false}}]}, validator: '(val) => true' }
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the change without saving it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":18660,"end":18665,"loc":{"start":{"line":541,"column":46,"index":18660},"end":{"line":541,"column":51,"index":18665}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/identity'
         },
@@ -281,7 +309,7 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
           name: 'default',
           description: 'Set the fallback identity',
           options: {
-            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the change without saving it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":19647,"end":19652,"loc":{"start":{"line":572,"column":46,"index":19647},"end":{"line":572,"column":51,"index":19652}},"value":false}}]}, validator: '(val) => true' }
+            'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the change without saving it', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":19728,"end":19733,"loc":{"start":{"line":568,"column":46,"index":19728},"end":{"line":568,"column":51,"index":19733}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/identity'
         }
@@ -290,25 +318,25 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
     },
   'init': {
       name: 'init',
-      description: 'Create the identity registry',
+      description: 'Set up your first folder-based identity',
       options: {
         'id': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override the automatic identity ID', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
         'label': { type: 'z.string.default', required: true, hasDefault: true, default: "Default", description: 'Display label', schema: {"type":"zod","method":"default","args":[{"type":"literal","value":"Default"}]}, validator: '(val) => true' },
-        'root': { type: 'z.string.default', required: true, hasDefault: true, default: "~/code", description: 'Directory root owned by this identity', fileType: 'directory', schema: {"type":"zod","method":"default","args":[{"type":"literal","value":"~/code"}]}, validator: '(val) => true' },
+        'root': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Directory root (defaults to the current directory)', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
         'git-name': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Git author name (defaults to global Git config)', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
         'git-email': { type: 'z.string.email.optional', required: false, hasDefault: false, description: 'Git author email (defaults to global Git config)', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
         'ssh-key': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Existing SSH private key', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-        'generate-ssh': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Generate an Ed25519 SSH key', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3102,"end":3107,"loc":{"start":{"line":102,"column":47,"index":3102},"end":{"line":102,"column":52,"index":3107}},"value":false}}]}, validator: '(val) => true' },
+        'generate-ssh': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Generate an Ed25519 SSH key', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":2842,"end":2847,"loc":{"start":{"line":90,"column":47,"index":2842},"end":{"line":90,"column":52,"index":2847}},"value":false}}]}, validator: '(val) => true' },
         'packs': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Comma-separated built-in tool packs', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
         'tools': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Comma-separated tools enabled for the identity', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-        'install': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Install shell and Git integrations', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3467,"end":3472,"loc":{"start":{"line":112,"column":40,"index":3467},"end":{"line":112,"column":45,"index":3472}},"value":false}}]}, validator: '(val) => true' },
+        'install': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Install shell and Git integrations', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3207,"end":3212,"loc":{"start":{"line":100,"column":40,"index":3207},"end":{"line":100,"column":45,"index":3212}},"value":false}}]}, validator: '(val) => true' },
         'shell': { type: 'z.enum.default', required: true, hasDefault: true, default: undefined, description: 'Shell integration', enumValues: ["zsh","bash","fish"], schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"detectedShell","args":[]}]}, validator: '(val) => true' },
-        'no-shell': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip shell integration', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3739,"end":3744,"loc":{"start":{"line":119,"column":43,"index":3739},"end":{"line":119,"column":48,"index":3744}},"value":false}}]}, validator: '(val) => true' },
-        'no-git': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip Git integration', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3871,"end":3876,"loc":{"start":{"line":123,"column":41,"index":3871},"end":{"line":123,"column":46,"index":3876}},"value":false}}]}, validator: '(val) => true' },
-        'interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Force the setup wizard', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4004,"end":4009,"loc":{"start":{"line":127,"column":44,"index":4004},"end":{"line":127,"column":49,"index":4009}},"value":false}}]}, validator: '(val) => true' },
-        'non-interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Never prompt; use flags and defaults', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4145,"end":4150,"loc":{"start":{"line":131,"column":50,"index":4145},"end":{"line":131,"column":55,"index":4150}},"value":false}}]}, validator: '(val) => true' },
-        'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Overwrite an existing registry', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4288,"end":4293,"loc":{"start":{"line":135,"column":38,"index":4288},"end":{"line":135,"column":43,"index":4293}},"value":false}}]}, validator: '(val) => true' },
-        'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the registry and integrations without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4447,"end":4452,"loc":{"start":{"line":140,"column":42,"index":4447},"end":{"line":140,"column":47,"index":4452}},"value":false}}]}, validator: '(val) => true' }
+        'no-shell': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip shell integration', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3479,"end":3484,"loc":{"start":{"line":107,"column":43,"index":3479},"end":{"line":107,"column":48,"index":3484}},"value":false}}]}, validator: '(val) => true' },
+        'no-git': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip Git integration', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3611,"end":3616,"loc":{"start":{"line":111,"column":41,"index":3611},"end":{"line":111,"column":46,"index":3616}},"value":false}}]}, validator: '(val) => true' },
+        'interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Force the setup wizard', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3744,"end":3749,"loc":{"start":{"line":115,"column":44,"index":3744},"end":{"line":115,"column":49,"index":3749}},"value":false}}]}, validator: '(val) => true' },
+        'non-interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Never prompt; use flags and defaults', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3885,"end":3890,"loc":{"start":{"line":119,"column":50,"index":3885},"end":{"line":119,"column":55,"index":3890}},"value":false}}]}, validator: '(val) => true' },
+        'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Overwrite an existing registry', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4028,"end":4033,"loc":{"start":{"line":123,"column":38,"index":4028},"end":{"line":123,"column":43,"index":4033}},"value":false}}]}, validator: '(val) => true' },
+        'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the registry and integrations without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4187,"end":4192,"loc":{"start":{"line":128,"column":42,"index":4187},"end":{"line":128,"column":47,"index":4192}},"value":false}}]}, validator: '(val) => true' }
       },
       path: './src/commands/init'
     },
@@ -316,11 +344,11 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
       name: 'install',
       description: 'Install shell and Git integrations',
       options: {
-        'shell': { type: 'z.enum.default', required: true, hasDefault: true, default: "zsh", description: 'Shell integration to install', enumValues: ["zsh","bash","fish"], schema: {"type":"zod","method":"default","args":[{"type":"literal","value":"zsh"}]}, validator: '(val) => true' },
+        'shell': { type: 'z.enum.default', required: true, hasDefault: true, default: undefined, description: 'Shell integration to install', enumValues: ["zsh","bash","fish"], schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"detectedShell","args":[]}]}, validator: '(val) => true' },
         'rc': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override shell rc file', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-        'no-shell': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip shell integration', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1128,"end":1133,"loc":{"start":{"line":36,"column":43,"index":1128},"end":{"line":36,"column":48,"index":1133}},"value":false}}]}, validator: '(val) => true' },
-        'no-git': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip Git includeIf integration', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1260,"end":1265,"loc":{"start":{"line":40,"column":41,"index":1260},"end":{"line":40,"column":46,"index":1265}},"value":false}}]}, validator: '(val) => true' },
-        'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show installation targets without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":1401,"end":1406,"loc":{"start":{"line":44,"column":42,"index":1401},"end":{"line":44,"column":47,"index":1406}},"value":false}}]}, validator: '(val) => true' }
+        'no-shell': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip shell integration', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":557,"end":562,"loc":{"start":{"line":16,"column":43,"index":557},"end":{"line":16,"column":48,"index":562}},"value":false}}]}, validator: '(val) => true' },
+        'no-git': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Skip Git includeIf integration', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":689,"end":694,"loc":{"start":{"line":20,"column":41,"index":689},"end":{"line":20,"column":46,"index":694}},"value":false}}]}, validator: '(val) => true' },
+        'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show installation targets without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":830,"end":835,"loc":{"start":{"line":24,"column":42,"index":830},"end":{"line":24,"column":47,"index":835}},"value":false}}]}, validator: '(val) => true' }
       },
       path: './src/commands/install'
     },
@@ -386,7 +414,7 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
             'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
             'allow-unverified': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Explicitly permit a tunnel without verified leak prevention', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3062,"end":3067,"loc":{"start":{"line":98,"column":49,"index":3062},"end":{"line":98,"column":54,"index":3067}},"value":false}}]}, validator: '(val) => true' },
             'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Print commands without executing them', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3224,"end":3229,"loc":{"start":{"line":102,"column":40,"index":3224},"end":{"line":102,"column":45,"index":3229}},"value":false}}]}, validator: '(val) => true' },
-            'replace': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Disconnect the active profile before switching', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":26114,"end":26119,"loc":{"start":{"line":725,"column":44,"index":26114},"end":{"line":725,"column":49,"index":26119}},"value":false}}]}, validator: '(val) => true' }
+            'replace': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Disconnect the active profile before switching', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":26170,"end":26175,"loc":{"start":{"line":726,"column":44,"index":26170},"end":{"line":726,"column":49,"index":26175}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/network'
         },
@@ -398,7 +426,7 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
             'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
             'allow-unverified': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Explicitly permit a tunnel without verified leak prevention', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3062,"end":3067,"loc":{"start":{"line":98,"column":49,"index":3062},"end":{"line":98,"column":54,"index":3067}},"value":false}}]}, validator: '(val) => true' },
             'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Print commands without executing them', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":3224,"end":3229,"loc":{"start":{"line":102,"column":40,"index":3224},"end":{"line":102,"column":45,"index":3229}},"value":false}}]}, validator: '(val) => true' },
-            'release': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Also disable provider lockdown', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":27291,"end":27296,"loc":{"start":{"line":762,"column":44,"index":27291},"end":{"line":762,"column":49,"index":27296}},"value":false}}]}, validator: '(val) => true' }
+            'release': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Also disable provider lockdown', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":27347,"end":27352,"loc":{"start":{"line":763,"column":44,"index":27347},"end":{"line":763,"column":49,"index":27352}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/network'
         },
@@ -417,7 +445,7 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
           name: 'remove',
           description: 'Remove an unused network profile',
           options: {
-            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Confirm removal', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":29370,"end":29375,"loc":{"start":{"line":826,"column":42,"index":29370},"end":{"line":826,"column":47,"index":29375}},"value":false}}]}, validator: '(val) => true' }
+            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Confirm removal', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":29426,"end":29431,"loc":{"start":{"line":827,"column":42,"index":29426},"end":{"line":827,"column":47,"index":29431}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/network'
         }
@@ -536,16 +564,16 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
         'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Project directory', short: 'C', fileType: 'directory', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
         'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Local identity to activate', short: 'i', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
         'tools': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Comma-separated tools for non-interactive setup', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-        'project': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Write a complete .ideality/project.jsonc handover bundle', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5129,"end":5134,"loc":{"start":{"line":161,"column":40,"index":5129},"end":{"line":161,"column":45,"index":5134}},"value":false}}]}, validator: '(val) => true' },
-        'local-only': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Keep configuration only under the user ideality home', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5299,"end":5304,"loc":{"start":{"line":165,"column":45,"index":5299},"end":{"line":165,"column":50,"index":5304}},"value":false}}]}, validator: '(val) => true' },
-        'advanced': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show SSH, handover, and integration controls', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5461,"end":5466,"loc":{"start":{"line":169,"column":41,"index":5461},"end":{"line":169,"column":46,"index":5466}},"value":false}}]}, validator: '(val) => true' },
-        'requirements-only': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Share tool requirements without full identity profiles', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5626,"end":5631,"loc":{"start":{"line":173,"column":52,"index":5626},"end":{"line":173,"column":57,"index":5631}},"value":false}}]}, validator: '(val) => true' },
+        'project': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Write a complete .ideality/project.jsonc handover bundle', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4593,"end":4598,"loc":{"start":{"line":141,"column":40,"index":4593},"end":{"line":141,"column":45,"index":4598}},"value":false}}]}, validator: '(val) => true' },
+        'local-only': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Keep configuration only under the user ideality home', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4763,"end":4768,"loc":{"start":{"line":145,"column":45,"index":4763},"end":{"line":145,"column":50,"index":4768}},"value":false}}]}, validator: '(val) => true' },
+        'advanced': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show SSH, handover, and integration controls', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":4925,"end":4930,"loc":{"start":{"line":149,"column":41,"index":4925},"end":{"line":149,"column":46,"index":4930}},"value":false}}]}, validator: '(val) => true' },
+        'requirements-only': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Share tool requirements without full identity profiles', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5090,"end":5095,"loc":{"start":{"line":153,"column":52,"index":5090},"end":{"line":153,"column":57,"index":5095}},"value":false}}]}, validator: '(val) => true' },
         'vm': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Run selected tools in this VM profile', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
         'network': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Require this host-enforced network profile', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-        'non-interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Never prompt; require identity and tool flags as needed', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":6025,"end":6030,"loc":{"start":{"line":183,"column":50,"index":6025},"end":{"line":183,"column":55,"index":6030}},"value":false}}]}, validator: '(val) => true' },
-        'yes': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Apply without the final confirmation', short: 'y', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":6185,"end":6190,"loc":{"start":{"line":187,"column":36,"index":6185},"end":{"line":187,"column":41,"index":6190}},"value":false}}]}, validator: '(val) => true' },
-        'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the complete change without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":6350,"end":6355,"loc":{"start":{"line":192,"column":42,"index":6350},"end":{"line":192,"column":47,"index":6355}},"value":false}}]}, validator: '(val) => true' },
-        'allow-policy-violations': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Bypass .ideality/policy.jsonc violations for this setup invocation', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":6523,"end":6528,"loc":{"start":{"line":196,"column":58,"index":6523},"end":{"line":196,"column":63,"index":6528}},"value":false}}]}, validator: '(val) => true' }
+        'non-interactive': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Never prompt; require identity and tool flags as needed', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5489,"end":5494,"loc":{"start":{"line":163,"column":50,"index":5489},"end":{"line":163,"column":55,"index":5494}},"value":false}}]}, validator: '(val) => true' },
+        'yes': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Apply without the final confirmation', short: 'y', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5649,"end":5654,"loc":{"start":{"line":167,"column":36,"index":5649},"end":{"line":167,"column":41,"index":5654}},"value":false}}]}, validator: '(val) => true' },
+        'dry-run': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Show the complete change without writing files', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5814,"end":5819,"loc":{"start":{"line":172,"column":42,"index":5814},"end":{"line":172,"column":47,"index":5819}},"value":false}}]}, validator: '(val) => true' },
+        'allow-policy-violations': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Bypass .ideality/policy.jsonc violations for this setup invocation', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":5987,"end":5992,"loc":{"start":{"line":176,"column":58,"index":5987},"end":{"line":176,"column":63,"index":5992}},"value":false}}]}, validator: '(val) => true' }
       },
       path: './src/commands/setup'
     },
@@ -579,7 +607,7 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
       options: {
         'path': { type: 'z.string.default', required: true, hasDefault: true, default: undefined, description: 'Path used for identity resolution', short: 'C', schema: {"type":"zod","method":"default","args":[{"type":"zod","method":"cwd","args":[]}]}, validator: '(val) => true' },
         'identity': { type: 'z.string.optional', required: false, hasDefault: false, description: 'Override folder-based selection', short: 'i', fileType: 'directory', schema: {"type":"zod","method":"optional","args":[]}, validator: '(val) => true' },
-        'json': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Emit JSON', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":841,"end":846,"loc":{"start":{"line":23,"column":37,"index":841},"end":{"line":23,"column":42,"index":846}},"value":false}}]}, validator: '(val) => true' }
+        'json': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Emit JSON', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":918,"end":923,"loc":{"start":{"line":24,"column":37,"index":918},"end":{"line":24,"column":42,"index":923}},"value":false}}]}, validator: '(val) => true' }
       },
       path: './src/commands/status'
     },
@@ -760,7 +788,7 @@ const metadata: Record<GeneratedNames, GeneratedCommandMeta> = {
           name: 'remove',
           description: 'Remove an unused VM profile without deleting backend disks',
           options: {
-            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Confirm removal', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":25305,"end":25310,"loc":{"start":{"line":732,"column":42,"index":25305},"end":{"line":732,"column":47,"index":25310}},"value":false}}]}, validator: '(val) => true' }
+            'force': { type: 'z.boolean.default', required: true, hasDefault: true, default: false, description: 'Confirm removal', short: 'f', schema: {"type":"zod","method":"default","args":[{"type":"unknown","raw":{"type":"BooleanLiteral","start":25364,"end":25369,"loc":{"start":{"line":733,"column":42,"index":25364},"end":{"line":733,"column":47,"index":25369}},"value":false}}]}, validator: '(val) => true' }
           },
           path: './src/commands/vm'
         }

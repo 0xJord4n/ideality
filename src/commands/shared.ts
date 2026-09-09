@@ -1,4 +1,5 @@
 import type { GitIdentity } from "../domain/config.js";
+import { z } from "zod";
 
 export function requirePositional(
   positional: string[],
@@ -45,13 +46,49 @@ export function discoverGitIdentity(
   name?: string,
   email?: string,
 ): GitIdentity {
+  const configured = discoverConfiguredGitIdentity(name, email);
   const user = process.env.USER || "developer";
   return {
-    name: name || gitConfig("user.name") || "Example Developer",
-    email: email || gitConfig("user.email") || `${user}@example.invalid`,
+    name: configured.name ?? "Example Developer",
+    email: configured.email ?? `${user}@example.invalid`,
+  };
+}
+
+export function discoverConfiguredGitIdentity(
+  name?: string,
+  email?: string,
+): { name?: string; email?: string } {
+  const configuredName = (name || gitConfig("user.name") || "").trim();
+  const configuredEmail = (email || gitConfig("user.email") || "").trim();
+  return {
+    name: configuredName || undefined,
+    email: z.string().email().safeParse(configuredEmail).success
+      ? configuredEmail
+      : undefined,
   };
 }
 
 export function printJson(value: unknown): void {
   console.log(JSON.stringify(value, null, 2));
+}
+
+/** Await a wizard prompt, then yield once so OpenTUI can settle its views. */
+export async function wizardStep<T>(pending: Promise<T>): Promise<T> {
+  const value = await pending;
+  await Bun.sleep(0);
+  return value;
+}
+
+/** Parse a comma-separated flag value into unique trimmed entries. */
+export function parseList(value: string | undefined): string[] {
+  return value
+    ? [
+        ...new Set(
+          value
+            .split(",")
+            .map((item) => item.trim())
+            .filter(Boolean),
+        ),
+      ]
+    : [];
 }

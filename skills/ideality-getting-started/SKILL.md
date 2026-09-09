@@ -51,9 +51,19 @@ ideality init
 
 ## First identity: `ideality init`
 
-Interactive mode is automatic in a terminal. The wizard fuzzy-searches folders
-and SSH private keys, derives the identity ID from the display label, and can
-generate an Ed25519 key. `--id` is only an explicit override.
+Run the command from the folder that should use the identity:
+
+```bash
+cd ~/code/work
+ideality init
+```
+
+Interactive mode is automatic in a terminal, and the current directory is the
+default folder. Recommended setup uses the detected Git identity (or asks for
+it once), the default SSH agent, essential developer tools, and automatic
+shell and Git switching. Choose Advanced setup to generate or discover an SSH
+key, choose tool packs individually, or customize integrations. `--id` remains
+an explicit override.
 
 Non-interactive provisioning:
 
@@ -83,6 +93,27 @@ Use `ideality run bun -- <args>` when registry isolation is required.
 
 Preview before applying: `ideality install --dry-run`.
 
+## Disable or re-enable automatic dispatch
+
+Detach Ideality from future shell sessions and Git without deleting anything
+under `~/.ideality`:
+
+```bash
+ideality disable --dry-run
+ideality disable
+```
+
+Open a new terminal after disabling because a process cannot rewrite its
+parent shell. Restore shell shims, completions, and Git routing with:
+
+```bash
+ideality enable
+```
+
+Use `--no-shell` or `--no-git` to keep that integration active. Both commands
+also accept `--shell zsh|bash|fish` and `--rc <path>` for a non-default shell
+configuration file.
+
 ## Shell integration
 
 ```bash
@@ -97,7 +128,7 @@ All managed state lives under `~/.ideality`:
 
 ```text
 audit/  bin/  completions/  config.jsonc  git/  history/  plugins/
-profiles/  secrets/  shell/  ssh/
+profiles/  runtime/  secrets/  shell/  ssh/
 ```
 
 (`audit/` appears only when the opt-in audit history is enabled.)

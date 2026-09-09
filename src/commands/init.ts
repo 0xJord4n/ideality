@@ -1,4 +1,5 @@
 import { defaultMaxListeners, setMaxListeners } from "node:events";
+import { rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -16,6 +17,10 @@ import {
   getIdealityHome,
   saveConfig,
 } from "../core/config-store.js";
+import {
+  rollbackAfterFailure,
+  snapshotPaths,
+} from "../core/file-transaction.js";
 import { findSshPrivateKeys } from "../core/file-search.js";
 import { deriveIdentityId } from "../core/identity-id.js";
 import { expandHome } from "../core/resolution.js";
@@ -27,34 +32,24 @@ import {
 import { installGitIntegration } from "../integrations/git.js";
 import {
   installShellIntegration,
+  shellRcTransactionPaths,
   type SupportedShell,
 } from "../integrations/shell.js";
 import { installShims } from "../integrations/shims.js";
 import { generateSshKey } from "../integrations/ssh.js";
-import { assertIdentityId, discoverGitIdentity } from "./shared.js";
+import {
+  assertIdentityId,
+  discoverConfiguredGitIdentity,
+  discoverGitIdentity,
+  parseList,
+  wizardStep,
+} from "./shared.js";
+import { hintLines, statusGlyph, tidyPath } from "./ui.js";
 
 type SshMode = "generate" | "existing" | "agent";
 type Integration = "shell" | "git";
+type SetupMode = "recommended" | "advanced";
 type SshFileChoice = { kind: "file"; path: string } | { kind: "manual" };
-
-async function wizardStep<T>(prompt: Promise<T>): Promise<T> {
-  const value = await prompt;
-  await Bun.sleep(0);
-  return value;
-}
-
-function parseList(value: string | undefined): string[] {
-  return value
-    ? [
-        ...new Set(
-          value
-            .split(",")
-            .map((item) => item.trim())
-            .filter(Boolean),
-        ),
-      ]
-    : [];
-}
 
 function detectedShell(): SupportedShell {
   const shell = process.env.SHELL ?? "";
@@ -70,16 +65,9 @@ function defaultRc(shell: SupportedShell, home: string): string {
   return path.join(home, shell === "bash" ? ".bashrc" : ".zshrc");
 }
 
-function displayHomePath(file: string, home: string): string {
-  const relative = path.relative(home, file);
-  return relative && !relative.startsWith("..") && !path.isAbsolute(relative)
-    ? `~/${relative}`
-    : file;
-}
-
 const initCommand = defineCommand({
   name: "init",
-  description: "Create the identity registry",
+  description: "Set up your first folder-based identity",
   options: {
     id: option(z.string().optional(), {
       description: "Override the automatic identity ID",
@@ -87,8 +75,8 @@ const initCommand = defineCommand({
     label: option(z.string().default("Default"), {
       description: "Display label",
     }),
-    root: option(z.string().default("~/code"), {
-      description: "Directory root owned by this identity",
+    root: option(z.string().optional(), {
+      description: "Directory root (defaults to the current directory)",
     }),
     "git-name": option(z.string().optional(), {
       description: "Git author name (defaults to global Git config)",
@@ -177,14 +165,18 @@ const initCommand = defineCommand({
       }
     }
 
-    const discoveredGit = discoverGitIdentity(
+    const configuredGit = discoverConfiguredGitIdentity(
       flags["git-name"],
       flags["git-email"],
+    );
+    const discoveredGit = discoverGitIdentity(
+      configuredGit.name,
+      configuredGit.email,
     );
     let id = flags.id ?? "";
     if (id) assertIdentityId(id);
     let label = flags.label;
-    let root = flags.root;
+    let root = flags.root ?? process.cwd();
     let gitName = discoveredGit.name;
     let gitEmail = discoveredGit.email;
     let sshMode: SshMode = flags["ssh-key"]
@@ -218,153 +210,187 @@ const initCommand = defineCommand({
     if (interactive) {
       // Bunli keeps each OpenTUI view's keyboard hooks until session disposal.
       setMaxListeners(Math.max(defaultMaxListeners, 64));
-      prompt.intro("IDEALITY  /  IDENTITY SETUP");
+      prompt.intro("IDEALITY  /  FIRST IDENTITY");
       prompt.note(
         [
-          "Folder ownership selects the active identity.",
-          "Secrets stay in locked files and tool profiles remain isolated.",
+          "Choose which account belongs to this folder.",
+          "Inside it, Ideality selects that account automatically.",
         ].join("\n"),
         "How it works",
       );
 
       label = await wizardStep(
-        prompt.text("Display label", {
-          default: label,
+        prompt.text("Identity name", {
+          default: label === "Default" ? "" : label,
+          placeholder: "Work, Personal, or Acme",
+          validate: (value) => value.length > 0 || "A name is required",
         }),
       );
       if (!id) id = deriveIdentityId(label, []);
       assertIdentityId(id);
       prompt.note(id, "Automatic ID");
       root = await wizardStep(
-        prompt.text("Folder root", {
+        prompt.text("Folder for this identity", {
           default: root,
-          placeholder: "~/code",
-          validate: (value) => value.length > 0 || "A folder root is required",
+          placeholder: process.cwd(),
+          validate: (value) => value.length > 0 || "A folder is required",
         }),
       );
-      gitName = await wizardStep(
-        prompt.text("Git author name", {
-          default: gitName,
-          validate: (value) =>
-            value.length > 0 || "Git author name is required",
-        }),
-      );
-      gitEmail = await wizardStep(
-        prompt.text("Git author email", {
-          default: gitEmail,
-          validate: (value) =>
-            z.string().email().safeParse(value).success ||
-            "Enter a valid email",
-        }),
-      );
-      sshMode = await wizardStep(
-        prompt.select<SshMode>("SSH authentication", {
-          default: sshMode,
+
+      const setupMode = await wizardStep(
+        prompt.select<SetupMode>("Setup", {
+          default: "recommended",
           options: [
             {
-              label: "Generate a new Ed25519 key",
-              value: "generate",
-              hint: `${idealityHome}/ssh/${id}`,
+              label: "Recommended",
+              value: "recommended",
+              hint: "Git identity, SSH agent, essential tools, and auto-switching",
             },
             {
-              label: "Use an existing private key",
-              value: "existing",
-            },
-            {
-              label: "Use the default SSH agent",
-              value: "agent",
+              label: "Advanced setup",
+              value: "advanced",
+              hint: "customize Git, SSH, tools, and integrations",
             },
           ],
         }),
       );
-      if (sshMode === "existing") {
-        const discoveredKeys = await findSshPrivateKeys({
-          home,
-          idealityHome,
-          preferred: sshKey ? expandHome(sshKey, home) : undefined,
-        });
-        const selected = await wizardStep(
-          prompt.filter<SshFileChoice>("SSH private key", {
-            options: [
-              ...discoveredKeys.map((file) => ({
-                label: displayHomePath(file, home),
-                value: { kind: "file", path: file } as const,
-              })),
-              {
-                label: "Enter another path",
-                value: { kind: "manual" } as const,
-                hint: "for keys stored outside the usual SSH directories",
-              },
-            ],
-            placeholder: "Type to fuzzy search files",
-            fuzzy: true,
-            limit: 12,
-            selectIfOne: false,
-            height: 10,
+
+      if (setupMode === "advanced" || !configuredGit.name) {
+        gitName = await wizardStep(
+          prompt.text("Git author name", {
+            default: configuredGit.name ?? "",
+            validate: (value) =>
+              value.length > 0 || "Git author name is required",
           }),
         );
-        const choice = Array.isArray(selected) ? selected[0] : selected;
-        if (choice?.kind === "file") {
-          sshKey = choice.path;
-        } else {
-          sshKey = await wizardStep(
-            prompt.text("SSH private key path", {
-              default: sshKey ?? "~/.ssh/id_ed25519",
-              validate: (value) =>
-                value.length > 0 || "SSH key path is required",
-            }),
-          );
-        }
+      }
+      if (setupMode === "advanced" || !configuredGit.email) {
+        gitEmail = await wizardStep(
+          prompt.text("Git author email", {
+            default: configuredGit.email ?? "",
+            validate: (value) =>
+              z.string().email().safeParse(value).success ||
+              "Enter a valid email",
+          }),
+        );
       }
 
-      selectedPacks = await wizardStep(
-        prompt.multiselect<string>("Tool packs", {
-          options: Object.entries(BUILTIN_TOOL_PACKS).map(([id, pack]) => ({
-            label: pack.label,
-            value: id,
-            hint: pack.description,
-          })),
-          initialValues: selectedPacks,
-          min: 1,
-        }),
-      );
-      const packTools = toolsInPacks(selectedPacks);
-      selectedTools = await wizardStep(
-        prompt.multiselect<string>("Tools enabled for this identity", {
-          options: packTools.map((tool) => ({
-            label: BUILTIN_TOOLS[tool]?.description ?? tool,
-            value: tool,
-            hint: `${tool} / ${BUILTIN_TOOLS[tool]?.stateIsolation ?? "partial"}`,
-          })),
-          initialValues:
-            requestedTools.length > 0
-              ? selectedTools.filter((tool) => packTools.includes(tool))
-              : packTools,
-          min: 1,
-        }),
-      );
+      if (setupMode === "advanced") {
+        sshMode = await wizardStep(
+          prompt.select<SshMode>("SSH authentication", {
+            default: sshMode,
+            options: [
+              {
+                label: "Generate a new Ed25519 key",
+                value: "generate",
+                hint: tidyPath(path.join(idealityHome, "ssh", id), home),
+              },
+              {
+                label: "Use an existing private key",
+                value: "existing",
+              },
+              {
+                label: "Use the default SSH agent",
+                value: "agent",
+              },
+            ],
+          }),
+        );
+        if (sshMode === "existing") {
+          const discoveredKeys = await findSshPrivateKeys({
+            home,
+            idealityHome,
+            preferred: sshKey ? expandHome(sshKey, home) : undefined,
+          });
+          const selected = await wizardStep(
+            prompt.filter<SshFileChoice>("SSH private key", {
+              options: [
+                ...discoveredKeys.map((file) => ({
+                  label: tidyPath(file, home),
+                  value: { kind: "file", path: file } as const,
+                })),
+                {
+                  label: "Enter another path",
+                  value: { kind: "manual" } as const,
+                  hint: "for keys stored outside the usual SSH directories",
+                },
+              ],
+              placeholder: "Type to fuzzy search files",
+              fuzzy: true,
+              limit: 12,
+              selectIfOne: false,
+              height: 10,
+            }),
+          );
+          const choice = Array.isArray(selected) ? selected[0] : selected;
+          if (choice?.kind === "file") {
+            sshKey = choice.path;
+          } else {
+            sshKey = await wizardStep(
+              prompt.text("SSH private key path", {
+                default: sshKey ?? "~/.ssh/id_ed25519",
+                validate: (value) =>
+                  value.length > 0 || "SSH key path is required",
+              }),
+            );
+          }
+        }
 
-      integrations = await wizardStep(
-        prompt.multiselect<Integration>("Install integrations", {
-          options: [
-            {
-              label: "Shell auto-switching",
-              value: "shell",
-              hint: "updates the identity when the directory changes",
-            },
-            {
-              label: "Git includeIf",
-              value: "git",
-              hint: "selects author and SSH key by repository path",
-            },
-          ],
-          initialValues: [
-            ...(flags["no-shell"] ? [] : (["shell"] as const)),
-            ...(flags["no-git"] ? [] : (["git"] as const)),
-          ],
-        }),
-      );
-      if (integrations.includes("shell")) {
+        selectedPacks = await wizardStep(
+          prompt.multiselect<string>("Tool packs", {
+            options: Object.entries(BUILTIN_TOOL_PACKS).map(([id, pack]) => ({
+              label: pack.label,
+              value: id,
+              hint: pack.description,
+            })),
+            initialValues: selectedPacks,
+            min: 1,
+          }),
+        );
+        const packTools = toolsInPacks(selectedPacks);
+        selectedTools = await wizardStep(
+          prompt.multiselect<string>("Tools enabled for this identity", {
+            options: packTools.map((tool) => ({
+              label: BUILTIN_TOOLS[tool]?.description ?? tool,
+              value: tool,
+              hint: `${tool} / ${BUILTIN_TOOLS[tool]?.stateIsolation ?? "partial"}`,
+            })),
+            initialValues:
+              requestedTools.length > 0
+                ? selectedTools.filter((tool) => packTools.includes(tool))
+                : packTools,
+            min: 1,
+          }),
+        );
+
+        integrations = await wizardStep(
+          prompt.multiselect<Integration>("Install integrations", {
+            options: [
+              {
+                label: "Shell auto-switching",
+                value: "shell",
+                hint: "updates the identity when the directory changes",
+              },
+              {
+                label: "Git includeIf",
+                value: "git",
+                hint: "selects author and SSH key by repository path",
+              },
+            ],
+            initialValues: [
+              ...(flags["no-shell"] ? [] : (["shell"] as const)),
+              ...(flags["no-git"] ? [] : (["git"] as const)),
+            ],
+          }),
+        );
+      } else {
+        integrations = [
+          ...(flags["no-shell"] ? [] : (["shell"] as const)),
+          ...(flags["no-git"] ? [] : (["git"] as const)),
+        ];
+      }
+
+      if (setupMode === "advanced" && integrations.includes("shell")) {
         shell = await wizardStep(
           prompt.select<SupportedShell>("Shell", {
             default: shell,
@@ -377,22 +403,28 @@ const initCommand = defineCommand({
         );
       }
 
-      prompt.note(
-        [
-          `${label} (${id})`,
-          `Root: ${root}`,
-          `Git:  ${gitName} <${gitEmail}>`,
-          `SSH:  ${sshMode}`,
-          `Home: ${idealityHome}`,
-          `Packs: ${selectedPacks.join(", ")}`,
-          `Tools: ${selectedTools.join(", ")}`,
-          `Integrations: ${integrations.join(", ") || "none"}`,
-        ].join("\n"),
-        "Review",
-      );
+      const review =
+        setupMode === "recommended"
+          ? [
+              `${label} (${id})`,
+              `Folder: ${tidyPath(root, home)}`,
+              `Git: ${gitName} <${gitEmail}>`,
+              `Automatic switching: ${integrations.length > 0 ? "enabled" : "disabled"}`,
+            ]
+          : [
+              `${label} (${id})`,
+              `Folder: ${tidyPath(root, home)}`,
+              `Git:  ${gitName} <${gitEmail}>`,
+              `SSH:  ${sshMode}`,
+              `Home: ${tidyPath(idealityHome, home)}`,
+              `Packs: ${selectedPacks.join(", ")}`,
+              `Tools: ${selectedTools.join(", ")}`,
+              `Integrations: ${integrations.join(", ") || "none"}`,
+            ];
+      prompt.note(review.join("\n"), "Review");
       if (
         !(await wizardStep(
-          prompt.confirm("Create this identity?", {
+          prompt.confirm("Finish setup?", {
             default: true,
             fallbackValue: false,
           }),
@@ -415,55 +447,67 @@ const initCommand = defineCommand({
       if (!knownTools.has(tool))
         throw new Error(`Unknown built-in tool '${tool}'`);
     }
-    const git = { name: gitName, email: gitEmail };
-    if (sshMode === "existing") {
-      const expanded = expandHome(sshKey!, home);
-      if (!(await Bun.file(expanded).exists())) {
-        throw new Error(`SSH key '${sshKey}' does not exist`);
-      }
-      Object.assign(git, { sshKey: expanded });
-    } else if (sshMode === "generate") {
-      if (flags["dry-run"]) {
-        Object.assign(git, { sshKey: path.join(idealityHome, "ssh", id) });
-      } else {
-        Object.assign(
-          git,
-          await generateSshKey({
+    const transaction = flags["dry-run"]
+      ? null
+      : await snapshotPaths([
+          configPath,
+          path.join(idealityHome, "bin"),
+          path.join(idealityHome, "completions"),
+          path.join(idealityHome, "shell"),
+          path.join(idealityHome, "git"),
+          ...(integrations.includes("shell")
+            ? await shellRcTransactionPaths(defaultRc(shell, home))
+            : []),
+        ]);
+    let generatedKey: { privateKey: string; publicKey: string } | null = null;
+    let spin: ReturnType<typeof spinner> | null = null;
+    try {
+      const git = { name: gitName, email: gitEmail };
+      if (sshMode === "existing") {
+        const expanded = expandHome(sshKey!, home);
+        if (!(await Bun.file(expanded).exists())) {
+          throw new Error(`SSH key '${sshKey}' does not exist`);
+        }
+        Object.assign(git, { sshKey: expanded });
+      } else if (sshMode === "generate") {
+        if (flags["dry-run"]) {
+          Object.assign(git, { sshKey: path.join(idealityHome, "ssh", id) });
+        } else {
+          generatedKey = await generateSshKey({
             identity: id,
             email: gitEmail,
             idealityHome,
-          }).then(({ privateKey }) => ({ sshKey: privateKey })),
-        );
+          });
+          Object.assign(git, { sshKey: generatedKey.privateKey });
+        }
       }
-    }
 
-    const config = createStarterConfig({
-      id,
-      label,
-      root,
-      git,
-      tools: selectedTools,
-    });
-    if (flags["dry-run"]) {
-      console.log(
-        JSON.stringify(
-          {
-            configPath,
-            config,
-            integrations,
-            shell: integrations.includes("shell") ? shell : null,
-          },
-          null,
-          2,
-        ),
-      );
-      return;
-    }
-    const spin = interactive
-      ? spinner({ text: "Writing identity registry", showTimer: true })
-      : null;
-    spin?.start();
-    try {
+      const config = createStarterConfig({
+        id,
+        label,
+        root,
+        git,
+        tools: selectedTools,
+      });
+      if (flags["dry-run"]) {
+        console.log(
+          JSON.stringify(
+            {
+              configPath,
+              config,
+              integrations,
+              shell: integrations.includes("shell") ? shell : null,
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+      spin = interactive
+        ? spinner({ text: "Writing identity registry", showTimer: true })
+        : null;
+      spin?.start();
       await saveConfig(config);
       if (integrations.includes("shell")) {
         await installCompletion(
@@ -485,21 +529,31 @@ const initCommand = defineCommand({
       if (integrations.includes("git")) {
         await installGitIntegration(config, home, idealityHome);
       }
+      await transaction!.commit();
       spin?.succeed("Identity system ready");
     } catch (error) {
       spin?.fail("Setup failed");
-      throw error;
+      if (generatedKey) {
+        await rm(generatedKey.privateKey, { force: true });
+        await rm(generatedKey.publicKey, { force: true });
+      }
+      await rollbackAfterFailure(transaction, error);
     }
 
     if (interactive) {
       prompt.outro(
-        `Ready. Open the dashboard with ${colors.cyan("ideality tui")}`,
+        `Ready. ${tidyPath(root, home)} now uses ${label}. Check it with ${colors.cyan("ideality status")}`,
       );
     } else {
-      console.log(colors.green(`Created ${configPath}`));
-      if (!flags.install) {
-        console.log(`Next: ideality install --shell ${shell}`);
-      }
+      console.log(statusGlyph("ok", `Created ${tidyPath(configPath, home)}`));
+      console.log(
+        hintLines([
+          ...(flags.install
+            ? []
+            : [`install integrations: ideality install --shell ${shell}`]),
+          "see the active identity: ideality status",
+        ]),
+      );
     }
   },
 });

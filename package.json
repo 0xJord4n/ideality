@@ -66,6 +66,7 @@
     "check": "bun run format:check && bun run lint && bun run typecheck && bun run catalog:check && bun run privileged:check && bun test",
     "smoke": "bash scripts/smoke.sh",
     "release:rehearsal": "bash scripts/release-rehearsal.sh",
+    "package:check": "bun run scripts/npm-pack-json.ts",
     "postinstall": "bash scripts/install-package.sh",
     "version:patch": "bun pm version patch --no-git-tag-version",
     "version:minor": "bun pm version minor --no-git-tag-version",
