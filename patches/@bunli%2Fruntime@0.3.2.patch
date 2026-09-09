@@ -1,0 +1,284 @@
+diff --git a/src/prompt/index.ts b/src/prompt/index.ts
+index 59a34476179a020d3e81428c6c15f73cbc5f4971..fcdce25c623350f10e41006139b394d8a624e62d 100644
+--- a/src/prompt/index.ts
++++ b/src/prompt/index.ts
+@@ -6,17 +6,57 @@ import type { StandardSchemaV1 } from "@standard-schema/spec";
+ import { SchemaError } from "@standard-schema/utils";
+ 
+ import { displayWidth, formatFixedWidth, padEndTo } from "../components/text-layout.js";
+-import {
+-  createOpenTuiRendererSession,
+-  runOpenTuiFilterPrompt,
+-  isOpenTuiCancel,
+-  type OpenTuiRendererSession,
+-  runOpenTuiConfirmPrompt,
+-  runOpenTuiMultiSelectPrompt,
+-  runOpenTuiPagerPrompt,
+-  runOpenTuiSelectPrompt,
+-  runOpenTuiTextPrompt,
+-} from "./runtime/open-tui-session.js";
++import type { OpenTuiRendererSession } from "./runtime/open-tui-session.js";
++
++let openTuiSessionPromise:
++  | Promise<typeof import("./runtime/open-tui-session.js")>
++  | undefined;
++
++function loadOpenTuiSession(): Promise<
++  typeof import("./runtime/open-tui-session.js")
++> {
++  openTuiSessionPromise ??= import("./runtime/open-tui-session.js");
++  return openTuiSessionPromise;
++}
++
++function createDeferredOpenTuiRendererSession(): OpenTuiRendererSession {
++  let resolved: OpenTuiRendererSession | undefined;
++  let resolving: Promise<OpenTuiRendererSession> | undefined;
++  const pending: Array<(session: OpenTuiRendererSession) => void> = [];
++  const resolveSession = (): Promise<OpenTuiRendererSession> => {
++    if (resolved) return Promise.resolve(resolved);
++    resolving ??= loadOpenTuiSession().then((runtime) => {
++      resolved = runtime.createOpenTuiRendererSession();
++      for (const operation of pending.splice(0)) operation(resolved);
++      return resolved;
++    });
++    return resolving;
++  };
++  const defer = (operation: (session: OpenTuiRendererSession) => void) => {
++    if (resolved) operation(resolved);
++    else {
++      pending.push(operation);
++      void resolveSession();
++    }
++  };
++
++  return {
++    initialize: async () => (await resolveSession()).initialize(),
++    runPrompt: async (args) => (await resolveSession()).runPrompt(args),
++    appendHistoryLines: (lines) =>
++      defer((session) => session.appendHistoryLines(lines)),
++    setHistorySection: (key, lines) =>
++      defer((session) => session.setHistorySection(key, lines)),
++    renderStatusLine: (content, fg) =>
++      defer((session) => session.renderStatusLine(content, fg)),
++    clearStatusLine: () => defer((session) => session.clearStatusLine()),
++    flushHistoryToStdout: () =>
++      defer((session) => session.flushHistoryToStdout()),
++    dispose: async () => {
++      if (resolved || pending.length > 0) await (await resolveSession()).dispose();
++    },
++  };
++}
+ 
+ export type PromptMode = "inline" | "interactive";
+ 
+@@ -1306,7 +1346,7 @@ function registerGlobalOpenTuiSessionCleanup(): void {
+ 
+ function getGlobalOpenTuiSession(): OpenTuiRendererSession {
+   registerGlobalOpenTuiSessionCleanup();
+-  globalOpenTuiSession ??= createOpenTuiRendererSession();
++  globalOpenTuiSession ??= createDeferredOpenTuiRendererSession();
+   return globalOpenTuiSession;
+ }
+ 
+@@ -1404,7 +1444,7 @@ function createOpenTuiRawSpinner(
+ 
+ const defaultDriver: PromptDriver = {
+   async text(args) {
+-    const value = await runOpenTuiTextPrompt(
++    const value = await (await loadOpenTuiSession()).runOpenTuiTextPrompt(
+       {
+         message: args.message,
+         placeholder: args.placeholder,
+@@ -1418,7 +1458,7 @@ const defaultDriver: PromptDriver = {
+       },
+       getGlobalOpenTuiSession(),
+     );
+-    return isOpenTuiCancel(value) ? CANCEL : value;
++    return (await loadOpenTuiSession()).isOpenTuiCancel(value) ? CANCEL : value;
+   },
+ 
+   async password(args) {
+@@ -1440,7 +1480,7 @@ const defaultDriver: PromptDriver = {
+ 
+   async confirm(args) {
+     const defaultYes = args.initialValue ?? false;
+-    const value = await runOpenTuiConfirmPrompt(
++    const value = await (await loadOpenTuiSession()).runOpenTuiConfirmPrompt(
+       {
+         message: args.message,
+         initialValue: defaultYes,
+@@ -1455,7 +1495,7 @@ const defaultDriver: PromptDriver = {
+       },
+       getGlobalOpenTuiSession(),
+     );
+-    return isOpenTuiCancel(value) ? CANCEL : value;
++    return (await loadOpenTuiSession()).isOpenTuiCancel(value) ? CANCEL : value;
+   },
+ 
+   async select<T>(args: {
+@@ -1463,7 +1503,7 @@ const defaultDriver: PromptDriver = {
+     options: SelectOption<T>[];
+     initialValue?: T;
+   }): Promise<T | Cancel> {
+-    const value = await runOpenTuiSelectPrompt<T>(
++    const value = await (await loadOpenTuiSession()).runOpenTuiSelectPrompt<T>(
+       {
+         message: args.message,
+         options: args.options,
+@@ -1475,7 +1515,7 @@ const defaultDriver: PromptDriver = {
+       },
+       getGlobalOpenTuiSession(),
+     );
+-    return isOpenTuiCancel(value) ? CANCEL : value;
++    return (await loadOpenTuiSession()).isOpenTuiCancel(value) ? CANCEL : value;
+   },
+ 
+   async multiselect<T>(args: {
+@@ -1486,7 +1526,7 @@ const defaultDriver: PromptDriver = {
+     ordered?: boolean;
+     height?: number;
+   }): Promise<T[] | Cancel> {
+-    const value = await runOpenTuiMultiSelectPrompt<T>(
++    const value = await (await loadOpenTuiSession()).runOpenTuiMultiSelectPrompt<T>(
+       {
+         message: args.message,
+         options: args.options,
+@@ -1503,7 +1543,7 @@ const defaultDriver: PromptDriver = {
+       },
+       getGlobalOpenTuiSession(),
+     );
+-    return isOpenTuiCancel(value) ? CANCEL : value;
++    return (await loadOpenTuiSession()).isOpenTuiCancel(value) ? CANCEL : value;
+   },
+ 
+   async filter<T>(args: {
+@@ -1518,7 +1558,7 @@ const defaultDriver: PromptDriver = {
+     selectIfOne?: boolean;
+     height?: number;
+   }): Promise<T | T[] | Cancel> {
+-    const value = await runOpenTuiFilterPrompt<T>(
++    const value = await (await loadOpenTuiSession()).runOpenTuiFilterPrompt<T>(
+       {
+         message: args.message,
+         options: args.options,
+@@ -1543,11 +1583,11 @@ const defaultDriver: PromptDriver = {
+       },
+       getGlobalOpenTuiSession(),
+     );
+-    return isOpenTuiCancel(value) ? CANCEL : value;
++    return (await loadOpenTuiSession()).isOpenTuiCancel(value) ? CANCEL : value;
+   },
+ 
+   async pager(args) {
+-    await runOpenTuiPagerPrompt(args, getGlobalOpenTuiSession());
++    await (await loadOpenTuiSession()).runOpenTuiPagerPrompt(args, getGlobalOpenTuiSession());
+   },
+ 
+   intro(message) {
+@@ -1963,7 +2003,7 @@ function createQueueRunner() {
+ 
+ export function createPromptSession(): PromptSession {
+   const runQueued = createQueueRunner();
+-  const rendererSession: OpenTuiRendererSession = createOpenTuiRendererSession();
++  const rendererSession: OpenTuiRendererSession = createDeferredOpenTuiRendererSession();
+   const flushHistory = () => rendererSession.flushHistoryToStdout();
+   const appendHistory = (lines: string[]) => rendererSession.appendHistoryLines(lines);
+   let disposed = false;
+@@ -1978,7 +2018,7 @@ export function createPromptSession(): PromptSession {
+       if (fallback !== undefined) return fallback as T;
+ 
+       while (true) {
+-        const value = await runOpenTuiTextPrompt(
++        const value = await (await loadOpenTuiSession()).runOpenTuiTextPrompt(
+           {
+             message,
+             placeholder: options.placeholder,
+@@ -2001,7 +2041,7 @@ export function createPromptSession(): PromptSession {
+           rendererSession,
+         );
+ 
+-        if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow();
++        if ((await loadOpenTuiSession()).isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow();
+ 
+         const input = options.multiline ? (value ?? "") : (value ?? "").trim();
+ 
+@@ -2038,7 +2078,7 @@ export function createPromptSession(): PromptSession {
+       if (fallback !== undefined) return fallback;
+ 
+       const defaultYes = options.default ?? false;
+-      const value = await runOpenTuiConfirmPrompt(
++      const value = await (await loadOpenTuiSession()).runOpenTuiConfirmPrompt(
+         {
+           message,
+           initialValue: defaultYes,
+@@ -2054,7 +2094,7 @@ export function createPromptSession(): PromptSession {
+         rendererSession,
+       );
+ 
+-      if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow();
++      if ((await loadOpenTuiSession()).isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow();
+       return value;
+     });
+   };
+@@ -2067,7 +2107,7 @@ export function createPromptSession(): PromptSession {
+       const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue);
+       if (fallback !== undefined) return fallback;
+ 
+-      const value = await runOpenTuiSelectPrompt<T>(
++      const value = await (await loadOpenTuiSession()).runOpenTuiSelectPrompt<T>(
+         {
+           message,
+           options: options.options,
+@@ -2080,7 +2120,7 @@ export function createPromptSession(): PromptSession {
+         rendererSession,
+       );
+ 
+-      if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow();
++      if ((await loadOpenTuiSession()).isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow();
+       return value;
+     });
+   };
+@@ -2094,7 +2134,7 @@ export function createPromptSession(): PromptSession {
+       if (fallback !== undefined) return fallback;
+ 
+       while (true) {
+-        const value = await runOpenTuiMultiSelectPrompt<T>(
++        const value = await (await loadOpenTuiSession()).runOpenTuiMultiSelectPrompt<T>(
+           {
+             message,
+             options: options.options,
+@@ -2112,7 +2152,7 @@ export function createPromptSession(): PromptSession {
+           rendererSession,
+         );
+ 
+-        if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow();
++        if ((await loadOpenTuiSession()).isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow();
+ 
+         const picked = value ?? [];
+         const min = options.min ?? 0;
+@@ -2141,7 +2181,7 @@ export function createPromptSession(): PromptSession {
+       const fallback = assertInteractiveOrFallback(options.mode, options.fallbackValue);
+       if (fallback !== undefined) return fallback;
+ 
+-      const value = await runOpenTuiFilterPrompt<T>(
++      const value = await (await loadOpenTuiSession()).runOpenTuiFilterPrompt<T>(
+         {
+           message,
+           options: options.options,
+@@ -2167,14 +2207,14 @@ export function createPromptSession(): PromptSession {
+         rendererSession,
+       );
+ 
+-      if (isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow();
++      if ((await loadOpenTuiSession()).isOpenTuiCancel(value) || isCancel(value)) cancelAndThrow();
+       return value;
+     });
+   };
+ 
+   const sessionPager = async (content: string, options: PagerOptions = {}): Promise<void> => {
+     return runQueued(async () => {
+-      await runOpenTuiPagerPrompt(
++      await (await loadOpenTuiSession()).runOpenTuiPagerPrompt(
+         {
+           content,
+           title: options.title,

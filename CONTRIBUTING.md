@@ -6,7 +6,7 @@ manifest and its behavior contract — and the scripts handle everything else.
 
 ## Development setup
 
-Install Bun 1.3.14 or a compatible 1.3.x release, then install the locked
+Install Bun 1.4.2 or a compatible 1.4.x release, then install the locked
 dependencies:
 
 ```bash

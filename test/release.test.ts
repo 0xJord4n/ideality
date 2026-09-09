@@ -22,7 +22,13 @@ import { parseNpmPackResult } from "../scripts/npm-pack-json.js";
 
 const repoRoot = path.resolve(import.meta.dir, "..");
 const installScript = path.join(repoRoot, "scripts", "install.sh");
+const installPackageScript = path.join(
+  repoRoot,
+  "scripts",
+  "install-package.sh",
+);
 const rehearsalScript = path.join(repoRoot, "scripts", "release-rehearsal.sh");
+const buildReleaseScript = path.join(repoRoot, "scripts", "build-release.sh");
 const releaseWorkflow = path.join(
   repoRoot,
   ".github",
@@ -276,6 +282,29 @@ exit 0
 const UNREACHABLE_REPO = "example-invalid/ideality-rehearsal-does-not-exist";
 
 describe("scripts/install.sh", () => {
+  test("package postinstall skips linked Git worktrees", async () => {
+    const packageRoot = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-worktree-"),
+    );
+    await mkdir(path.join(packageRoot, "scripts"), { recursive: true });
+    await copyFile(
+      installPackageScript,
+      path.join(packageRoot, "scripts", "install-package.sh"),
+    );
+    await writeFile(
+      path.join(packageRoot, ".git"),
+      "gitdir: /tmp/example-worktree\n",
+    );
+
+    const result = run([
+      "bash",
+      path.join(packageRoot, "scripts", "install-package.sh"),
+    ]);
+
+    expect(result.exitCode).toBe(0);
+    expect(existsSync(path.join(packageRoot, "vendor"))).toBe(false);
+  });
+
   test("installs from a local artifact directory when IDEALITY_BASE_URL is set (offline)", async () => {
     const artifacts = await makeStubRelease();
     const cosign = await makeFakeCosign();
@@ -539,6 +568,16 @@ describe("scripts/release-rehearsal.sh", () => {
 });
 
 describe(".github/workflows/release.yml", () => {
+  test("release builds install optional dependencies for every target platform", async () => {
+    const script = await readFile(buildReleaseScript, "utf8");
+    const install = "bun install --frozen-lockfile --os '*' --cpu '*'";
+    expect(script).toContain(install);
+    expect(script).not.toContain("--ignore-scripts");
+    expect(script.indexOf(install)).toBeLessThan(
+      script.indexOf('for target in "${targets[@]}"'),
+    );
+  });
+
   test("signs and uploads release metadata plus its Sigstore bundle", async () => {
     const workflow = await readFile(releaseWorkflow, "utf8");
     expect(workflow).toContain("dist/release/release-metadata.json");

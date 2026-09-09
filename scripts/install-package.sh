@@ -5,7 +5,7 @@ set -euo pipefail
 package_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 # Dependency installation in a source checkout must not download a release.
-if [ -d "$package_root/.git" ] &&
+if [ -e "$package_root/.git" ] &&
   [ "${IDEALITY_PACKAGE_FORCE_INSTALL:-0}" != "1" ]; then
   exit 0
 fi

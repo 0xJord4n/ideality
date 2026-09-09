@@ -15,6 +15,11 @@ if [ "${#targets[@]}" -eq 0 ]; then
   targets=(linux-x64 linux-arm64 darwin-x64 darwin-arm64)
 fi
 
+# Bun installs only host-compatible optional dependencies by default. OpenTUI
+# ships native packages per target, so cross-compilation requires every target
+# package to be present even when this script starts from a host-only install.
+bun install --frozen-lockfile --os '*' --cpu '*'
+
 # Stage binaries outside dist/ -- bunli build cleans its outdir (./dist) at
 # the start of every invocation, so anything kept there is wiped by the
 # next target's build.
