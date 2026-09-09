@@ -5,12 +5,18 @@ import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
 import { getIdealityHome } from "../core/config-store.js";
-import { snapshotPaths } from "../core/file-transaction.js";
+import {
+  rollbackAfterFailure,
+  snapshotPaths,
+} from "../core/file-transaction.js";
 import {
   disableGitIntegration,
   gitIntegrationPath,
 } from "../integrations/git.js";
-import { disableShellIntegration } from "../integrations/shell.js";
+import {
+  disableShellIntegration,
+  shellRcTransactionPaths,
+} from "../integrations/shell.js";
 import { defaultRc, detectedShell } from "./integration-lifecycle.js";
 
 const disableCommand = defineCommand({
@@ -69,7 +75,9 @@ const disableCommand = defineCommand({
       return;
     }
 
-    const transaction = await snapshotPaths(flags["no-shell"] ? [] : [rcPath]);
+    const transaction = await snapshotPaths(
+      flags["no-shell"] ? [] : await shellRcTransactionPaths(rcPath),
+    );
     try {
       if (!flags["no-shell"]) {
         const shell = await disableShellIntegration(rcPath);
@@ -89,8 +97,7 @@ const disableCommand = defineCommand({
       }
       await transaction.commit();
     } catch (error) {
-      await transaction.rollback();
-      throw error;
+      await rollbackAfterFailure(transaction, error);
     }
 
     console.log(colors.green(`Configuration preserved: ${idealityHome}`));

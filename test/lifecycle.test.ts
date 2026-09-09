@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { mkdir, mkdtemp } from "node:fs/promises";
+import {
+  chown,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readlink,
+  stat,
+  symlink,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { renderShim } from "../src/integrations/shims.js";
@@ -288,6 +296,98 @@ describe("integration lifecycle commands", () => {
     expect(await Bun.file(rcPath).text()).toBe(source);
   });
 
+  test("disable restores a symlinked shell rc target when Git removal fails", async () => {
+    const home = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-disable-symlink-rollback-"),
+    );
+    const idealityHome = path.join(home, ".ideality");
+    const rcPath = path.join(home, ".zshrc");
+    const rcTarget = path.join(home, "zshrc-source");
+    const globalConfig = path.join(home, ".gitconfig");
+    const source =
+      "before\n# >>> ideality >>>\nsource '/tmp/hook'\n# <<< ideality <<<\nafter\n";
+    await Bun.write(rcTarget, source);
+    await symlink(path.basename(rcTarget), rcPath);
+    if (process.geteuid?.() === 0) {
+      await chown(rcTarget, 0, 65534);
+    }
+    const before = await stat(rcTarget);
+    const linkBefore = await readlink(rcPath);
+    await Bun.write(globalConfig, "[broken\n");
+
+    const result = Bun.spawnSync({
+      cmd: [process.execPath, "run", "src/index.ts", "disable", "--rc", rcPath],
+      cwd: path.resolve(import.meta.dir, ".."),
+      env: {
+        ...process.env,
+        HOME: home,
+        IDEALITY_HOME: idealityHome,
+        GIT_CONFIG_GLOBAL: globalConfig,
+        SHELL: "/bin/zsh",
+        NO_COLOR: "1",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    expect(result.exitCode).not.toBe(0);
+    expect((await lstat(rcPath)).isSymbolicLink()).toBe(true);
+    expect(await readlink(rcPath)).toBe(linkBefore);
+    expect(await Bun.file(rcTarget).text()).toBe(source);
+    const after = await stat(rcTarget);
+    expect({ uid: after.uid, gid: after.gid }).toEqual({
+      uid: before.uid,
+      gid: before.gid,
+    });
+  });
+
+  test("refusing a foreign-owned symlink target leaves its ownership unchanged", async () => {
+    if (process.geteuid?.() !== 0) return;
+    const home = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-disable-symlink-owner-"),
+    );
+    const rcPath = path.join(home, ".zshrc");
+    const rcTarget = path.join(home, "zshrc-source");
+    const source =
+      "before\n# >>> ideality >>>\nsource '/tmp/hook'\n# <<< ideality <<<\nafter\n";
+    await Bun.write(rcTarget, source);
+    await symlink(rcTarget, rcPath);
+    await chown(rcTarget, 65534, 65534);
+    const before = await stat(rcTarget);
+
+    const result = Bun.spawnSync({
+      cmd: [
+        process.execPath,
+        "run",
+        "src/index.ts",
+        "disable",
+        "--rc",
+        rcPath,
+        "--no-git",
+      ],
+      cwd: path.resolve(import.meta.dir, ".."),
+      env: {
+        ...process.env,
+        HOME: home,
+        IDEALITY_HOME: path.join(home, ".ideality"),
+        SHELL: "/bin/zsh",
+        NO_COLOR: "1",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    const after = await stat(rcTarget);
+    expect(result.exitCode).not.toBe(0);
+    expect(result.stderr.toString()).toContain("owned by another user");
+    expect((await lstat(rcPath)).isSymbolicLink()).toBe(true);
+    expect(await Bun.file(rcTarget).text()).toBe(source);
+    expect({ uid: after.uid, gid: after.gid }).toEqual({
+      uid: before.uid,
+      gid: before.gid,
+    });
+  });
+
   test("enable rolls generated files back when Git registration fails", async () => {
     const home = await mkdtemp(
       path.join(os.tmpdir(), "ideality-enable-rollback-"),
@@ -333,6 +433,50 @@ describe("integration lifecycle commands", () => {
         path.join(idealityHome, "completions", "ideality.zsh"),
       ).exists(),
     ).toBe(false);
+  });
+
+  test("enable restores a symlinked shell rc target when Git registration fails", async () => {
+    const home = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-enable-symlink-rollback-"),
+    );
+    const idealityHome = path.join(home, ".ideality");
+    const rcPath = path.join(home, ".zshrc");
+    const rcTarget = path.join(home, "zshrc-source");
+    const globalConfig = path.join(home, ".gitconfig");
+    const rcSource = "export TOKEN=secret\n";
+    await mkdir(idealityHome, { recursive: true });
+    await Bun.write(
+      path.join(idealityHome, "config.jsonc"),
+      `${JSON.stringify({
+        version: 1,
+        defaultIdentity: "default",
+        identities: { default: { label: "Default", roots: [home], tools: {} } },
+        tools: {},
+      })}\n`,
+    );
+    await Bun.write(rcTarget, rcSource);
+    await symlink(rcTarget, rcPath);
+    await Bun.write(globalConfig, "[broken\n");
+
+    const result = Bun.spawnSync({
+      cmd: [process.execPath, "run", "src/index.ts", "enable", "--rc", rcPath],
+      cwd: path.resolve(import.meta.dir, ".."),
+      env: {
+        ...process.env,
+        HOME: home,
+        IDEALITY_HOME: idealityHome,
+        GIT_CONFIG_GLOBAL: globalConfig,
+        SHELL: "/bin/zsh",
+        NO_COLOR: "1",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    expect(result.exitCode).not.toBe(0);
+    expect((await lstat(rcPath)).isSymbolicLink()).toBe(true);
+    expect(await Bun.file(rcTarget).text()).toBe(rcSource);
+    expect(await Bun.file(`${rcPath}.pre-ideality`).exists()).toBe(false);
   });
 
   test("disable guidance explains inherited PATH cleanup", async () => {
@@ -404,6 +548,60 @@ describe("integration lifecycle commands", () => {
     expect(result.exitCode).not.toBe(0);
     expect(await Bun.file(configPath).text()).toBe(prior);
     expect(await Bun.file(rcPath).text()).toBe(rcSource);
+    expect(await Bun.file(`${rcPath}.pre-ideality`).exists()).toBe(false);
+  });
+
+  test("init restores a symlinked shell rc target after a late integration failure", async () => {
+    const home = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-init-symlink-rollback-"),
+    );
+    const idealityHome = path.join(home, ".ideality");
+    const configPath = path.join(idealityHome, "config.jsonc");
+    const rcPath = path.join(home, ".zshrc");
+    const rcTarget = path.join(home, "zshrc-source");
+    const globalConfig = path.join(home, ".gitconfig");
+    const prior = "prior registry\n";
+    const rcSource = "export TOKEN=secret\n";
+    await mkdir(idealityHome, { recursive: true });
+    await Bun.write(configPath, prior);
+    await Bun.write(rcTarget, rcSource);
+    await symlink(rcTarget, rcPath);
+    await Bun.write(globalConfig, "[broken\n");
+
+    const result = Bun.spawnSync({
+      cmd: [
+        process.execPath,
+        "run",
+        "src/index.ts",
+        "init",
+        "--non-interactive",
+        "--force",
+        "--install",
+        "--git-name",
+        "Example Developer",
+        "--git-email",
+        "developer@example.com",
+        "--root",
+        home,
+      ],
+      cwd: path.resolve(import.meta.dir, ".."),
+      env: {
+        ...process.env,
+        HOME: home,
+        IDEALITY_HOME: idealityHome,
+        IDEALITY_CONFIG: configPath,
+        GIT_CONFIG_GLOBAL: globalConfig,
+        SHELL: "/bin/zsh",
+        NO_COLOR: "1",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+
+    expect(result.exitCode).not.toBe(0);
+    expect(await Bun.file(configPath).text()).toBe(prior);
+    expect((await lstat(rcPath)).isSymbolicLink()).toBe(true);
+    expect(await Bun.file(rcTarget).text()).toBe(rcSource);
     expect(await Bun.file(`${rcPath}.pre-ideality`).exists()).toBe(false);
   });
 });

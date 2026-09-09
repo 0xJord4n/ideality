@@ -16,6 +16,7 @@ import {
   disableShellIntegration,
   renderShellAssignments,
   renderShellHook,
+  shellRcTransactionPaths,
 } from "../src/integrations/shell.js";
 
 describe("renderShellAssignments", () => {
@@ -88,6 +89,21 @@ describe("renderShellAssignments", () => {
 });
 
 describe("disableShellIntegration", () => {
+  test("transactions snapshot a symlink target without replacing the symlink", async () => {
+    const directory = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-shell-transaction-paths-"),
+    );
+    const rcPath = path.join(directory, ".zshrc");
+    const target = path.join(directory, "zshrc-source");
+    await Bun.write(target, "export EDITOR=vim\n");
+    await symlink(path.basename(target), rcPath);
+
+    expect(await shellRcTransactionPaths(rcPath)).toEqual([
+      `${rcPath}.pre-ideality`,
+      target,
+    ]);
+  });
+
   test("removes only the managed block and preserves the configuration", async () => {
     const directory = await mkdtemp(
       path.join(os.tmpdir(), "ideality-shell-disable-"),

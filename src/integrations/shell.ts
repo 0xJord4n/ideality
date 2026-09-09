@@ -46,7 +46,7 @@ function managedBlockLocation(content: string): ManagedBlockLocation | null {
   return { start: begin.index, end: end.index + end[0].length };
 }
 
-async function writeShellRc(rcPath: string, content: string): Promise<void> {
+export async function resolveShellRcWritePath(rcPath: string): Promise<string> {
   let writePath = rcPath;
   try {
     if ((await lstat(rcPath)).isSymbolicLink()) {
@@ -59,7 +59,10 @@ async function writeShellRc(rcPath: string, content: string): Promise<void> {
       throw error;
     }
   }
+  return writePath;
+}
 
+async function shellRcMetadata(writePath: string, rcPath: string) {
   const rcFile = Bun.file(writePath);
   const metadata = (await rcFile.exists()) ? await stat(writePath) : null;
   const effectiveUser = process.geteuid?.();
@@ -70,6 +73,26 @@ async function writeShellRc(rcPath: string, content: string): Promise<void> {
   ) {
     throw new Error(`Refusing to replace '${rcPath}': owned by another user`);
   }
+  return metadata;
+}
+
+export async function shellRcTransactionPaths(
+  rcPath: string,
+): Promise<string[]> {
+  const writePath = await resolveShellRcWritePath(rcPath);
+  await shellRcMetadata(writePath, rcPath);
+  return [
+    ...new Set([
+      ...(writePath === rcPath ? [rcPath] : []),
+      `${rcPath}.pre-ideality`,
+      writePath,
+    ]),
+  ];
+}
+
+async function writeShellRc(rcPath: string, content: string): Promise<void> {
+  const writePath = await resolveShellRcWritePath(rcPath);
+  const metadata = await shellRcMetadata(writePath, rcPath);
   const mode = metadata ? metadata.mode & 0o777 : 0o600;
   const temporary = `${writePath}.${process.pid}.${randomUUID()}.tmp`;
   try {

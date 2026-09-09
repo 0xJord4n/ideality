@@ -2,7 +2,10 @@ import os from "node:os";
 import path from "node:path";
 
 import { getIdealityHome, loadConfig } from "../core/config-store.js";
-import { snapshotPaths } from "../core/file-transaction.js";
+import {
+  rollbackAfterFailure,
+  snapshotPaths,
+} from "../core/file-transaction.js";
 import {
   installCompletion,
   renderCompletion,
@@ -10,6 +13,7 @@ import {
 import { installGitIntegration } from "../integrations/git.js";
 import {
   installShellIntegration,
+  shellRcTransactionPaths,
   type SupportedShell,
 } from "../integrations/shell.js";
 import { installShims } from "../integrations/shims.js";
@@ -76,7 +80,7 @@ export async function enableIntegrations(
     path.join(idealityHome, "completions"),
     path.join(idealityHome, "shell"),
     path.join(idealityHome, "git"),
-    ...(!flags["no-shell"] ? [rcPath, `${rcPath}.pre-ideality`] : []),
+    ...(!flags["no-shell"] ? await shellRcTransactionPaths(rcPath) : []),
   ]);
   try {
     const shims = await installShims(config, idealityHome);
@@ -111,7 +115,6 @@ export async function enableIntegrations(
     }
     await transaction.commit();
   } catch (error) {
-    await transaction.rollback();
-    throw error;
+    await rollbackAfterFailure(transaction, error);
   }
 }

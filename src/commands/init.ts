@@ -17,7 +17,10 @@ import {
   getIdealityHome,
   saveConfig,
 } from "../core/config-store.js";
-import { snapshotPaths } from "../core/file-transaction.js";
+import {
+  rollbackAfterFailure,
+  snapshotPaths,
+} from "../core/file-transaction.js";
 import { findSshPrivateKeys } from "../core/file-search.js";
 import { deriveIdentityId } from "../core/identity-id.js";
 import { expandHome } from "../core/resolution.js";
@@ -29,6 +32,7 @@ import {
 import { installGitIntegration } from "../integrations/git.js";
 import {
   installShellIntegration,
+  shellRcTransactionPaths,
   type SupportedShell,
 } from "../integrations/shell.js";
 import { installShims } from "../integrations/shims.js";
@@ -452,7 +456,7 @@ const initCommand = defineCommand({
           path.join(idealityHome, "shell"),
           path.join(idealityHome, "git"),
           ...(integrations.includes("shell")
-            ? [defaultRc(shell, home), `${defaultRc(shell, home)}.pre-ideality`]
+            ? await shellRcTransactionPaths(defaultRc(shell, home))
             : []),
         ]);
     let generatedKey: { privateKey: string; publicKey: string } | null = null;
@@ -533,8 +537,7 @@ const initCommand = defineCommand({
         await rm(generatedKey.privateKey, { force: true });
         await rm(generatedKey.publicKey, { force: true });
       }
-      await transaction?.rollback();
-      throw error;
+      await rollbackAfterFailure(transaction, error);
     }
 
     if (interactive) {
