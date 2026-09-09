@@ -70,7 +70,7 @@ jobs:
           package-manager-cache: false
 
       - name: Pin npm
-        run: npm install --global npm@12.0.2
+        run: npm install --global npm@11.6.2
 
       - name: Install dependencies (all target platforms)
         run: bun install --frozen-lockfile --os '*' --cpu '*'
@@ -96,7 +96,12 @@ jobs:
         run: bash scripts/release-rehearsal.sh --no-build
 
       - name: Validate npm package contents
-        run: bun run package:check
+        run: |
+          if node -e "process.exit(require('./package.json').scripts?.['package:check'] ? 0 : 1)"; then
+            bun run package:check
+          else
+            npm pack --ignore-scripts --dry-run
+          fi
 
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2

@@ -143,8 +143,10 @@ gh attestation verify ideality-linux-x64.tar.gz --repo 0xJord4n/ideality
 
 ## Local dry runs
 
-CI and the publishing workflow pin npm 12.0.2. The package validation parser
-also accepts npm 11's array-shaped `npm pack --json` response and npm 12's
+CI pins npm 12.0.2 to cover the current package-output contract. The publishing
+workflow pins npm 11.6.2 so corrected workflows can still rebuild older tags;
+that version supports npm trusted publishing. The package validation parser
+accepts npm 11's array-shaped `npm pack --json` response and npm 12's
 package-keyed response.
 
 ```bash

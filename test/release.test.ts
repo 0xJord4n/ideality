@@ -621,7 +621,8 @@ describe(".github/workflows/release.yml", () => {
     expect(workflow).toContain('node-version: "24"');
     expect(workflow).toContain("registry-url: https://registry.npmjs.org");
     expect(workflow).toContain("bun run package:check");
-    expect(workflow).toContain("npm install --global npm@12.0.2");
+    expect(workflow).toContain("npm install --global npm@11.6.2");
+    expect(workflow).toContain("npm pack --ignore-scripts --dry-run");
     expect(workflow).toContain('npm view "$package@$version" version');
     expect(workflow).toContain("npm publish --access public");
     expect(workflow).toContain(
@@ -636,13 +637,15 @@ describe(".github/workflows/release.yml", () => {
 
 describe("deterministic npm tooling", () => {
   test("pins npm wherever release tests or package publishing run", async () => {
-    for (const file of ["ci.yml", "quality.yml", "release.yml"]) {
+    for (const file of ["ci.yml", "quality.yml"]) {
       const workflow = await readFile(
         path.join(workflowsDirectory, file),
         "utf8",
       );
       expect(workflow).toContain("npm install --global npm@12.0.2");
     }
+    const workflow = await readFile(releaseWorkflow, "utf8");
+    expect(workflow).toContain("npm install --global npm@11.6.2");
   });
 
   test("documents pinned tooling and fail-closed recovery", async () => {
