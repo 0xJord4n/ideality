@@ -247,4 +247,82 @@ describe("ideality init", () => {
     expect(reviewNotes[0]).toContain("Tools: gh");
     expect(reviewNotes[0]).toContain("Integrations: shell, git");
   });
+
+  test("recommended setup prompts when discovered Git values are invalid", async () => {
+    const project = await mkdtemp(path.join(os.tmpdir(), "ideality-init-"));
+    const originalEnvironment = {
+      HOME: process.env.HOME,
+      IDEALITY_CONFIG: process.env.IDEALITY_CONFIG,
+      IDEALITY_HOME: process.env.IDEALITY_HOME,
+    };
+    process.env.HOME = project;
+    process.env.IDEALITY_HOME = path.join(project, ".ideality");
+    process.env.IDEALITY_CONFIG = path.join(
+      process.env.IDEALITY_HOME,
+      "config.jsonc",
+    );
+    const prompts: string[] = [];
+    const log = spyOn(console, "log").mockImplementation(() => {});
+    let gitConfigCalls = 0;
+    const gitConfig = spyOn(Bun, "spawnSync").mockImplementation(
+      () =>
+        ({
+          exitCode: 0,
+          stdout: Buffer.from(
+            gitConfigCalls++ === 0 ? "Valid Name\n" : "invalid\n",
+          ),
+          stderr: Buffer.from(""),
+        }) as never,
+    );
+    try {
+      await initCommand.handler!({
+        flags: {
+          id: undefined,
+          label: "Default",
+          root: undefined,
+          "git-name": undefined,
+          "git-email": undefined,
+          "ssh-key": undefined,
+          "generate-ssh": false,
+          packs: undefined,
+          tools: undefined,
+          install: false,
+          shell: "zsh",
+          "no-shell": false,
+          "no-git": false,
+          interactive: true,
+          "non-interactive": false,
+          force: false,
+          "dry-run": true,
+        },
+        terminal: { isInteractive: true },
+        prompt: {
+          intro: () => {},
+          note: () => {},
+          text: async (label: string, options: { default?: string } = {}) => {
+            prompts.push(label);
+            if (label === "Git author email") return "valid@example.com";
+            return options.default ?? "";
+          },
+          select: async () => "recommended",
+          multiselect: async () => [],
+          filter: async () => [],
+          confirm: async () => true,
+          cancel: () => {},
+        },
+        spinner: () => {
+          throw new Error("Dry-run must not start a spinner");
+        },
+        colors: {},
+      } as never);
+    } finally {
+      gitConfig.mockRestore();
+      log.mockRestore();
+      for (const [key, value] of Object.entries(originalEnvironment)) {
+        if (value === undefined) delete process.env[key];
+        else process.env[key] = value;
+      }
+    }
+    expect(prompts).toContain("Git author email");
+  });
 });

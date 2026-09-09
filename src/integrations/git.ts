@@ -154,7 +154,7 @@ export async function disableGitIntegration(
     .toString()
     .split("\n")
     .map((entry) => entry.trim())
-    .find((entry) => entry === configPath);
+    .find((entry) => path.resolve(entry) === path.resolve(configPath));
   if (!registeredValue) {
     return { configPath, removed: false };
   }

@@ -137,4 +137,21 @@ describe("disableGitIntegration", () => {
       }),
     ).rejects.toThrow("Failed to inspect global Git config");
   });
+
+  test("unregisters an equivalent normalized include path", async () => {
+    const directory = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-git-normalized-disable-"),
+    );
+    const idealityHome = path.join(directory, ".ideality");
+    const globalConfig = path.join(directory, ".gitconfig");
+    const managed = path.join(idealityHome, "git", "includes.gitconfig");
+    const equivalent = `${path.join(idealityHome, "git")}/../git/includes.gitconfig`;
+    const environment = { ...process.env, GIT_CONFIG_GLOBAL: globalConfig };
+    await Bun.write(globalConfig, `[include]\n\tpath = ${equivalent}\n`);
+    expect(await disableGitIntegration(idealityHome, { environment })).toEqual({
+      configPath: managed,
+      removed: true,
+    });
+    expect(await Bun.file(globalConfig).text()).not.toContain(equivalent);
+  });
 });

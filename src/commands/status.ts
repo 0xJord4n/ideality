@@ -31,15 +31,14 @@ const statusCommand = defineCommand({
     const tools = await Promise.all(
       Object.entries(runtime.resolved.identity.tools).map(
         async ([name, profile]) => {
-          const environment = await buildEnvironment(
-            runtime.config,
-            runtime.resolved,
-            {
-              home: runtime.home,
-              idealityHome: runtime.idealityHome,
-              tool: name,
-            },
-          );
+          const enabled = profile.enabled !== false;
+          const environment = enabled
+            ? await buildEnvironment(runtime.config, runtime.resolved, {
+                home: runtime.home,
+                idealityHome: runtime.idealityHome,
+                tool: name,
+              })
+            : { redacted: {} };
           const executable = resolveExecutable(
             runtime.config,
             name,
@@ -56,7 +55,9 @@ const statusCommand = defineCommand({
               "shell",
             environment: environment.redacted,
             execution: summarizeExecution(
-              resolveExecution(runtime.config, runtime.resolved, name),
+              profile.enabled === false
+                ? resolveExecution(runtime.config, runtime.resolved)
+                : resolveExecution(runtime.config, runtime.resolved, name),
             ),
           };
         },
@@ -119,7 +120,9 @@ const statusCommand = defineCommand({
                   ? ` / active: ${output.activeNetwork.profile} (${output.activeNetwork.enforcement})`
                   : ""
               }`
-            : colors.dim("none"),
+            : output.activeNetwork
+              ? `active: ${output.activeNetwork.profile} (${output.activeNetwork.enforcement})`
+              : colors.dim("none"),
         ],
       ]),
     );
@@ -129,16 +132,18 @@ const statusCommand = defineCommand({
         head: ["tool", "state", "isolation", "target", "executable"],
         rows: tools.map((tool) => [
           tool.name,
-          tool.installed
-            ? statusGlyph("ok", "ready")
-            : statusGlyph("off", "missing"),
+          !tool.enabled
+            ? statusGlyph("off", "disabled")
+            : tool.installed
+              ? statusGlyph("ok", "ready")
+              : statusGlyph("off", "missing"),
           tool.isolation,
           tool.execution.target,
           tool.executable ? tidyPath(tool.executable) : colors.dim("-"),
         ]),
       }),
     );
-    const missing = tools.filter((tool) => !tool.installed);
+    const missing = tools.filter((tool) => tool.enabled && !tool.installed);
     if (missing.length > 0) {
       console.log();
       console.log(

@@ -1,4 +1,5 @@
 import type { GitIdentity } from "../domain/config.js";
+import { z } from "zod";
 
 export function requirePositional(
   positional: string[],
@@ -57,9 +58,13 @@ export function discoverConfiguredGitIdentity(
   name?: string,
   email?: string,
 ): { name?: string; email?: string } {
+  const configuredName = (name || gitConfig("user.name") || "").trim();
+  const configuredEmail = (email || gitConfig("user.email") || "").trim();
   return {
-    name: name || gitConfig("user.name") || undefined,
-    email: email || gitConfig("user.email") || undefined,
+    name: configuredName || undefined,
+    email: z.string().email().safeParse(configuredEmail).success
+      ? configuredEmail
+      : undefined,
   };
 }
 

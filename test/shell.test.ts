@@ -1,5 +1,13 @@
 import { describe, expect, test } from "bun:test";
-import { chmod, lstat, mkdtemp, symlink } from "node:fs/promises";
+import {
+  chmod,
+  chown,
+  lstat,
+  mkdtemp,
+  stat,
+  symlink,
+  utimes,
+} from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import type { IdealityConfig } from "../src/domain/config.js";
@@ -145,5 +153,69 @@ describe("disableShellIntegration", () => {
 
     expect((await lstat(rcPath)).isSymbolicLink()).toBe(true);
     expect(await Bun.file(target).text()).toBe("export EDITOR=vim\n\n");
+  });
+
+  test.each([
+    ["missing end marker", "before\n# >>> ideality >>>\nunrelated\nafter\n"],
+    ["missing begin marker", "before\n# <<< ideality <<<\nafter\n"],
+    [
+      "duplicate marker pairs",
+      "before\n# >>> ideality >>>\none\n# <<< ideality <<<\nmiddle\n# >>> ideality >>>\ntwo\n# <<< ideality <<<\nafter\n",
+    ],
+  ])("fails closed for %s", async (_case, source) => {
+    const directory = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-shell-malformed-"),
+    );
+    const rcPath = path.join(directory, ".zshrc");
+    await Bun.write(rcPath, source);
+    await expect(disableShellIntegration(rcPath)).rejects.toThrow(
+      "managed block markers",
+    );
+    expect(await Bun.file(rcPath).text()).toBe(source);
+  });
+
+  test("ignores marker text that is not on its own line", async () => {
+    const directory = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-shell-inline-marker-"),
+    );
+    const rcPath = path.join(directory, ".zshrc");
+    const source = "echo '# >>> ideality >>>'\nexport EDITOR=vim\n";
+    await Bun.write(rcPath, source);
+    expect(await disableShellIntegration(rcPath)).toEqual({
+      rcPath,
+      removed: false,
+    });
+    expect(await Bun.file(rcPath).text()).toBe(source);
+  });
+
+  test("preserves timestamps when atomically replacing an rc file", async () => {
+    const directory = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-shell-metadata-"),
+    );
+    const rcPath = path.join(directory, ".zshrc");
+    await Bun.write(
+      rcPath,
+      "# >>> ideality >>>\nsource '/tmp/hook'\n# <<< ideality <<<\n",
+    );
+    const timestamp = new Date("2020-01-02T03:04:05.000Z");
+    await utimes(rcPath, timestamp, timestamp);
+    await disableShellIntegration(rcPath);
+    expect((await stat(rcPath)).mtimeMs).toBe(timestamp.getTime());
+  });
+
+  test("refuses to replace an rc file owned by another user", async () => {
+    if (process.geteuid?.() !== 0) return;
+    const directory = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-shell-owner-"),
+    );
+    const rcPath = path.join(directory, ".zshrc");
+    const source =
+      "# >>> ideality >>>\nsource '/tmp/hook'\n# <<< ideality <<<\n";
+    await Bun.write(rcPath, source);
+    await chown(rcPath, 65534, 65534);
+    await expect(disableShellIntegration(rcPath)).rejects.toThrow(
+      "owned by another user",
+    );
+    expect(await Bun.file(rcPath).text()).toBe(source);
   });
 });

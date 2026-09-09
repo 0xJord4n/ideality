@@ -2,6 +2,7 @@ import os from "node:os";
 import path from "node:path";
 
 import { getIdealityHome, loadConfig } from "../core/config-store.js";
+import { snapshotPaths } from "../core/file-transaction.js";
 import {
   installCompletion,
   renderCompletion,
@@ -69,34 +70,48 @@ export async function enableIntegrations(
     return;
   }
 
-  const shims = await installShims(config, idealityHome);
-  console.log(
-    colors.green(`Tool shims: ${shims.directory} (${shims.tools.length})`),
-  );
-  if (!flags["no-shell"]) {
-    const completion = await installCompletion(
-      flags.shell,
-      renderCompletion(flags.shell, {
-        identities: Object.keys(config.identities).sort(),
-        tools: Object.keys(config.tools).sort(),
-      }),
-      idealityHome,
-    );
-    console.log(colors.green(`Completion: ${completion}`));
-    const installed = await installShellIntegration(
-      config,
-      flags.shell,
-      flags.rc ?? defaultRc(flags.shell, home),
-      idealityHome,
-    );
-    console.log(colors.green(`Shell hook: ${installed.hookPath}`));
-    console.log(`Shell rc:   ${installed.rcPath}`);
-  }
-  if (!flags["no-git"]) {
+  const rcPath = flags.rc ?? defaultRc(flags.shell, home);
+  const transaction = await snapshotPaths([
+    path.join(idealityHome, "bin"),
+    path.join(idealityHome, "completions"),
+    path.join(idealityHome, "shell"),
+    path.join(idealityHome, "git"),
+    ...(!flags["no-shell"] ? [rcPath] : []),
+  ]);
+  try {
+    const shims = await installShims(config, idealityHome);
     console.log(
-      colors.green(
-        `Git config: ${await installGitIntegration(config, home, idealityHome)}`,
-      ),
+      colors.green(`Tool shims: ${shims.directory} (${shims.tools.length})`),
     );
+    if (!flags["no-shell"]) {
+      const completion = await installCompletion(
+        flags.shell,
+        renderCompletion(flags.shell, {
+          identities: Object.keys(config.identities).sort(),
+          tools: Object.keys(config.tools).sort(),
+        }),
+        idealityHome,
+      );
+      console.log(colors.green(`Completion: ${completion}`));
+      const installed = await installShellIntegration(
+        config,
+        flags.shell,
+        rcPath,
+        idealityHome,
+      );
+      console.log(colors.green(`Shell hook: ${installed.hookPath}`));
+      console.log(`Shell rc:   ${installed.rcPath}`);
+    }
+    if (!flags["no-git"]) {
+      console.log(
+        colors.green(
+          `Git config: ${await installGitIntegration(config, home, idealityHome)}`,
+        ),
+      );
+    }
+    await transaction.commit();
+  } catch (error) {
+    await transaction.rollback();
+    throw error;
   }
 }

@@ -5,6 +5,7 @@ import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
 import { getIdealityHome } from "../core/config-store.js";
+import { snapshotPaths } from "../core/file-transaction.js";
 import {
   disableGitIntegration,
   gitIntegrationPath,
@@ -68,27 +69,34 @@ const disableCommand = defineCommand({
       return;
     }
 
-    if (!flags["no-shell"]) {
-      const shell = await disableShellIntegration(rcPath);
-      console.log(
-        shell.removed
-          ? colors.green(`Shell integration disabled: ${shell.rcPath}`)
-          : colors.dim(`Shell integration already disabled: ${shell.rcPath}`),
-      );
-    }
-    if (!flags["no-git"]) {
-      const git = await disableGitIntegration(idealityHome);
-      console.log(
-        git.removed
-          ? colors.green(`Git routing disabled: ${git.configPath}`)
-          : colors.dim(`Git routing already disabled: ${git.configPath}`),
-      );
+    const transaction = await snapshotPaths(flags["no-shell"] ? [] : [rcPath]);
+    try {
+      if (!flags["no-shell"]) {
+        const shell = await disableShellIntegration(rcPath);
+        console.log(
+          shell.removed
+            ? colors.green(`Shell integration disabled: ${shell.rcPath}`)
+            : colors.dim(`Shell integration already disabled: ${shell.rcPath}`),
+        );
+      }
+      if (!flags["no-git"]) {
+        const git = await disableGitIntegration(idealityHome);
+        console.log(
+          git.removed
+            ? colors.green(`Git routing disabled: ${git.configPath}`)
+            : colors.dim(`Git routing already disabled: ${git.configPath}`),
+        );
+      }
+      await transaction.commit();
+    } catch (error) {
+      await transaction.rollback();
+      throw error;
     }
 
     console.log(colors.green(`Configuration preserved: ${idealityHome}`));
     if (!flags["no-shell"]) {
       console.log(
-        `Open a new ${flags.shell} session to stop using the current shell hooks and shims.`,
+        "Start a fresh login shell (or remove Ideality's bin directory from the inherited PATH) to stop using the current shell hooks and shims.",
       );
     }
     console.log("Re-enable later with: ideality enable");

@@ -205,4 +205,199 @@ describe("integration lifecycle commands", () => {
       managedGit,
     ]);
   }, 20_000);
+
+  test("human status reports active VPN and disabled installed tools accurately", async () => {
+    const home = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-status-human-"),
+    );
+    const idealityHome = path.join(home, ".ideality");
+    const executable = path.join(home, "sample");
+    await Bun.write(executable, "#!/bin/sh\nexit 0\n");
+    await Bun.write(
+      path.join(idealityHome, "config.jsonc"),
+      `${JSON.stringify({
+        version: 1,
+        defaultIdentity: "default",
+        identities: {
+          default: {
+            label: "Default",
+            roots: [home],
+            tools: {
+              sample: { enabled: false, executable },
+            },
+          },
+        },
+        tools: { sample: { executable, isolation: "process" } },
+      })}\n`,
+    );
+    await Bun.write(
+      path.join(idealityHome, "runtime", "network-state.json"),
+      `${JSON.stringify({
+        version: 1,
+        profile: "privacy",
+        identity: "other",
+        driver: "mullvad",
+        enforcement: "strict",
+        activatedAt: "2026-01-01T00:00:00.000Z",
+      })}\n`,
+    );
+    const result = Bun.spawnSync({
+      cmd: [process.execPath, "run", "src/index.ts", "status", "-C", home],
+      cwd: path.resolve(import.meta.dir, ".."),
+      env: {
+        ...process.env,
+        HOME: home,
+        IDEALITY_HOME: idealityHome,
+        NO_COLOR: "1",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.toString()).toContain("active: privacy (strict)");
+    expect(result.stdout.toString()).toContain("disabled");
+    expect(result.stdout.toString()).not.toContain("ready");
+  });
+
+  test("disable rolls shell changes back when Git removal fails", async () => {
+    const home = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-disable-rollback-"),
+    );
+    const idealityHome = path.join(home, ".ideality");
+    const rcPath = path.join(home, ".zshrc");
+    const globalConfig = path.join(home, ".gitconfig");
+    const source =
+      "before\n# >>> ideality >>>\nsource '/tmp/hook'\n# <<< ideality <<<\nafter\n";
+    await Bun.write(rcPath, source);
+    await Bun.write(globalConfig, "[broken\n");
+    const result = Bun.spawnSync({
+      cmd: [process.execPath, "run", "src/index.ts", "disable", "--rc", rcPath],
+      cwd: path.resolve(import.meta.dir, ".."),
+      env: {
+        ...process.env,
+        HOME: home,
+        IDEALITY_HOME: idealityHome,
+        GIT_CONFIG_GLOBAL: globalConfig,
+        SHELL: "/bin/zsh",
+        NO_COLOR: "1",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(await Bun.file(rcPath).text()).toBe(source);
+  });
+
+  test("enable rolls generated files back when Git registration fails", async () => {
+    const home = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-enable-rollback-"),
+    );
+    const idealityHome = path.join(home, ".ideality");
+    const rcPath = path.join(home, ".zshrc");
+    const globalConfig = path.join(home, ".gitconfig");
+    await mkdir(idealityHome, { recursive: true });
+    await Bun.write(
+      path.join(idealityHome, "config.jsonc"),
+      `${JSON.stringify({
+        version: 1,
+        defaultIdentity: "default",
+        identities: { default: { label: "Default", roots: [home], tools: {} } },
+        tools: {},
+      })}\n`,
+    );
+    await Bun.write(globalConfig, "[broken\n");
+    const result = Bun.spawnSync({
+      cmd: [process.execPath, "run", "src/index.ts", "enable", "--rc", rcPath],
+      cwd: path.resolve(import.meta.dir, ".."),
+      env: {
+        ...process.env,
+        HOME: home,
+        IDEALITY_HOME: idealityHome,
+        GIT_CONFIG_GLOBAL: globalConfig,
+        SHELL: "/bin/zsh",
+        NO_COLOR: "1",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(await Bun.file(rcPath).exists()).toBe(false);
+    expect(
+      await Bun.file(path.join(idealityHome, "shell", "ideality.zsh")).exists(),
+    ).toBe(false);
+    expect(
+      await Bun.file(
+        path.join(idealityHome, "completions", "ideality.zsh"),
+      ).exists(),
+    ).toBe(false);
+  });
+
+  test("disable guidance explains inherited PATH cleanup", async () => {
+    const home = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-disable-guidance-"),
+    );
+    const result = Bun.spawnSync({
+      cmd: [process.execPath, "run", "src/index.ts", "disable", "--no-git"],
+      cwd: path.resolve(import.meta.dir, ".."),
+      env: {
+        ...process.env,
+        HOME: home,
+        IDEALITY_HOME: path.join(home, ".ideality"),
+        SHELL: "/bin/zsh",
+        NO_COLOR: "1",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout.toString()).toContain("login shell");
+    expect(result.stdout.toString()).toContain("PATH");
+    expect(result.stdout.toString()).not.toContain("Open a new zsh session");
+  });
+
+  test("init restores prior state when a late integration step fails", async () => {
+    const home = await mkdtemp(
+      path.join(os.tmpdir(), "ideality-init-rollback-"),
+    );
+    const idealityHome = path.join(home, ".ideality");
+    const configPath = path.join(idealityHome, "config.jsonc");
+    const rcPath = path.join(home, ".zshrc");
+    const globalConfig = path.join(home, ".gitconfig");
+    const prior = "prior registry\n";
+    await mkdir(idealityHome, { recursive: true });
+    await Bun.write(configPath, prior);
+    await Bun.write(globalConfig, "[broken\n");
+    const result = Bun.spawnSync({
+      cmd: [
+        process.execPath,
+        "run",
+        "src/index.ts",
+        "init",
+        "--non-interactive",
+        "--force",
+        "--install",
+        "--git-name",
+        "Example Developer",
+        "--git-email",
+        "developer@example.com",
+        "--root",
+        home,
+      ],
+      cwd: path.resolve(import.meta.dir, ".."),
+      env: {
+        ...process.env,
+        HOME: home,
+        IDEALITY_HOME: idealityHome,
+        IDEALITY_CONFIG: configPath,
+        GIT_CONFIG_GLOBAL: globalConfig,
+        SHELL: "/bin/zsh",
+        NO_COLOR: "1",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).not.toBe(0);
+    expect(await Bun.file(configPath).text()).toBe(prior);
+    expect(await Bun.file(rcPath).exists()).toBe(false);
+  });
 });

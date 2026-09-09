@@ -1,4 +1,5 @@
 import { defaultMaxListeners, setMaxListeners } from "node:events";
+import { rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -16,6 +17,7 @@ import {
   getIdealityHome,
   saveConfig,
 } from "../core/config-store.js";
+import { snapshotPaths } from "../core/file-transaction.js";
 import { findSshPrivateKeys } from "../core/file-search.js";
 import { deriveIdentityId } from "../core/identity-id.js";
 import { expandHome } from "../core/resolution.js";
@@ -441,55 +443,65 @@ const initCommand = defineCommand({
       if (!knownTools.has(tool))
         throw new Error(`Unknown built-in tool '${tool}'`);
     }
-    const git = { name: gitName, email: gitEmail };
-    if (sshMode === "existing") {
-      const expanded = expandHome(sshKey!, home);
-      if (!(await Bun.file(expanded).exists())) {
-        throw new Error(`SSH key '${sshKey}' does not exist`);
-      }
-      Object.assign(git, { sshKey: expanded });
-    } else if (sshMode === "generate") {
-      if (flags["dry-run"]) {
-        Object.assign(git, { sshKey: path.join(idealityHome, "ssh", id) });
-      } else {
-        Object.assign(
-          git,
-          await generateSshKey({
+    const transaction = flags["dry-run"]
+      ? null
+      : await snapshotPaths([
+          configPath,
+          path.join(idealityHome, "bin"),
+          path.join(idealityHome, "completions"),
+          path.join(idealityHome, "shell"),
+          path.join(idealityHome, "git"),
+          ...(integrations.includes("shell") ? [defaultRc(shell, home)] : []),
+        ]);
+    let generatedKey: { privateKey: string; publicKey: string } | null = null;
+    let spin: ReturnType<typeof spinner> | null = null;
+    try {
+      const git = { name: gitName, email: gitEmail };
+      if (sshMode === "existing") {
+        const expanded = expandHome(sshKey!, home);
+        if (!(await Bun.file(expanded).exists())) {
+          throw new Error(`SSH key '${sshKey}' does not exist`);
+        }
+        Object.assign(git, { sshKey: expanded });
+      } else if (sshMode === "generate") {
+        if (flags["dry-run"]) {
+          Object.assign(git, { sshKey: path.join(idealityHome, "ssh", id) });
+        } else {
+          generatedKey = await generateSshKey({
             identity: id,
             email: gitEmail,
             idealityHome,
-          }).then(({ privateKey }) => ({ sshKey: privateKey })),
-        );
+          });
+          Object.assign(git, { sshKey: generatedKey.privateKey });
+        }
       }
-    }
 
-    const config = createStarterConfig({
-      id,
-      label,
-      root,
-      git,
-      tools: selectedTools,
-    });
-    if (flags["dry-run"]) {
-      console.log(
-        JSON.stringify(
-          {
-            configPath,
-            config,
-            integrations,
-            shell: integrations.includes("shell") ? shell : null,
-          },
-          null,
-          2,
-        ),
-      );
-      return;
-    }
-    const spin = interactive
-      ? spinner({ text: "Writing identity registry", showTimer: true })
-      : null;
-    spin?.start();
-    try {
+      const config = createStarterConfig({
+        id,
+        label,
+        root,
+        git,
+        tools: selectedTools,
+      });
+      if (flags["dry-run"]) {
+        console.log(
+          JSON.stringify(
+            {
+              configPath,
+              config,
+              integrations,
+              shell: integrations.includes("shell") ? shell : null,
+            },
+            null,
+            2,
+          ),
+        );
+        return;
+      }
+      spin = interactive
+        ? spinner({ text: "Writing identity registry", showTimer: true })
+        : null;
+      spin?.start();
       await saveConfig(config);
       if (integrations.includes("shell")) {
         await installCompletion(
@@ -511,9 +523,15 @@ const initCommand = defineCommand({
       if (integrations.includes("git")) {
         await installGitIntegration(config, home, idealityHome);
       }
+      await transaction!.commit();
       spin?.succeed("Identity system ready");
     } catch (error) {
       spin?.fail("Setup failed");
+      if (generatedKey) {
+        await rm(generatedKey.privateKey, { force: true });
+        await rm(generatedKey.publicKey, { force: true });
+      }
+      await transaction?.rollback();
       throw error;
     }
 
