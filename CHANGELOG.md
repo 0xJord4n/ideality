@@ -3,6 +3,18 @@
 All notable changes to this project are documented here. Release Please updates this file
 from Conventional Commit messages when it prepares a release pull request.
 
+## [0.2.6](https://github.com/0xJord4n/ideality/compare/v0.2.5...v0.2.6) (2026-09-10)
+
+
+### Bug Fixes
+
+* harden release and lifecycle safety ([#24](https://github.com/0xJord4n/ideality/issues/24)) ([9db554e](https://github.com/0xJord4n/ideality/commit/9db554e96b1197b2f703c3cb29cc95ca486729a6))
+
+
+### Performance Improvements
+
+* lazy-load command implementations ([#26](https://github.com/0xJord4n/ideality/issues/26)) ([72fb450](https://github.com/0xJord4n/ideality/commit/72fb450847570d079fb42a29fe176ba037edef50))
+
 ## [0.2.5](https://github.com/0xJord4n/ideality/compare/v0.2.4...v0.2.5) (2026-07-27)
 
 
