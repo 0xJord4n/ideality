@@ -10,7 +10,7 @@ Work inside a checkout of the ideality repo. For built-in tool adapters
 
 ## Setup
 
-Install Bun 1.3.14 or a compatible 1.3.x release, then:
+Install Bun 1.4.2 or a compatible 1.4.x release, then:
 
 ```bash
 bun install --frozen-lockfile

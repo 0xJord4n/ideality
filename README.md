@@ -6,7 +6,7 @@
 [![GitHub release](https://img.shields.io/github/v/release/0xJord4n/ideality?style=flat&logo=github)](https://github.com/0xJord4n/ideality/releases)
 [![GitHub stars](https://img.shields.io/github/stars/0xJord4n/ideality?style=flat&logo=github)](https://github.com/0xJord4n/ideality/stargazers)
 [![License: MIT](https://img.shields.io/badge/license-MIT-2f855a)](LICENSE)
-[![Bun 1.3](https://img.shields.io/badge/Bun-1.3-black?logo=bun)](.bun-version)
+[![Bun 1.4](https://img.shields.io/badge/Bun-1.4-black?logo=bun)](.bun-version)
 
 Ideality maps folders to developer identities, then starts each tool with the
 right Git author, SSH key, account environment, profile directory, secrets,

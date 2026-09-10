@@ -1,14 +1,14 @@
 {
   "binary": "dist/index",
   "standaloneBuild": {
-    "maxBytes": 136000000,
-    "description": "136 MB maximum for the Linux x64 standalone executable; OpenTUI 0.4 baseline: 130.2 MB"
+    "maxBytes": 125000000,
+    "description": "125 MB maximum for the Linux x64 standalone executable after deferred TUI runtime loading"
   },
   "startup": {
     "args": ["--version"],
     "samples": 5,
     "warmups": 1,
-    "maxMedianMs": 5000,
-    "description": "Median wall-clock startup must remain at or below 5 seconds"
+    "maxMedianMs": 500,
+    "description": "Median --version startup must remain at or below 500 milliseconds"
   }
 }

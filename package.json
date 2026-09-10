@@ -44,7 +44,7 @@
     "@opentui/react": "0.4.5"
   },
   "type": "module",
-  "packageManager": "bun@1.3.14",
+  "packageManager": "bun@1.4.2",
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bunli build",
@@ -75,17 +75,22 @@
   "devDependencies": {
     "@biomejs/biome": "^2.5.5",
     "@bunli/core": "0.9.1",
+    "@bunli/test": "0.6.0",
     "@bunli/utils": "0.6.0",
     "@opentui/core": "0.4.5",
     "@opentui/react": "0.4.5",
-    "@bunli/test": "0.6.0",
     "@tsconfig/bun": "1.0.10",
-    "@types/bun": "1.3.14",
+    "@types/bun": "1.4.2",
     "@types/react": "^19.2.17",
+    "bun": "1.4.2",
     "bunli": "0.9.1",
     "jsonc-parser": "^3.3.1",
     "react": "^19.2.8",
     "typescript": "^7.0.2",
     "zod": "^4.4.3"
+  },
+  "patchedDependencies": {
+    "@bunli/core@0.9.1": "patches/@bunli%2Fcore@0.9.1.patch",
+    "@bunli/runtime@0.3.2": "patches/@bunli%2Fruntime@0.3.2.patch"
   }
 }

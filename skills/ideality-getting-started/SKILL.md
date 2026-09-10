@@ -37,7 +37,7 @@ curl -fsSL https://raw.githubusercontent.com/0xJord4n/ideality/main/scripts/inst
 Environment overrides for the script: `IDEALITY_VERSION` pins a version,
 `IDEALITY_INSTALL_DIR` changes the destination.
 
-From source (requires the Bun 1.3 version pinned by the checkout):
+From source (requires the Bun 1.4 version pinned by the checkout):
 
 ```bash
 git clone https://github.com/0xJord4n/ideality.git

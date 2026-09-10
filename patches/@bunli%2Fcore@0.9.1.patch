@@ -1,0 +1,77 @@
+diff --git a/src/cli.ts b/src/cli.ts
+index 737c262f174bbef5b3cc9ced1b2392485a24c548..b7d1bdad5cdafcfa9e37992c975c5f14ac79fc68 100644
+--- a/src/cli.ts
++++ b/src/cli.ts
+@@ -1,5 +1,9 @@
+ import { resolveImageRenderMode } from "@bunli/runtime/image";
+-import { PromptCancelledError, createPromptSession } from "@bunli/runtime/prompt";
++import {
++  PromptCancelledError,
++  createPromptSession,
++  type PromptSession,
++} from "@bunli/runtime/prompt";
+ import { colors } from "@bunli/utils";
+ import { SchemaError, getDotPath } from "@standard-schema/utils";
+ import { Result } from "better-result";
+@@ -38,7 +42,7 @@ import {
+   createInterruptController,
+   ProcessTerminatedError,
+ } from "./runtime/interrupt-controller.js";
+-import { runTuiRender } from "./runtime/tui-render.js";
++import type { runTuiRender } from "./runtime/tui-render.js";
+ import type {
+   CLI,
+   Command,
+@@ -123,6 +127,40 @@ interface CreateCLIRuntimeDeps {
+   getTerminalInfo?: () => TerminalInfo;
+ }
+ 
++function createDeferredPromptSession(): PromptSession {
++  let session: PromptSession | undefined;
++  const resolveSession = (): PromptSession => {
++    if (!session) {
++      session = createPromptSession();
++    }
++    return session;
++  };
++
++  const prompt = new Proxy(
++    ((...args: Parameters<PromptSession["prompt"]>) =>
++      resolveSession().prompt(...args)) as PromptSession["prompt"],
++    {
++      get(_target, property) {
++        const resolvedPrompt = resolveSession().prompt;
++        const value = Reflect.get(resolvedPrompt, property);
++        return typeof value === "function" ? value.bind(resolvedPrompt) : value;
++      },
++    },
++  );
++
++  return {
++    initialize: () => resolveSession().initialize(),
++    prompt,
++    spinner: (...args) => resolveSession().spinner(...args),
++    dispose: () => session?.dispose() ?? Promise.resolve(),
++  };
++}
++
++const runDeferredTuiRender: typeof runTuiRender = async (args) => {
++  const tuiRuntime = await import("./runtime/tui-render.js");
++  await tuiRuntime.runTuiRender(args);
++};
++
+ interface OutputContext {
+   format: OutputFormat;
+   formatExplicit: boolean;
+@@ -230,8 +268,9 @@ export async function createCLI<TPlugins extends readonly BunliPlugin[] = []>(
+     };
+   }
+   const cliDeps = {
+-    createPromptSession: runtimeDeps.createPromptSession ?? createPromptSession,
+-    runTuiRender: runtimeDeps.runTuiRender ?? runTuiRender,
++    createPromptSession:
++      runtimeDeps.createPromptSession ?? createDeferredPromptSession,
++    runTuiRender: runtimeDeps.runTuiRender ?? runDeferredTuiRender,
+     getTerminalInfo: runtimeDeps.getTerminalInfo ?? getTerminalInfo,
+   };
+   const pluginManager = new PluginManager<TStore>();
