@@ -256,6 +256,16 @@ Both commands accept `--shell zsh|bash|fish`, `--rc <path>`, `--no-shell`, and
 `--no-git`. `ideality install` remains an equivalent way to enable and
 regenerate all integrations.
 
+### Verify dispatch is active
+
+```bash
+ideality git check gh              # shim intercepts this tool
+ideality git status                # configured profile vs effective Git author
+ideality git repair --dry-run      # preview repo-local author overrides
+ideality git repair                # clear them so the profile applies
+ideality doctor --strict           # shim-path + git:identity findings
+```
+
 ## Project Setup
 
 Run the project wizard anywhere inside a repository:
@@ -609,6 +619,7 @@ first, then use the signed installer so only one `ideality` remains on `PATH`.
 | **Governance** | `policy check`, `audit status|enable|disable|list|prune|clear` |
 | **Recovery** | `rollback`, `config path|validate|show|migrate|edit`, `update` |
 | **Shell** | `hook`, `completion zsh|bash|fish` |
+| **Dispatch repair** | `git status|repair|check`, `doctor` |
 
 Run `ideality --help` or `ideality <command> --help` for flags and examples.
 

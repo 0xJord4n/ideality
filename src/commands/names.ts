@@ -14,7 +14,7 @@ export const IDEALITY_COMMAND_GROUPS = [
   },
   {
     title: "Shell & Git integration",
-    commands: ["install", "enable", "disable", "hook", "completion"],
+    commands: ["install", "git", "enable", "disable", "hook", "completion"],
   },
   {
     title: "Isolation",

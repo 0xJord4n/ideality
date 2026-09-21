@@ -83,9 +83,44 @@ describe("renderShellAssignments", () => {
 
     const hook = renderShellHook(config, "zsh", "/home/dev/.ideality");
 
-    expect(hook).toContain("export PATH='/home/dev/.ideality/bin':\"$PATH\"");
+    expect(hook).toContain("_ideality_shim_dir='/home/dev/.ideality/bin'");
+    expect(hook).toContain('export PATH="$_ideality_shim_dir');
     expect(hook).not.toContain("sample()");
     expect(hook).toContain("ideality env --shell zsh");
+  });
+
+  test("moves an existing shim directory to the front on every hook run", () => {
+    const hook = renderShellHook(
+      {
+        version: 1,
+        defaultIdentity: "default",
+        identities: {
+          default: { label: "Default", roots: ["~/code"], tools: {} },
+        },
+        tools: {},
+      },
+      "zsh",
+      "/home/dev/.ideality",
+    );
+    // A stale PATH with the shim dir buried must converge to front.
+    expect(hook).toContain("awk -v RS=: -v ORS=:");
+    expect(hook).not.toContain("*) ;;");
+  });
+
+  test("fish hook deduplicates the shim directory and keeps it first", () => {
+    const hook = renderShellHook(
+      {
+        version: 1,
+        defaultIdentity: "default",
+        identities: {
+          default: { label: "Default", roots: ["~/code"], tools: {} },
+        },
+        tools: {},
+      },
+      "fish",
+      "/home/dev/.ideality",
+    );
+    expect(hook).toContain("string match -v -e");
   });
 });
 

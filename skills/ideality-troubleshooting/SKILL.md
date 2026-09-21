@@ -27,11 +27,27 @@ fix with `ideality identity bind`, `ideality identity unbind`, or
 
 ## Tool not intercepted
 
-Shims live in `~/.ideality/bin`, which `ideality install` adds to `PATH`.
+Shims live in `~/.ideality/bin`, which `ideality install` moves to the front
+of `PATH` on every prompt (re-sourcing the hook converges a stale PATH).
 
-- Verify `~/.ideality/bin` precedes the real binary's directory in `PATH`.
+- Verify `~/.ideality/bin` is first: `ideality git check gh`.
 - Re-run `ideality install` after enabling new tools (`--dry-run` to preview).
 - Bun is intentionally never shimmed — use `ideality run bun -- <args>`.
+
+## Effective Git author is wrong
+
+Repo-local `user.name`/`user.email` in `.git/config` beats the global
+`includeIf` chain, so `status` alone cannot prove which author a commit uses:
+
+```bash
+ideality git status                # configured profile vs effective author
+ideality git repair --dry-run      # preview local overrides
+ideality git repair                # clear repo-local user.name/user.email
+ideality doctor --strict           # git:identity fails while overridden
+```
+
+`git repair` only unsets repo-scoped author keys; global and system config is
+left untouched.
 
 ## Roll back a bad registry change
 
