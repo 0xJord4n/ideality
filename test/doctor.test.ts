@@ -149,7 +149,11 @@ describe("doctor", () => {
   });
 
   test("fails when a repo-local Git author overrides the identity profile", async () => {
-    const home = await mkdtemp(path.join(os.tmpdir(), "ideality-doctor-git-"));
+    // Canonicalize: on macOS $TMPDIR contains a /var -> /private/var symlink
+    // and Git matches includeIf gitdir patterns against the resolved path.
+    const home = await realpath(
+      await mkdtemp(path.join(os.tmpdir(), "ideality-doctor-git-")),
+    );
     const idealityHome = path.join(home, ".ideality");
     const repo = path.join(home, "repo");
     await mkdir(path.join(idealityHome, "git"), { recursive: true });
