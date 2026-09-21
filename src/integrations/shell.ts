@@ -176,9 +176,7 @@ export function renderShellHook(
   );
   if (shell === "fish") {
     return [
-      `if not contains -- ${fishQuote(shimDirectory)} $PATH`,
-      `  set -gx PATH ${fishQuote(shimDirectory)} $PATH`,
-      "end",
+      `set -gx PATH ${fishQuote(shimDirectory)} (string match -v -e -- ${fishQuote(shimDirectory)} $PATH)`,
       `test -r ${fishQuote(completion)}; and source ${fishQuote(completion)}`,
       "function __ideality_apply --on-variable PWD",
       '  command ideality env --shell fish --path "$PWD" | source',
@@ -205,11 +203,17 @@ export function renderShellHook(
           "esac",
         ];
 
+  const shimDirQuoted = singleQuote(shimDirectory);
+  const lines: string[] = [
+    `_ideality_shim_dir=${shimDirQuoted}`,
+    "_ideality_path_remainder=$(printf '%s' \"$PATH\" | awk -v RS=: -v ORS=: -v want=\"$_ideality_shim_dir\" '$0 != want')",
+    '_ideality_path_remainder="${_ideality_path_remainder%:}"',
+    'export PATH="$_ideality_shim_dir${_ideality_path_remainder:+:$_ideality_path_remainder}"',
+    "unset _ideality_shim_dir _ideality_path_remainder",
+  ];
+
   return [
-    `case ":$PATH:" in`,
-    `  *":${shimDirectory}:"*) ;;`,
-    `  *) export PATH=${singleQuote(shimDirectory)}:"$PATH" ;;`,
-    "esac",
+    ...lines,
     `[[ -r ${singleQuote(completion)} ]] && source ${singleQuote(completion)}`,
     "_ideality_apply() {",
     `  eval "$(command ideality env --shell ${shell} --path "$PWD")"`,

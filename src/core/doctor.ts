@@ -1,7 +1,12 @@
+import { accessSync, constants } from "node:fs";
 import { readdir, realpath, stat } from "node:fs/promises";
 import path from "node:path";
 
 import type { IdealityConfig } from "../domain/config.js";
+import {
+  isGitIntegrationRegistered,
+  resolveEffectiveGitIdentity,
+} from "../integrations/git.js";
 import { renderShim } from "../integrations/shims.js";
 import {
   networkAdapterCapability,
@@ -26,6 +31,7 @@ export async function runDoctor(
   config: IdealityConfig,
   home: string,
   idealityHome: string = path.join(home, ".ideality"),
+  options: { gitEnvironment?: Record<string, string | undefined> } = {},
 ): Promise<DoctorCheck[]> {
   const checks: DoctorCheck[] = [];
   const rootOwners = new Map<string, string>();
@@ -178,16 +184,38 @@ export async function runDoctor(
   }
 
   const shimDirectory = path.join(idealityHome, "bin");
+  const shimResolved = path.resolve(shimDirectory);
   const pathEntries = (process.env.PATH ?? "")
     .split(path.delimiter)
     .map((entry) => path.resolve(entry));
-  const shimPathActive = pathEntries.includes(path.resolve(shimDirectory));
+  const shimIndex = pathEntries.indexOf(shimResolved);
+  const firstRealToolDir = pathEntries.find(
+    (entry) =>
+      entry !== shimResolved &&
+      configuredTools.size > 0 &&
+      [...configuredTools].some((tool) => {
+        if (config.tools[tool]?.shim === false) return false;
+        try {
+          accessSync(path.join(entry, tool), constants.X_OK);
+          return true;
+        } catch {
+          return false;
+        }
+      }),
+  );
+  const shimPathActive = shimIndex >= 0;
+  const shimShadowed =
+    shimPathActive &&
+    firstRealToolDir !== undefined &&
+    pathEntries.indexOf(firstRealToolDir) < shimIndex;
   checks.push({
-    status: shimPathActive ? "pass" : "warn",
+    status: !shimPathActive || shimShadowed ? "warn" : "pass",
     subject: "shim-path",
-    message: shimPathActive
-      ? `${shimDirectory} is active in PATH`
-      : `${shimDirectory} is not active in PATH; reload the shell integration`,
+    message: !shimPathActive
+      ? `${shimDirectory} is not active in PATH; reload the shell integration`
+      : shimShadowed
+        ? `${shimDirectory} is shadowed by ${firstRealToolDir} in PATH; re-source the shell hook so shims come first (ideality install)`
+        : `${shimDirectory} is first in PATH`,
   });
   for (const tool of configuredTools) {
     if (config.tools[tool]?.shim === false) continue;
@@ -275,6 +303,60 @@ export async function runDoctor(
         ? `installed: ${hooks.join(", ")}`
         : "not installed; run 'ideality install'",
   });
+
+  try {
+    const registered = isGitIntegrationRegistered(idealityHome, {
+      environment: options.gitEnvironment,
+    });
+    if (!registered) {
+      checks.push({
+        status: "warn",
+        subject: "git:include",
+        message: `Git includeIf integration is not registered; run 'ideality install'`,
+      });
+    } else {
+      const effective = resolveEffectiveGitIdentity(process.cwd(), {
+        environment: options.gitEnvironment,
+      });
+      const expectedName = Object.entries(config.identities).find(
+        ([, identity]) =>
+          identity.roots.some((root) =>
+            process.cwd().startsWith(expandHome(root, home)),
+          ),
+      )?.[1]?.git?.name;
+      if (effective.overridden) {
+        checks.push({
+          status: "fail",
+          subject: "git:identity",
+          message: `effective Git author '${effective.name?.value ?? "?"} <${effective.email?.value ?? "?"}>' overrides the identity profile (${effective.origins.join("; ")}); clear it with 'ideality git repair'`,
+        });
+      } else if (
+        expectedName &&
+        effective.name &&
+        effective.name.value !== expectedName
+      ) {
+        checks.push({
+          status: "fail",
+          subject: "git:identity",
+          message: `effective Git author '${effective.name.value} <${effective.email?.value ?? "?"}>' does not match identity '${expectedName}'; clear it with 'ideality git repair'`,
+        });
+      } else {
+        checks.push({
+          status: "pass",
+          subject: "git:identity",
+          message: effective.name
+            ? `effective Git author '${effective.name.value} <${effective.email?.value ?? "?"}>' matches the identity profile`
+            : "no Git author configured; identity profile will apply",
+        });
+      }
+    }
+  } catch (error) {
+    checks.push({
+      status: "warn",
+      subject: "git:identity",
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
 
   const snapshots = await listConfigSnapshots(
     path.join(idealityHome, "config.jsonc"),
