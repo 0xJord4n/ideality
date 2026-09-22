@@ -613,9 +613,18 @@ ideality update --version 0.1.0
 
 An update verifies signed metadata and the archive checksum, proves the staged
 binary version, checks migration readiness, snapshots config bytes, and rolls
-back both the binary and config if migration fails. Legacy managed
-installations are never overwritten; remove the old managed installation
-first, then use the signed installer so only one `ideality` remains on `PATH`.
+back both the binary and config if migration fails. After swapping the
+binary it refreshes shell and Git integrations (the equivalent of
+`ideality install`, opt out with `--no-refresh`), then tells you to reload
+your shell — a CLI cannot replace its parent shell, so finish with:
+
+```bash
+exec "$SHELL" -l
+```
+
+Legacy managed installations are never overwritten; remove the old managed
+installation first, then use the signed installer so only one `ideality`
+remains on `PATH`.
 
 ## Command Reference
 

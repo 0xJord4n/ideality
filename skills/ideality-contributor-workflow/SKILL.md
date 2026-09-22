@@ -36,6 +36,20 @@ Run both `bun run check` and `bun run audit` before opening a PR. Run
 `bun run perf:check` when changing startup, bundling, imports, or command
 registration.
 
+## Test isolation rules
+
+- Spawned processes (`Bun.spawn`/`Bun.spawnSync` without an explicit `env`
+  block) inherit the environment snapshot from Bun process startup — live
+  `process.env.X = y` mutations in the test are invisible to them, and
+  `os.homedir()` likewise ignores runtime `HOME` changes. Pass every
+  isolation variable (`HOME`, `IDEALITY_HOME`, `IDEALITY_CONFIG`,
+  `GIT_CONFIG_GLOBAL`, `GIT_CONFIG_SYSTEM`, …) through the explicit `env`
+  option instead; otherwise Git and shell writes land on the real host files.
+- Prefer spawning the CLI (or a `bun --eval` helper import) with an explicit
+  `env` block over in-process env mutation for anything side-effecting.
+- Guard host files in risky tests: snapshot `/root/.bashrc`-style targets
+  before the run and diff them after.
+
 ## Privileged adapters (network / VM / secret)
 
 Separate contribution format because they can control host networking,

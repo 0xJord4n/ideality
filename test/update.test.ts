@@ -504,3 +504,61 @@ describe("runUpdate", () => {
     ).toBe(true);
   });
 });
+
+describe("refreshIntegrationsAfterUpdate", () => {
+  test("regenerates shims, hook, completions, and Git include", async () => {
+    // Spawned subprocess: Bun children inherit the startup environment
+    // snapshot, not live process.env mutations, so all isolation travels
+    // through the explicit env block below.
+    const home = await tempDir("ideality-refresh-home-");
+    const idealityHome = path.join(home, ".ideality");
+    const configPath = path.join(idealityHome, "config.jsonc");
+    const globalGit = path.join(home, "gitconfig-global");
+    const systemGit = path.join(home, "gitconfig-system");
+    await mkdir(idealityHome, { recursive: true });
+    await writeFile(
+      configPath,
+      `${JSON.stringify({
+        version: 1,
+        defaultIdentity: "work",
+        identities: {
+          work: { label: "Work", roots: [home], tools: { probe: {} } },
+        },
+        tools: { probe: { executable: "/bin/true" } },
+      })}\n`,
+    );
+    await writeFile(globalGit, "");
+    await writeFile(systemGit, "");
+    const script = `const { refreshIntegrationsAfterUpdate } = await import(${JSON.stringify(
+      path.join(import.meta.dir, "..", "src", "commands", "update.ts"),
+    )});
+await refreshIntegrationsAfterUpdate({ green: (value) => value }, { shell: "bash", rc: ${JSON.stringify(
+      path.join(home, ".bashrc"),
+    )} });`;
+    const result = Bun.spawnSync({
+      cmd: ["bun", "--eval", script],
+      cwd: path.join(import.meta.dir, ".."),
+      env: {
+        ...process.env,
+        HOME: home,
+        IDEALITY_HOME: idealityHome,
+        IDEALITY_CONFIG: configPath,
+        SHELL: "/bin/bash",
+        GIT_CONFIG_GLOBAL: globalGit,
+        GIT_CONFIG_SYSTEM: systemGit,
+        NO_COLOR: "1",
+      },
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    expect(result.exitCode).toBe(0);
+    expect(existsSync(path.join(idealityHome, "bin", "probe"))).toBe(true);
+    expect(await readFile(path.join(home, ".bashrc"), "utf8")).toContain(
+      "ideality",
+    );
+    expect(await readFile(globalGit, "utf8")).toContain("include");
+    expect(
+      existsSync(path.join(idealityHome, "git", "includes.gitconfig")),
+    ).toBe(true);
+  });
+});
