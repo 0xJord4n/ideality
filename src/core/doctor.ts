@@ -16,7 +16,7 @@ import {
 import { listConfigSnapshots } from "./config-store.js";
 import { renderTemplate } from "./environment.js";
 import { listPluginManifests } from "./plugins.js";
-import { expandHome } from "./resolution.js";
+import { expandHome, unmatchedMode } from "./resolution.js";
 import { findExecutable, resolveExecutable } from "./runtime.js";
 
 export type CheckStatus = "pass" | "warn" | "fail";
@@ -318,36 +318,45 @@ export async function runDoctor(
       const effective = resolveEffectiveGitIdentity(process.cwd(), {
         environment: options.gitEnvironment,
       });
-      const expectedName = Object.entries(config.identities).find(
-        ([, identity]) =>
-          identity.roots.some((root) =>
-            process.cwd().startsWith(expandHome(root, home)),
-          ),
-      )?.[1]?.git?.name;
-      if (effective.overridden) {
-        checks.push({
-          status: "fail",
-          subject: "git:identity",
-          message: `effective Git author '${effective.name?.value ?? "?"} <${effective.email?.value ?? "?"}>' overrides the identity profile (${effective.origins.join("; ")}); clear it with 'ideality git repair'`,
-        });
-      } else if (
-        expectedName &&
-        effective.name &&
-        effective.name.value !== expectedName
-      ) {
-        checks.push({
-          status: "fail",
-          subject: "git:identity",
-          message: `effective Git author '${effective.name.value} <${effective.email?.value ?? "?"}>' does not match identity '${expectedName}'; clear it with 'ideality git repair'`,
-        });
-      } else {
+      const matched = Object.entries(config.identities).find(([, identity]) =>
+        identity.roots.some((root) =>
+          process.cwd().startsWith(expandHome(root, home)),
+        ),
+      );
+      if (!matched && unmatchedMode(config) === "passthrough") {
         checks.push({
           status: "pass",
           subject: "git:identity",
-          message: effective.name
-            ? `effective Git author '${effective.name.value} <${effective.email?.value ?? "?"}>' matches the identity profile`
-            : "no Git author configured; identity profile will apply",
+          message:
+            "passthrough: no bound root matches this directory, no identity profile applies",
         });
+      } else {
+        const expectedName = matched?.[1]?.git?.name;
+        if (effective.overridden) {
+          checks.push({
+            status: "fail",
+            subject: "git:identity",
+            message: `effective Git author '${effective.name?.value ?? "?"} <${effective.email?.value ?? "?"}>' overrides the identity profile (${effective.origins.join("; ")}); clear it with 'ideality git repair'`,
+          });
+        } else if (
+          expectedName &&
+          effective.name &&
+          effective.name.value !== expectedName
+        ) {
+          checks.push({
+            status: "fail",
+            subject: "git:identity",
+            message: `effective Git author '${effective.name.value} <${effective.email?.value ?? "?"}>' does not match identity '${expectedName}'; clear it with 'ideality git repair'`,
+          });
+        } else {
+          checks.push({
+            status: "pass",
+            subject: "git:identity",
+            message: effective.name
+              ? `effective Git author '${effective.name.value} <${effective.email?.value ?? "?"}>' matches the identity profile`
+              : "no Git author configured; identity profile will apply",
+          });
+        }
       }
     }
   } catch (error) {

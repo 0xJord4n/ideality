@@ -2,6 +2,7 @@ import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
 import { buildEnvironment } from "../core/environment.js";
+import { isPassthrough } from "../core/resolution.js";
 import { loadRuntime } from "../core/runtime.js";
 import {
   collectManagedVariables,
@@ -31,6 +32,24 @@ const envCommand = defineCommand({
   },
   handler: async ({ flags }) => {
     const runtime = await loadRuntime(flags.path, flags.identity);
+    if (isPassthrough(runtime.config, runtime.resolved, flags.identity)) {
+      // Unmatched directory: clear any managed variables left over from a
+      // previously matched directory instead of applying an identity.
+      const stale = collectManagedVariables(runtime.config);
+      if (flags.shell) {
+        process.stdout.write(renderShellAssignments({}, stale, flags.shell));
+        return;
+      }
+      printJson({
+        identity: null,
+        passthrough: true,
+        path: runtime.resolved.path,
+        matchedRoot: null,
+        environment: {},
+        unset: stale,
+      });
+      return;
+    }
     const environment = await buildEnvironment(
       runtime.config,
       runtime.resolved,

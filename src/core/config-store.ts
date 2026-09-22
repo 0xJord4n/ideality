@@ -243,10 +243,17 @@ const auditHistorySchema = z.object({
   retentionDays: z.number().int().min(1).max(3650).optional(),
 });
 
+const routingSchema = z
+  .object({
+    unmatched: z.enum(["passthrough", "default"]).optional(),
+  })
+  .optional();
+
 const configSchema = z
   .object({
     version: z.literal(CONFIG_VERSION),
     defaultIdentity: z.string().min(1),
+    routing: routingSchema,
     secretBackend: secretBackendSchema.optional(),
     identities: z.record(z.string(), identitySchema),
     tools: z.record(

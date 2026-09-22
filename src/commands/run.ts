@@ -9,6 +9,7 @@ import {
 import { resolveExecution } from "../core/execution.js";
 import { ensureNetwork } from "../core/network-manager.js";
 import { runProcess } from "../core/process.js";
+import { isPassthrough } from "../core/resolution.js";
 import { loadRuntime, resolveExecutable } from "../core/runtime.js";
 import { vmAdapterCapability, vmAdapterCommand } from "../core/adapters.js";
 import {
@@ -40,6 +41,35 @@ const runCommand = defineCommand({
   handler: async ({ positional, flags, signal }) => {
     const tool = requirePositional(positional, 0, "tool name");
     const runtime = await loadRuntime(flags.path, flags.identity);
+    const userArgs = commandArguments(positional, 1);
+    if (isPassthrough(runtime.config, runtime.resolved, flags.identity)) {
+      // No bound root contains this directory: exec the real binary with
+      // the ambient environment instead of applying any identity.
+      const passthroughExecutable = resolveExecutable(
+        runtime.config,
+        tool,
+        runtime.resolved.identity.tools[tool]?.executable,
+      );
+      if (!passthroughExecutable) {
+        throw new Error(`Executable for tool '${tool}' is not installed`);
+      }
+      const ambientEnv: Record<string, string> = {};
+      for (const [name, value] of Object.entries(process.env)) {
+        if (value !== undefined && !name.startsWith("IDEALITY_")) {
+          ambientEnv[name] = value;
+        }
+      }
+      const child = Bun.spawn([passthroughExecutable, ...userArgs], {
+        cwd: flags.path,
+        env: ambientEnv,
+        stdin: "inherit",
+        stdout: "inherit",
+        stderr: "inherit",
+        signal,
+      });
+      process.exitCode = await child.exited;
+      return;
+    }
     const profile = runtime.resolved.identity.tools[tool];
     if (!profile || profile.enabled === false) {
       throw new Error(
@@ -47,7 +77,6 @@ const runCommand = defineCommand({
       );
     }
     const execution = resolveExecution(runtime.config, runtime.resolved, tool);
-    const userArgs = commandArguments(positional, 1);
     const recordSuccessfulDispatch = async (): Promise<void> => {
       await recordAuditEvent(runtime.config, runtime.idealityHome, {
         eventType: "tool.dispatched",

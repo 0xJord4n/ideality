@@ -8,7 +8,7 @@ import {
   resolveEffectiveGitIdentity,
 } from "../integrations/git.js";
 import { loadConfig } from "../core/config-store.js";
-import { expandHome } from "../core/resolution.js";
+import { expandHome, isPassthrough } from "../core/resolution.js";
 import { requirePositional } from "./shared.js";
 import { hintLines, keyValue, statusGlyph, tidyPath } from "./ui.js";
 
@@ -44,6 +44,49 @@ const gitCommand = defineGroup({
       },
       handler: async ({ flags, colors }) => {
         const runtime = await loadRuntime(flags.path, flags.identity);
+        if (isPassthrough(runtime.config, runtime.resolved, flags.identity)) {
+          const effective = resolveEffectiveGitIdentity(flags.path);
+          if (flags.json) {
+            console.log(
+              JSON.stringify(
+                {
+                  identity: null,
+                  passthrough: true,
+                  path: runtime.resolved.path,
+                  matchedRoot: null,
+                  effective: {
+                    name: effective.name,
+                    email: effective.email,
+                    overridden: effective.overridden,
+                    origins: effective.origins,
+                  },
+                },
+                null,
+                2,
+              ),
+            );
+            return;
+          }
+          console.log(
+            `${colors.bold("passthrough")} ${colors.dim("(no identity applies)")}`,
+          );
+          console.log(
+            keyValue([
+              ["path", tidyPath(runtime.resolved.path)],
+              [
+                "matched root",
+                colors.dim("none (real binaries run with ambient env)"),
+              ],
+              [
+                "effective",
+                effective.name
+                  ? `${effective.name.value} <${effective.email?.value ?? "?"}>`
+                  : colors.dim("none"),
+              ],
+            ]),
+          );
+          return;
+        }
         const configured = runtime.resolved.identity.git ?? null;
         const effective = resolveEffectiveGitIdentity(flags.path);
         const output = {
@@ -127,6 +170,30 @@ const gitCommand = defineGroup({
       handler: async ({ flags, colors }) => {
         const config = await loadConfig();
         const runtime = await loadRuntime(flags.path);
+        if (isPassthrough(runtime.config, runtime.resolved, undefined)) {
+          if (flags.json) {
+            console.log(
+              JSON.stringify(
+                {
+                  identity: null,
+                  passthrough: true,
+                  path: runtime.resolved.path,
+                  cleared: [],
+                },
+                null,
+                2,
+              ),
+            );
+          } else {
+            console.log(
+              statusGlyph(
+                "ok",
+                "passthrough: no identity profile applies here, nothing to repair",
+              ),
+            );
+          }
+          return;
+        }
         const effective = resolveEffectiveGitIdentity(flags.path);
         const roots = identityRootsFor(config, runtime.resolved.id);
         const insideManagedRoot = roots.some(

@@ -1,7 +1,8 @@
 import { defineCommand, option } from "@bunli/core";
 import { z } from "zod";
 
-import { explainTool } from "../core/explain.js";
+import { explainPassthrough, explainTool } from "../core/explain.js";
+import { isPassthrough } from "../core/resolution.js";
 import { loadRuntime, resolveExecutable } from "../core/runtime.js";
 import { printJson, requirePositional } from "./shared.js";
 import { keyValue, section, statusGlyph, tidyPath } from "./ui.js";
@@ -33,13 +34,26 @@ const explainCommand = defineCommand({
       profile?.executable,
     );
     const shim = `${runtime.idealityHome}/bin/${tool}`;
-    const explanation = await explainTool(runtime.config, runtime.resolved, {
-      tool,
-      executable,
-      home: runtime.home,
-      idealityHome: runtime.idealityHome,
-      intercepted: await Bun.file(shim).exists(),
-    });
+    const passthrough = isPassthrough(
+      runtime.config,
+      runtime.resolved,
+      flags.identity,
+    );
+    const explanation = passthrough
+      ? explainPassthrough(runtime.config, runtime.resolved.path, {
+          tool,
+          executable,
+          home: runtime.home,
+          idealityHome: runtime.idealityHome,
+          intercepted: await Bun.file(shim).exists(),
+        })
+      : await explainTool(runtime.config, runtime.resolved, {
+          tool,
+          executable,
+          home: runtime.home,
+          idealityHome: runtime.idealityHome,
+          intercepted: await Bun.file(shim).exists(),
+        });
     if (flags.json) {
       printJson(explanation);
       return;
@@ -53,13 +67,20 @@ const explainCommand = defineCommand({
     );
     console.log(
       keyValue([
-        ["identity", `${explanation.label} (${explanation.identity})`],
+        [
+          "identity",
+          explanation.passthrough
+            ? "passthrough (no identity applies)"
+            : `${explanation.label} (${explanation.identity})`,
+        ],
         ["path", tidyPath(explanation.path)],
         [
           "matched root",
           explanation.matchedRoot
             ? tidyPath(explanation.matchedRoot)
-            : colors.dim("none (default identity)"),
+            : explanation.passthrough
+              ? colors.dim("none (passthrough)")
+              : colors.dim("none (default identity)"),
         ],
         ["shim", tidyPath(explanation.shim)],
         [

@@ -184,9 +184,21 @@ export interface AuditHistoryConfig {
 /** Current registry schema version; bump together with a registered migration step. */
 export const CONFIG_VERSION = 1;
 
+export type UnmatchedBehavior = "passthrough" | "default";
+
+export interface RoutingConfig {
+  /**
+   * What shims do when no bound root contains the current directory.
+   * "passthrough" execs the real binary with the ambient environment;
+   * "default" applies the default identity. Defaults to "passthrough".
+   */
+  unmatched?: UnmatchedBehavior;
+}
+
 export interface IdealityConfig {
   version: typeof CONFIG_VERSION;
   defaultIdentity: string;
+  routing?: RoutingConfig;
   secretBackend?: SecretBackendConfig;
   identities: Record<string, IdentityConfig>;
   tools: Record<string, ToolDefinition>;
