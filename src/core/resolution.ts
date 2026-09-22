@@ -1,6 +1,10 @@
 import path from "node:path";
 
-import type { IdealityConfig, ResolvedIdentity } from "../domain/config.js";
+import type {
+  IdealityConfig,
+  ResolvedIdentity,
+  UnmatchedBehavior,
+} from "../domain/config.js";
 
 export function expandHome(value: string, home: string): string {
   if (value === "~") {
@@ -62,4 +66,24 @@ export function resolveIdentity(
     matchedRoot: null,
     isDefault: true,
   };
+}
+
+/** Behavior for directories no bound root contains. Defaults to passthrough. */
+export function unmatchedMode(config: IdealityConfig): UnmatchedBehavior {
+  return config.routing?.unmatched ?? "passthrough";
+}
+
+/**
+ * True when a folder-based (no --identity override) resolution in an
+ * unmatched directory should bypass Ideality and exec the real binary
+ * with the ambient environment.
+ */
+export function isPassthrough(
+  config: IdealityConfig,
+  resolved: ResolvedIdentity,
+  identityOverride?: string,
+): boolean {
+  if (identityOverride) return false;
+  if (resolved.matchedRoot !== null) return false;
+  return unmatchedMode(config) === "passthrough";
 }

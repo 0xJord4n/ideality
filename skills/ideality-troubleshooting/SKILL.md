@@ -47,7 +47,17 @@ ideality doctor --strict           # git:identity fails while overridden
 ```
 
 `git repair` only unsets repo-scoped author keys; global and system config is
-left untouched.
+left untouched. In passthrough directories (no bound root matches) there is
+no profile to repair toward, so `git repair` is a no-op.
+
+## Commands run without an identity (passthrough)
+
+Outside bound roots, shims exec the real binary with the ambient environment
+by default — this is expected, not a bug. `status`/`explain` say
+`passthrough`, and `env --shell` only unsets leftover identity variables.
+Force an identity with `ideality run --identity <id> -- <tool>`, or set
+`"routing": { "unmatched": "default" }` in `config.jsonc` to apply the
+default identity everywhere as before.
 
 ## Roll back a bad registry change
 

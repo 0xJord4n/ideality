@@ -5,11 +5,12 @@ import { buildEnvironment, type EnvironmentOptions } from "./environment.js";
 import { type ResolvedExecution, resolveExecution } from "./execution.js";
 
 export interface ToolExplanation {
-  identity: string;
+  identity: string | null;
   label: string;
   path: string;
   matchedRoot: string | null;
   fallback: boolean;
+  passthrough: boolean;
   tool: string;
   executable: string | null;
   shim: string;
@@ -51,6 +52,7 @@ export async function explainTool(
     path: resolved.path,
     matchedRoot: resolved.matchedRoot,
     fallback: resolved.matchedRoot === null,
+    passthrough: false,
     tool: options.tool,
     executable: options.executable,
     shim: path.join(idealityHome, "bin", options.tool),
@@ -65,6 +67,42 @@ export async function explainTool(
       source: execution.source,
       vm: execution.vmId,
       network: execution.networkId,
+    },
+  };
+}
+
+/** Explanation for an unmatched directory in passthrough mode. */
+export function explainPassthrough(
+  config: IdealityConfig,
+  candidatePath: string,
+  options: {
+    tool: string;
+    executable: string | null;
+    home: string;
+    idealityHome: string;
+    intercepted?: boolean;
+  },
+): ToolExplanation {
+  return {
+    identity: null,
+    label: "passthrough",
+    path: path.resolve(candidatePath),
+    matchedRoot: null,
+    fallback: false,
+    passthrough: true,
+    tool: options.tool,
+    executable: options.executable,
+    shim: path.join(options.idealityHome, "bin", options.tool),
+    intercepted: options.intercepted ?? true,
+    isolation: config.tools[options.tool]?.isolation ?? "shell",
+    arguments: [],
+    environment: {},
+    unset: [],
+    execution: {
+      target: "host",
+      source: "default",
+      vm: null,
+      network: null,
     },
   };
 }

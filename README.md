@@ -266,6 +266,20 @@ ideality git repair                # clear them so the profile applies
 ideality doctor --strict           # shim-path + git:identity findings
 ```
 
+### Directories without configuration
+
+When no bound root contains the current directory, shims pass through to
+the real binary with your ambient environment instead of applying any
+identity — `status`, `explain`, `env`, and `git status` all report this as
+`passthrough`. Pass `--identity <id>` to force an identity anyway:
+
+```bash
+ideality run --identity aviv -- gh auth status
+```
+
+To restore the previous fallback (apply the default identity everywhere),
+set `"routing": { "unmatched": "default" }` in `config.jsonc`.
+
 ## Project Setup
 
 Run the project wizard anywhere inside a repository:

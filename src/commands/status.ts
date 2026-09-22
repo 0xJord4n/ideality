@@ -4,6 +4,7 @@ import { z } from "zod";
 import { buildEnvironment } from "../core/environment.js";
 import { resolveExecution, summarizeExecution } from "../core/execution.js";
 import { loadActiveNetwork } from "../core/network.js";
+import { isPassthrough } from "../core/resolution.js";
 import { loadRuntime, resolveExecutable } from "../core/runtime.js";
 import { printJson } from "./shared.js";
 import { hintLines, keyValue, statusGlyph, table, tidyPath } from "./ui.js";
@@ -28,6 +29,64 @@ const statusCommand = defineCommand({
   },
   handler: async ({ flags, colors }) => {
     const runtime = await loadRuntime(flags.path, flags.identity);
+    if (isPassthrough(runtime.config, runtime.resolved, flags.identity)) {
+      const tools = Object.keys(runtime.config.tools)
+        .sort()
+        .map((name) => {
+          const executable = resolveExecutable(runtime.config, name, undefined);
+          return {
+            name,
+            enabled: true,
+            installed: Boolean(executable),
+            executable,
+            isolation: runtime.config.tools[name]?.isolation ?? "shell",
+            environment: {},
+            execution: { target: "host" },
+          };
+        });
+      const output = {
+        identity: null,
+        passthrough: true,
+        path: runtime.resolved.path,
+        matchedRoot: null,
+        default: false,
+        git: null,
+        tools,
+        activeNetwork: await loadActiveNetwork(runtime.idealityHome),
+      };
+      if (flags.json) {
+        printJson(output);
+        return;
+      }
+      console.log(
+        `${colors.bold("passthrough")} ${colors.dim("(no bound root matches this directory)")}`,
+      );
+      console.log(
+        keyValue([
+          ["path", tidyPath(output.path)],
+          [
+            "matched root",
+            colors.dim("none (real binaries run with ambient env)"),
+          ],
+        ]),
+      );
+      console.log();
+      console.log(
+        table({
+          head: ["tool", "state", "isolation", "target", "executable"],
+          rows: tools.map((tool) => [
+            tool.name,
+            tool.installed
+              ? statusGlyph("ok", "ready")
+              : statusGlyph("off", "missing"),
+            tool.isolation,
+            tool.execution.target,
+            tool.executable ? tidyPath(tool.executable) : colors.dim("-"),
+          ]),
+        }),
+      );
+      return;
+    }
     const tools = await Promise.all(
       Object.entries(runtime.resolved.identity.tools).map(
         async ([name, profile]) => {
