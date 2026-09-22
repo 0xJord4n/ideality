@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. Release Please updates this file
 from Conventional Commit messages when it prepares a release pull request.
 
+## [0.5.0](https://github.com/0xJord4n/ideality/compare/v0.4.0...v0.5.0) (2026-09-22)
+
+
+### Features
+
+* refresh integrations automatically after ideality update ([#32](https://github.com/0xJord4n/ideality/issues/32)) ([cbb7e85](https://github.com/0xJord4n/ideality/commit/cbb7e851939c45fc1dcd4bc22f266d4d6b4e3d8c))
+
 ## [0.4.0](https://github.com/0xJord4n/ideality/compare/v0.3.0...v0.4.0) (2026-09-22)
 
 
