@@ -11,6 +11,8 @@ import { runUpdate } from "../core/update.js";
 import type { UpdateResult } from "../core/update.js";
 import type { IdealityConfig } from "../domain/config.js";
 import { VERSION } from "../version.js";
+import type { SupportedShell } from "../integrations/shell.js";
+import { detectedShell, enableIntegrations } from "./integration-lifecycle.js";
 
 interface UpdateAuditContext {
   config: IdealityConfig;
@@ -28,6 +30,25 @@ async function captureUpdateAuditContext(): Promise<UpdateAuditContext | null> {
   } catch {
     return null;
   }
+}
+
+/** Re-run the equivalent of `ideality install` after a binary swap. */
+export async function refreshIntegrationsAfterUpdate(
+  colors: {
+    green(value: string): string;
+  },
+  options: { shell?: SupportedShell; rc?: string } = {},
+): Promise<void> {
+  await enableIntegrations(
+    {
+      shell: options.shell ?? detectedShell(),
+      rc: options.rc,
+      "no-shell": false,
+      "no-git": false,
+      "dry-run": false,
+    },
+    colors,
+  );
 }
 
 export async function recordUpdateAuditResult(
@@ -74,6 +95,10 @@ const updateCommand = defineCommand({
       description:
         "Override the release artifact base URL (used for offline rehearsals)",
     }),
+    "no-refresh": option(z.boolean().default(false), {
+      description: "Skip refreshing shell and Git integrations after update",
+      argumentKind: "flag",
+    }),
   },
   handler: async ({ flags, colors }) => {
     const auditContext = await captureUpdateAuditContext();
@@ -119,6 +144,17 @@ const updateCommand = defineCommand({
     if (result.configSnapshot) {
       console.log(`Registry snapshot: ${result.configSnapshot}`);
     }
+    if (flags["no-refresh"]) {
+      console.log("Integration refresh skipped (--no-refresh).");
+      return;
+    }
+    await refreshIntegrationsAfterUpdate(colors);
+    console.log(
+      colors.green(
+        "Integrations refreshed (shell hook, shims, completions, Git include).",
+      ),
+    );
+    console.log(`Reload your shell to activate them: exec "$SHELL" -l`);
   },
 });
 
