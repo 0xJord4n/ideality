@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. Release Please updates this file
 from Conventional Commit messages when it prepares a release pull request.
 
+## [0.4.0](https://github.com/0xJord4n/ideality/compare/v0.3.0...v0.4.0) (2026-09-22)
+
+
+### Features
+
+* passthrough to real binaries in directories without configuration ([#30](https://github.com/0xJord4n/ideality/issues/30)) ([21aa64a](https://github.com/0xJord4n/ideality/commit/21aa64a22a3823f832fae3ceaf5bd6838ceb60a8))
+
 ## [0.3.0](https://github.com/0xJord4n/ideality/compare/v0.2.5...v0.3.0) (2026-09-21)
 
 
