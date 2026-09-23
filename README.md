@@ -274,7 +274,7 @@ identity — `status`, `explain`, `env`, and `git status` all report this as
 `passthrough`. Pass `--identity <id>` to force an identity anyway:
 
 ```bash
-ideality run --identity aviv -- gh auth status
+ideality run --identity work -- gh auth status
 ```
 
 To restore the previous fallback (apply the default identity everywhere),
