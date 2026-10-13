@@ -3,6 +3,13 @@
 All notable changes to this project are documented here. Release Please updates this file
 from Conventional Commit messages when it prepares a release pull request.
 
+## [0.5.1](https://github.com/0xJord4n/ideality/compare/v0.5.0...v0.5.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* stop validating wrapped tool flags after -- in run ([2418368](https://github.com/0xJord4n/ideality/commit/2418368c7969f2d82735d17b859fbc629467910d))
+
 ## [0.5.0](https://github.com/0xJord4n/ideality/compare/v0.4.0...v0.5.0) (2026-09-22)
 
 
