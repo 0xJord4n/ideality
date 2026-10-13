@@ -6,6 +6,7 @@ import { resolve } from "node:path";
 
 import {
   commandsForInvocation,
+  dispatchArgvForRun,
   IDEALITY_COMMAND_REGISTRY,
   type LazyCommandRegistration,
 } from "../src/command-registry.js";
@@ -95,6 +96,18 @@ describe("commandsForInvocation", () => {
     expect(loaded).toEqual([]);
   });
 
+  test("ignores framework flags after the passthrough separator", async () => {
+    const { loaded, registry } = registrations();
+
+    const commands = await commandsForInvocation(
+      ["status", "--", "--version"],
+      registry,
+    );
+
+    expect(commands.map((command) => command.name)).toEqual(["status"]);
+    expect(loaded).toEqual(["status"]);
+  });
+
   test("keeps lightweight metadata aligned with command modules", async () => {
     for (const registration of IDEALITY_COMMAND_REGISTRY) {
       const command = await registration.load();
@@ -111,6 +124,37 @@ describe("commandsForInvocation", () => {
             : (command.alias ?? []),
       });
     }
+  });
+});
+
+describe("dispatchArgvForRun", () => {
+  test("drops the passthrough tail but keeps the separator", () => {
+    expect(
+      dispatchArgvForRun([
+        "run",
+        "-C",
+        "/tmp/project",
+        "probe",
+        "--",
+        "--format",
+        "table",
+      ]),
+    ).toEqual(["run", "-C", "/tmp/project", "probe", "--"]);
+  });
+
+  test("leaves invocations without a separator untouched", () => {
+    expect(dispatchArgvForRun(["run", "probe", "--format", "table"])).toEqual([
+      "run",
+      "probe",
+      "--format",
+      "table",
+    ]);
+  });
+
+  test("keeps framework flags placed before the separator", () => {
+    expect(
+      dispatchArgvForRun(["--format", "json", "run", "probe", "--", "--json"]),
+    ).toEqual(["--format", "json", "run", "probe", "--"]);
   });
 });
 

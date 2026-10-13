@@ -53,7 +53,7 @@ async function setup(overrides?: Partial<IdealityConfig>): Promise<CliContext> {
   );
   await writeFile(
     path.join(bin, "probe"),
-    `#!/bin/sh\necho "AMBIENT=\${PROBE_MARKER:-missing}"\necho "IDENTITY=\${IDEALITY_IDENTITY:-none}"\n`,
+    `#!/bin/sh\necho "AMBIENT=\${PROBE_MARKER:-missing}"\necho "IDENTITY=\${IDEALITY_IDENTITY:-none}"\necho "ARGS=$*"\n`,
     { mode: 0o755 },
   );
   return { home, idealityHome, configPath, project, elsewhere, bin };
@@ -185,5 +185,60 @@ describe("unmatched directory passthrough", () => {
     expect(output.passthrough).toBe(true);
     expect(output.identity).toBeNull();
     expect(output.executable).toBe(path.join(context.bin, "probe"));
+  });
+
+  test("run forwards colliding tool flags after -- without validating them", async () => {
+    const context = await setup();
+    const result = runCli(
+      context,
+      [
+        "run",
+        "-C",
+        context.elsewhere,
+        "probe",
+        "--",
+        "--format",
+        "table",
+        "--identity",
+        "work",
+      ],
+      { PROBE_MARKER: "hello" },
+    );
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("ARGS=--format table --identity work");
+  });
+
+  test("run applies the identity while forwarding colliding flags after --", async () => {
+    const context = await setup();
+    const result = runCli(
+      context,
+      ["run", "-C", context.project, "probe", "--", "--format", "table"],
+      { PROBE_MARKER: "hello" },
+    );
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("IDENTITY=work");
+    expect(result.stdout).toContain("ARGS=--format table");
+  });
+
+  test("run forwards valid-looking format values to the tool untouched", async () => {
+    const context = await setup();
+    const result = runCli(
+      context,
+      ["run", "-C", context.elsewhere, "probe", "--", "--format", "json"],
+      { PROBE_MARKER: "hello" },
+    );
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("ARGS=--format json");
+  });
+
+  test("run forwards framework-like tool flags after -- to the tool", async () => {
+    const context = await setup();
+    const result = runCli(
+      context,
+      ["run", "-C", context.elsewhere, "probe", "--", "--version"],
+      { PROBE_MARKER: "hello" },
+    );
+    expect(result.exitCode).toBe(0);
+    expect(result.stdout).toContain("ARGS=--version");
   });
 });

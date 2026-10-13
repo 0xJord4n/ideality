@@ -182,3 +182,21 @@ export async function commandsForInvocation(
   );
   return selected ? [await selected.load()] : metadataCommands(registry);
 }
+
+/**
+ * Argv for the framework dispatcher when the selected command is `run`.
+ *
+ * `run` executes foreign argv: everything after `--` belongs verbatim to
+ * the wrapped tool (`commandArguments` in commands/shared.ts reads those
+ * args from the raw process argv). The framework re-parses the
+ * post-separator tail against this CLI's options, so a tool flag that
+ * collides with a known option name (e.g. `--format <value>` against the
+ * global output-format enum) is rejected before the handler ever runs.
+ * Drop the passthrough tail from what the parser sees; the handler still
+ * receives it untouched. Invocations without `--` pass through unchanged.
+ */
+export function dispatchArgvForRun(argv: readonly string[]): string[] {
+  const separator = argv.indexOf("--");
+  if (separator < 0) return [...argv];
+  return [...argv.slice(0, separator + 1)];
+}

@@ -34,6 +34,18 @@ of `PATH` on every prompt (re-sourcing the hook converges a stale PATH).
 - Re-run `ideality install` after enabling new tools (`--dry-run` to preview).
 - Bun is intentionally never shimmed — use `ideality run bun -- <args>`.
 
+## Tool flags rejected with `BunliValidationError`
+
+Everything after `--` belongs verbatim to the wrapped tool and is never
+validated against ideality's options — keep the separator. Without it, a
+tool flag that shares a name with an ideality option (e.g. a tool's
+`--format <value>`) is parsed as ideality's flag and rejected:
+
+```bash
+ideality run gh -- pr list --format table    # tool receives --format table
+ideality run gh pr list --format table       # fails: parsed as ideality's --format
+```
+
 ## Effective Git author is wrong
 
 Repo-local `user.name`/`user.email` in `.git/config` beats the global
